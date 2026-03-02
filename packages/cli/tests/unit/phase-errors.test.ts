@@ -74,28 +74,28 @@ afterEach(() => {
 // ─── phaseAddCore ───────────────────────────────────────────────────────────
 
 describe('phaseAddCore', () => {
-  it('throws when ROADMAP.md does not exist', () => {
+  it('throws when ROADMAP.md does not exist', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd); // no roadmap
-    expect(() => phaseAddCore(cwd, 'New Phase')).toThrow('ROADMAP.md not found');
+    await expect(phaseAddCore(cwd, 'New Phase')).rejects.toThrow('ROADMAP.md not found');
   });
 
-  it('succeeds with an empty description (creates phase with empty slug)', () => {
+  it('succeeds with an empty description (creates phase with empty slug)', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '# Roadmap\n\n### Phase 1: Foundation\n\n**Goal:** Build core\n',
     });
-    const result = phaseAddCore(cwd, '');
+    const result = await phaseAddCore(cwd, '');
     expect(result.phase_number).toBe(2);
     expect(result.description).toBe('');
   });
 
-  it('appends phase after the last existing phase', () => {
+  it('appends phase after the last existing phase', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '# Roadmap\n\n### Phase 1: Foundation\n\n**Goal:** Build core\n\n### Phase 2: Integration\n\n**Goal:** Wire up\n',
     });
-    const result = phaseAddCore(cwd, 'Testing');
+    const result = await phaseAddCore(cwd, 'Testing');
     expect(result.phase_number).toBe(3);
     expect(result.description).toBe('Testing');
   });
@@ -104,29 +104,29 @@ describe('phaseAddCore', () => {
 // ─── phaseInsertCore ────────────────────────────────────────────────────────
 
 describe('phaseInsertCore', () => {
-  it('throws when ROADMAP.md does not exist', () => {
+  it('throws when ROADMAP.md does not exist', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd); // no roadmap
-    expect(() => phaseInsertCore(cwd, '01', 'Urgent fix')).toThrow('ROADMAP.md not found');
+    await expect(phaseInsertCore(cwd, '01', 'Urgent fix')).rejects.toThrow('ROADMAP.md not found');
   });
 
-  it('throws when target phase number is not found in ROADMAP.md', () => {
+  it('throws when target phase number is not found in ROADMAP.md', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '### Phase 1: Foundation\n\n**Goal:** Build core\n',
     });
-    expect(() => phaseInsertCore(cwd, '99', 'Urgent fix')).toThrow(
+    await expect(phaseInsertCore(cwd, '99', 'Urgent fix')).rejects.toThrow(
       'Phase 99 not found in ROADMAP.md',
     );
   });
 
-  it('succeeds when inserting after an existing phase', () => {
+  it('succeeds when inserting after an existing phase', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '01-Foundation': ['.gitkeep'] },
     });
-    const result = phaseInsertCore(cwd, '1', 'Hotfix');
+    const result = await phaseInsertCore(cwd, '1', 'Hotfix');
     expect(result.phase_number).toBe('01.1');
     expect(result.after_phase).toBe('1');
   });
@@ -135,37 +135,37 @@ describe('phaseInsertCore', () => {
 // ─── phaseCompleteCore ──────────────────────────────────────────────────────
 
 describe('phaseCompleteCore', () => {
-  it('throws when phase directory does not exist (phase not found)', () => {
+  it('throws when phase directory does not exist (phase not found)', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '# Roadmap\n\n### Phase 1: Foundation\n\n**Goal:** Build core\n',
     });
-    expect(() => phaseCompleteCore(cwd, '99')).toThrow('Phase 99 not found');
+    await expect(phaseCompleteCore(cwd, '99')).rejects.toThrow('Phase 99 not found');
   });
 
-  it('proceeds when ROADMAP.md has no matching phase (roadmap regex is a no-op)', () => {
+  it('proceeds when ROADMAP.md has no matching phase (roadmap regex is a no-op)', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '# Roadmap\n\n### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '05-Missing': ['05-01-PLAN.md'] },
     });
-    const result = phaseCompleteCore(cwd, '05');
+    const result = await phaseCompleteCore(cwd, '05');
     expect(result.completed_phase).toBe('05');
     expect(result.roadmap_updated).toBe(true);
   });
 
-  it('completes successfully without STATE.md (state_updated = false)', () => {
+  it('completes successfully without STATE.md (state_updated = false)', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '# Roadmap\n\n### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '01-Foundation': ['.gitkeep', '01-01-PLAN.md'] },
     });
-    const result = phaseCompleteCore(cwd, '01');
+    const result = await phaseCompleteCore(cwd, '01');
     expect(result.completed_phase).toBe('01');
     expect(result.state_updated).toBe(false);
   });
 
-  it('updates STATE.md when it exists', () => {
+  it('updates STATE.md when it exists', async () => {
     const cwd = makeTempDir();
     const stateContent = [
       '# State',
@@ -185,19 +185,19 @@ describe('phaseCompleteCore', () => {
         '02-Integration': ['.gitkeep'],
       },
     });
-    const result = phaseCompleteCore(cwd, '01');
+    const result = await phaseCompleteCore(cwd, '01');
     expect(result.state_updated).toBe(true);
     expect(result.next_phase).toBe('02');
     expect(result.is_last_phase).toBe(false);
   });
 
-  it('marks is_last_phase when no subsequent phase exists', () => {
+  it('marks is_last_phase when no subsequent phase exists', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '# Roadmap\n\n### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '01-Foundation': ['.gitkeep', '01-01-PLAN.md'] },
     });
-    const result = phaseCompleteCore(cwd, '01');
+    const result = await phaseCompleteCore(cwd, '01');
     expect(result.is_last_phase).toBe(true);
     expect(result.next_phase).toBeNull();
   });
@@ -206,21 +206,21 @@ describe('phaseCompleteCore', () => {
 // ─── cmdPhaseRemove ─────────────────────────────────────────────────────────
 
 describe('cmdPhaseRemove', () => {
-  it('returns error CmdResult when ROADMAP.md does not exist', () => {
+  it('returns error CmdResult when ROADMAP.md does not exist', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd); // no roadmap
-    const result = cmdPhaseRemove(cwd, '01', { force: false });
+    const result = await cmdPhaseRemove(cwd, '01', { force: false });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain('ROADMAP.md not found');
   });
 
-  it('succeeds when target phase directory does not exist (removes from roadmap only)', () => {
+  it('succeeds when target phase directory does not exist (removes from roadmap only)', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '### Phase 1: Foundation\n\n**Goal:** Build core\n\n### Phase 2: Integration\n\n**Goal:** Wire up\n',
       phases: { '01-Foundation': ['.gitkeep'] },
     });
-    const result = cmdPhaseRemove(cwd, '2', { force: false });
+    const result = await cmdPhaseRemove(cwd, '2', { force: false });
     expect(result.ok).toBe(true);
     if (result.ok) {
       const data = result.result as Record<string, unknown>;
@@ -229,26 +229,26 @@ describe('cmdPhaseRemove', () => {
     }
   });
 
-  it('removes a phase with its directory when force is true', () => {
+  it('removes a phase with its directory when force is true', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '01-Foundation': ['.gitkeep', '01-01-PLAN.md', '01-01-SUMMARY.md'] },
     });
-    const result = cmdPhaseRemove(cwd, '1', { force: true });
+    const result = await cmdPhaseRemove(cwd, '1', { force: true });
     expect(result.ok).toBe(true);
     expect(
       fs.existsSync(path.join(cwd, '.planning', 'phases', '01-Foundation')),
     ).toBe(false);
   });
 
-  it('returns error CmdResult when phase has summaries and force is false', () => {
+  it('returns error CmdResult when phase has summaries and force is false', async () => {
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '01-Foundation': ['.gitkeep', '01-01-PLAN.md', '01-01-SUMMARY.md'] },
     });
-    const result = cmdPhaseRemove(cwd, '1', { force: false });
+    const result = await cmdPhaseRemove(cwd, '1', { force: false });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain('executed plan(s)');
   });
