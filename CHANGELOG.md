@@ -1,3 +1,11 @@
+## [4.0.2](https://github.com/maystudios/maxsimcli/compare/v4.0.1...v4.0.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* **skills:** rewrite systematic-debugging skill to Anthropic quality standard ([2557563](https://github.com/maystudios/maxsimcli/commit/2557563b750eebbdb527b82b0fe8906abae17cfd))
+* **skills:** rewrite verification-before-completion skill to Anthropic quality standard ([9987be6](https://github.com/maystudios/maxsimcli/commit/9987be6845f595fb5ab5ca00cf1a0d5aef513c0e))
+
 ## [4.0.1](https://github.com/maystudios/maxsimcli/compare/v4.0.0...v4.0.1) (2026-03-02)
 
 
