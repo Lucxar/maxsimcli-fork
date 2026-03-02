@@ -966,6 +966,24 @@ app.get('/api/server-info', (_req: Request, res: Response) => {
   });
 });
 
+// ── Running dashboards (project switcher) ──
+app.get('/api/dashboards', async (_req: Request, res: Response) => {
+  try {
+    const running = await listRunningDashboards();
+    const dashboards = running.map(d => ({
+      port: d.port,
+      cwd: d.cwd,
+      projectName: path.basename(d.cwd),
+      uptime: d.uptime,
+      isCurrent: d.port === resolvedPort,
+    }));
+    return res.json({ dashboards });
+  } catch (err) {
+    log('ERROR', 'api', 'Failed to list dashboards:', err);
+    return res.status(500).json({ error: 'Failed to list running dashboards' });
+  }
+});
+
 // ── Shutdown ──
 // Resolved in main() and exposed here so the endpoint can call it
 let shutdownFn: (() => void) | null = null;

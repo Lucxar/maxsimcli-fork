@@ -2,21 +2,9 @@ import { useState, useEffect } from "react";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useWebSocket } from "@/components/providers/websocket-provider";
 import { NetworkQRButton } from "@/components/network/NetworkQRButton";
+import { ProjectSwitcher } from "@/components/layout/ProjectSwitcher";
 import { cn } from "@/lib/utils";
 import type { DashboardPhase } from "@/lib/types";
-
-function useProjectName(): string | null {
-  const [name, setName] = useState<string | null>(null);
-  useEffect(() => {
-    fetch("/api/server-info")
-      .then((r) => r.json())
-      .then((data: { projectName?: string }) => {
-        if (data.projectName) setName(data.projectName);
-      })
-      .catch(() => {});
-  }, []);
-  return name;
-}
 
 type ActiveView = "overview" | "phase" | "todos" | "blockers" | "discussion";
 
@@ -46,7 +34,6 @@ function statusDotClass(status: DashboardPhase["diskStatus"]): string {
 export function Sidebar({ activeView, activePhaseId, onNavigate, terminalOpen, onTerminalToggle }: SidebarProps) {
   const { roadmap, state, todos } = useDashboardData();
   const { connected, pendingQuestionCount } = useWebSocket();
-  const projectName = useProjectName();
   const [confirmShutdown, setConfirmShutdown] = useState(false);
 
   useEffect(() => {
@@ -96,9 +83,7 @@ export function Sidebar({ activeView, activePhaseId, onNavigate, terminalOpen, o
           <span className="text-sm font-bold tracking-tight text-foreground">
             MAXSIM
           </span>
-          <span className="text-xs text-muted-foreground truncate max-w-[160px]" title={projectName ?? "Dashboard"}>
-            {projectName ?? "Dashboard"}
-          </span>
+          <ProjectSwitcher />
         </button>
       </div>
 
