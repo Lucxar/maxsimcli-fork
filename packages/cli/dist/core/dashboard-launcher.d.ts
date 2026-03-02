@@ -5,7 +5,7 @@
  */
 export declare const DEFAULT_PORT = 3333;
 export declare const PORT_RANGE_END = 3343;
-export declare const HEALTH_TIMEOUT_MS = 1500;
+export declare const HEALTH_TIMEOUT_MS = 10000;
 /**
  * Check if a dashboard health endpoint is responding on the given port.
  */

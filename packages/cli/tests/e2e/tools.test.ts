@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { inject } from 'vitest';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createMockProject, type MockProject } from './fixtures/mock-project.js';
 
 // Helper: run maxsim-tools command against a project directory
@@ -144,5 +144,122 @@ describe('TOOL-05: validate and milestone commands', () => {
     expect(result.exitCode).toBe(0);
     const data = JSON.parse(result.stdout);
     expect(['ok', 'degraded', 'error']).toContain(data.status);
+  });
+});
+
+describe('TOOL-06: full phase lifecycle workflow', () => {
+  let mock: MockProject;
+  beforeEach(() => { mock = createMockProject(); });
+  afterEach(() => { mock.cleanup(); });
+
+  it('add phase → verify in roadmap → complete → verify state updated', () => {
+    // Step 1: Add a new phase
+    const addResult = runTool('phase add "E2E Lifecycle Test"', mock.dir);
+    expect(addResult.exitCode).toBe(0);
+    const addData = JSON.parse(addResult.stdout);
+    const phaseNum = addData.padded;
+
+    // Step 2: Verify the new phase appears in roadmap analysis
+    const roadmapResult = runTool('roadmap analyze', mock.dir);
+    expect(roadmapResult.exitCode).toBe(0);
+    const roadmapData = JSON.parse(roadmapResult.stdout);
+    const phaseNames = roadmapData.phases.map((p: { name: string }) => p.name);
+    expect(phaseNames).toContain('E2E Lifecycle Test');
+
+    // Step 3: Verify the phase directory was created
+    const listResult = runTool('phases list', mock.dir);
+    expect(listResult.exitCode).toBe(0);
+    const listData = JSON.parse(listResult.stdout);
+    const dirNames = listData.directories.map((d: string) => d.toLowerCase());
+    expect(dirNames.some((d: string) => d.includes('lifecycle'))).toBe(true);
+
+    // Step 4: Complete the original phase 01
+    const completeResult = runTool('phase complete 01', mock.dir);
+    expect(completeResult.exitCode).toBe(0);
+
+    // Step 5: Verify state reflects the completion
+    const stateResult = runTool('state', mock.dir);
+    expect(stateResult.exitCode).toBe(0);
+    const stateData = JSON.parse(stateResult.stdout);
+    expect(stateData.state_exists).toBe(true);
+  });
+});
+
+describe('TOOL-07: todo lifecycle workflow', () => {
+  let mock: MockProject;
+  beforeEach(() => { mock = createMockProject(); });
+  afterEach(() => { mock.cleanup(); });
+
+  it('list → complete → verify moved to completed/', () => {
+    // Step 1: List pending todos — should have 1
+    const listResult = runTool('list-todos', mock.dir);
+    expect(listResult.exitCode).toBe(0);
+    const listData = JSON.parse(listResult.stdout);
+    expect(listData.count).toBe(1);
+    expect(listData.todos[0].file).toBe('todo-001-test-task.md');
+
+    // Step 2: Complete the todo
+    const completeResult = runTool('todo complete todo-001-test-task.md', mock.dir);
+    expect(completeResult.exitCode).toBe(0);
+
+    // Step 3: Verify it moved to completed/
+    const completedPath = join(mock.dir, '.planning', 'todos', 'completed', 'todo-001-test-task.md');
+    expect(existsSync(completedPath)).toBe(true);
+
+    // Step 4: Verify pending is now empty
+    const pendingPath = join(mock.dir, '.planning', 'todos', 'pending', 'todo-001-test-task.md');
+    expect(existsSync(pendingPath)).toBe(false);
+
+    // Step 5: List again — should be 0 pending
+    const listAgain = runTool('list-todos', mock.dir);
+    expect(listAgain.exitCode).toBe(0);
+    const listAgainData = JSON.parse(listAgain.stdout);
+    expect(listAgainData.count).toBe(0);
+  });
+});
+
+describe('TOOL-08: state decision and blocker accumulation', () => {
+  let mock: MockProject;
+  beforeEach(() => { mock = createMockProject(); });
+  afterEach(() => { mock.cleanup(); });
+
+  it('adds multiple decisions and blockers, then reads them all back', () => {
+    // Add 2 decisions
+    runTool('state add-decision --phase 01 --summary "First decision" --rationale "Reason A"', mock.dir);
+    runTool('state add-decision --phase 02 --summary "Second decision" --rationale "Reason B"', mock.dir);
+
+    // Add a blocker
+    runTool('state add-blocker --text "Blocking issue found"', mock.dir);
+
+    // Read state and verify all accumulated
+    const stateResult = runTool('state', mock.dir);
+    expect(stateResult.exitCode).toBe(0);
+
+    // Verify the STATE.md file on disk contains our additions
+    const statePath = join(mock.dir, '.planning', 'STATE.md');
+    const stateContent = readFileSync(statePath, 'utf-8');
+    expect(stateContent).toContain('First decision');
+    expect(stateContent).toContain('Second decision');
+    expect(stateContent).toContain('Blocking issue found');
+  });
+});
+
+describe('TOOL-09: health check on degraded project', () => {
+  let mock: MockProject;
+  beforeEach(() => { mock = createMockProject(); });
+  afterEach(() => { mock.cleanup(); });
+
+  it('reports degraded when key files are missing', () => {
+    // Remove PROJECT.md to simulate degraded state
+    const projectPath = join(mock.dir, '.planning', 'PROJECT.md');
+    if (existsSync(projectPath)) {
+      require('node:fs').unlinkSync(projectPath);
+    }
+
+    const result = runTool('validate health', mock.dir);
+    expect(result.exitCode).toBe(0);
+    const data = JSON.parse(result.stdout);
+    // Should be degraded or error — not ok
+    expect(data.status).not.toBe('ok');
   });
 });

@@ -44,6 +44,19 @@ node_tty = __toESM(node_tty);
 let node_module = require("node:module");
 
 //#region src/core/types.ts
+function cmdOk(result, rawValue) {
+	return {
+		ok: true,
+		result,
+		rawValue
+	};
+}
+function cmdErr(error) {
+	return {
+		ok: false,
+		error
+	};
+}
 const PLANNING_CONFIG_DEFAULTS = {
 	model_profile: "balanced",
 	commit_docs: true,
@@ -59,22 +72,9 @@ const PLANNING_CONFIG_DEFAULTS = {
 	parallelization: true,
 	brave_search: false
 };
-function cmdOk(result, rawValue) {
-	return {
-		ok: true,
-		result,
-		rawValue
-	};
-}
-function cmdErr(error) {
-	return {
-		ok: false,
-		error
-	};
-}
 
 //#endregion
-//#region ../../../../../node_modules/ms/index.js
+//#region ../../node_modules/ms/index.js
 var require_ms = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* Helpers.
@@ -193,7 +193,7 @@ var require_ms = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/debug/src/common.js
+//#region ../../node_modules/debug/src/common.js
 var require_common = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* This is the common logic for both the Node.js and web browser
@@ -396,7 +396,7 @@ var require_common = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/debug/src/browser.js
+//#region ../../node_modules/debug/src/browser.js
 var require_browser = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* This is the web browser implementation of `debug()`.
@@ -593,7 +593,7 @@ var require_browser = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/has-flag/index.js
+//#region ../../node_modules/has-flag/index.js
 var require_has_flag = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = (flag, argv = process.argv) => {
 		const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
@@ -604,7 +604,7 @@ var require_has_flag = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/supports-color/index.js
+//#region ../../node_modules/supports-color/index.js
 var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const os$5 = require("os");
 	const tty$2 = require("tty");
@@ -673,7 +673,7 @@ var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 }));
 
 //#endregion
-//#region ../../../../../node_modules/debug/src/node.js
+//#region ../../node_modules/debug/src/node.js
 var require_node = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* Module dependencies.
@@ -881,7 +881,7 @@ var require_node = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/debug/src/index.js
+//#region ../../node_modules/debug/src/index.js
 var require_src$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* Detect Electron renderer / nwjs process, which is node, but we should
@@ -892,7 +892,7 @@ var require_src$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/@kwsites/file-exists/dist/src/index.js
+//#region ../../node_modules/@kwsites/file-exists/dist/src/index.js
 var require_src = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var __importDefault = exports && exports.__importDefault || function(mod) {
 		return mod && mod.__esModule ? mod : { "default": mod };
@@ -948,7 +948,7 @@ var require_src = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/@kwsites/file-exists/dist/index.js
+//#region ../../node_modules/@kwsites/file-exists/dist/index.js
 var require_dist$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function __export(m) {
 		for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
@@ -958,7 +958,7 @@ var require_dist$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/@kwsites/promise-deferred/dist/index.js
+//#region ../../node_modules/@kwsites/promise-deferred/dist/index.js
 var require_dist$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.createDeferred = exports.deferred = void 0;
@@ -1011,7 +1011,7 @@ var require_dist$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/simple-git/dist/esm/index.js
+//#region ../../node_modules/simple-git/dist/esm/index.js
 var import_dist$1 = require_dist$2();
 var import_src = /* @__PURE__ */ __toESM(require_src$1(), 1);
 var import_dist$2 = require_dist$1();
@@ -4610,7 +4610,7 @@ init_git_response_error();
 var simpleGit = gitInstanceFactory;
 
 //#endregion
-//#region ../../../../../node_modules/slugify/slugify.js
+//#region ../../node_modules/slugify/slugify.js
 var require_slugify = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	(function(name, root, factory) {
 		if (typeof exports === "object") {
@@ -5154,7 +5154,7 @@ function getMilestoneInfo(cwd) {
 }
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/identity.js
+//#region ../../node_modules/yaml/dist/nodes/identity.js
 var require_identity = /* @__PURE__ */ __commonJSMin(((exports) => {
 	const ALIAS = Symbol.for("yaml.alias");
 	const DOC = Symbol.for("yaml.document");
@@ -5205,7 +5205,7 @@ var require_identity = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/visit.js
+//#region ../../node_modules/yaml/dist/visit.js
 var require_visit = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	const BREAK = Symbol("break visit");
@@ -5396,7 +5396,7 @@ var require_visit = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/doc/directives.js
+//#region ../../node_modules/yaml/dist/doc/directives.js
 var require_directives = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var visit = require_visit();
@@ -5562,7 +5562,7 @@ var require_directives = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/doc/anchors.js
+//#region ../../node_modules/yaml/dist/doc/anchors.js
 var require_anchors = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var visit = require_visit();
@@ -5625,7 +5625,7 @@ var require_anchors = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/doc/applyReviver.js
+//#region ../../node_modules/yaml/dist/doc/applyReviver.js
 var require_applyReviver = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Applies the JSON.parse reviver algorithm as defined in the ECMA-262 spec,
@@ -5666,7 +5666,7 @@ var require_applyReviver = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/toJS.js
+//#region ../../node_modules/yaml/dist/nodes/toJS.js
 var require_toJS = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	/**
@@ -5704,7 +5704,7 @@ var require_toJS = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/Node.js
+//#region ../../node_modules/yaml/dist/nodes/Node.js
 var require_Node = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var applyReviver = require_applyReviver();
 	var identity = require_identity();
@@ -5739,7 +5739,7 @@ var require_Node = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/Alias.js
+//#region ../../node_modules/yaml/dist/nodes/Alias.js
 var require_Alias = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var anchors = require_anchors();
 	var visit = require_visit();
@@ -5833,7 +5833,7 @@ var require_Alias = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/Scalar.js
+//#region ../../node_modules/yaml/dist/nodes/Scalar.js
 var require_Scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Node = require_Node();
@@ -5861,7 +5861,7 @@ var require_Scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/doc/createNode.js
+//#region ../../node_modules/yaml/dist/doc/createNode.js
 var require_createNode = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Alias = require_Alias();
 	var identity = require_identity();
@@ -5925,7 +5925,7 @@ var require_createNode = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/Collection.js
+//#region ../../node_modules/yaml/dist/nodes/Collection.js
 var require_Collection = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var createNode = require_createNode();
 	var identity = require_identity();
@@ -6047,7 +6047,7 @@ var require_Collection = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringifyComment.js
+//#region ../../node_modules/yaml/dist/stringify/stringifyComment.js
 var require_stringifyComment = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Stringifies a comment.
@@ -6068,7 +6068,7 @@ var require_stringifyComment = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/foldFlowLines.js
+//#region ../../node_modules/yaml/dist/stringify/foldFlowLines.js
 var require_foldFlowLines = /* @__PURE__ */ __commonJSMin(((exports) => {
 	const FOLD_FLOW = "flow";
 	const FOLD_BLOCK = "block";
@@ -6185,7 +6185,7 @@ var require_foldFlowLines = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringifyString.js
+//#region ../../node_modules/yaml/dist/stringify/stringifyString.js
 var require_stringifyString = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	var foldFlowLines = require_foldFlowLines();
@@ -6410,7 +6410,7 @@ var require_stringifyString = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringify.js
+//#region ../../node_modules/yaml/dist/stringify/stringify.js
 var require_stringify = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var anchors = require_anchors();
 	var identity = require_identity();
@@ -6518,7 +6518,7 @@ var require_stringify = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringifyPair.js
+//#region ../../node_modules/yaml/dist/stringify/stringifyPair.js
 var require_stringifyPair = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Scalar = require_Scalar();
@@ -6616,7 +6616,7 @@ var require_stringifyPair = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/log.js
+//#region ../../node_modules/yaml/dist/log.js
 var require_log = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var node_process$3 = require("process");
 	function debug(logLevel, ...messages) {
@@ -6631,7 +6631,7 @@ var require_log = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/merge.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/merge.js
 var require_merge = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Scalar = require_Scalar();
@@ -6672,7 +6672,7 @@ var require_merge = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/addPairToJSMap.js
+//#region ../../node_modules/yaml/dist/nodes/addPairToJSMap.js
 var require_addPairToJSMap = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var log = require_log();
 	var merge = require_merge();
@@ -6724,7 +6724,7 @@ var require_addPairToJSMap = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/Pair.js
+//#region ../../node_modules/yaml/dist/nodes/Pair.js
 var require_Pair = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var createNode = require_createNode();
 	var stringifyPair = require_stringifyPair();
@@ -6758,7 +6758,7 @@ var require_Pair = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringifyCollection.js
+//#region ../../node_modules/yaml/dist/stringify/stringifyCollection.js
 var require_stringifyCollection = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var stringify = require_stringify();
@@ -6873,7 +6873,7 @@ var require_stringifyCollection = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/YAMLMap.js
+//#region ../../node_modules/yaml/dist/nodes/YAMLMap.js
 var require_YAMLMap = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var stringifyCollection = require_stringifyCollection();
 	var addPairToJSMap = require_addPairToJSMap();
@@ -6983,7 +6983,7 @@ var require_YAMLMap = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/common/map.js
+//#region ../../node_modules/yaml/dist/schema/common/map.js
 var require_map = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var YAMLMap = require_YAMLMap();
@@ -7002,7 +7002,7 @@ var require_map = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/nodes/YAMLSeq.js
+//#region ../../node_modules/yaml/dist/nodes/YAMLSeq.js
 var require_YAMLSeq = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var createNode = require_createNode();
 	var stringifyCollection = require_stringifyCollection();
@@ -7109,7 +7109,7 @@ var require_YAMLSeq = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/common/seq.js
+//#region ../../node_modules/yaml/dist/schema/common/seq.js
 var require_seq = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var YAMLSeq = require_YAMLSeq();
@@ -7128,7 +7128,7 @@ var require_seq = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/common/string.js
+//#region ../../node_modules/yaml/dist/schema/common/string.js
 var require_string = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var stringifyString = require_stringifyString();
 	const string = {
@@ -7145,7 +7145,7 @@ var require_string = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/common/null.js
+//#region ../../node_modules/yaml/dist/schema/common/null.js
 var require_null = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	const nullTag = {
@@ -7161,7 +7161,7 @@ var require_null = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/core/bool.js
+//#region ../../node_modules/yaml/dist/schema/core/bool.js
 var require_bool$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	const boolTag = {
@@ -7181,7 +7181,7 @@ var require_bool$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringifyNumber.js
+//#region ../../node_modules/yaml/dist/stringify/stringifyNumber.js
 var require_stringifyNumber = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function stringifyNumber({ format, minFractionDigits, tag, value }) {
 		if (typeof value === "bigint") return String(value);
@@ -7203,7 +7203,7 @@ var require_stringifyNumber = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/core/float.js
+//#region ../../node_modules/yaml/dist/schema/core/float.js
 var require_float$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	var stringifyNumber = require_stringifyNumber();
@@ -7246,7 +7246,7 @@ var require_float$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/core/int.js
+//#region ../../node_modules/yaml/dist/schema/core/int.js
 var require_int$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var stringifyNumber = require_stringifyNumber();
 	const intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
@@ -7288,7 +7288,7 @@ var require_int$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/core/schema.js
+//#region ../../node_modules/yaml/dist/schema/core/schema.js
 var require_schema$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var map = require_map();
 	var _null = require_null();
@@ -7314,7 +7314,7 @@ var require_schema$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/json/schema.js
+//#region ../../node_modules/yaml/dist/schema/json/schema.js
 var require_schema$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	var map = require_map();
@@ -7378,7 +7378,7 @@ var require_schema$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/binary.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/binary.js
 var require_binary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var node_buffer$1 = require("buffer");
 	var Scalar = require_Scalar();
@@ -7428,7 +7428,7 @@ var require_binary = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/pairs.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/pairs.js
 var require_pairs = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Pair = require_Pair();
@@ -7489,7 +7489,7 @@ var require_pairs = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/omap.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/omap.js
 var require_omap = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var toJS = require_toJS();
@@ -7553,7 +7553,7 @@ var require_omap = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/bool.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/bool.js
 var require_bool = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	function boolStringify({ value, source }, ctx) {
@@ -7581,7 +7581,7 @@ var require_bool = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/float.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/float.js
 var require_float = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	var stringifyNumber = require_stringifyNumber();
@@ -7627,7 +7627,7 @@ var require_float = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/int.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/int.js
 var require_int = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var stringifyNumber = require_stringifyNumber();
 	const intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
@@ -7703,7 +7703,7 @@ var require_int = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/set.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/set.js
 var require_set = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Pair = require_Pair();
@@ -7772,7 +7772,7 @@ var require_set = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/timestamp.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/timestamp.js
 var require_timestamp = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var stringifyNumber = require_stringifyNumber();
 	/** Internal types handle bigint as number, because TS can't figure it out. */
@@ -7856,7 +7856,7 @@ var require_timestamp = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/yaml-1.1/schema.js
+//#region ../../node_modules/yaml/dist/schema/yaml-1.1/schema.js
 var require_schema = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var map = require_map();
 	var _null = require_null();
@@ -7898,7 +7898,7 @@ var require_schema = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/tags.js
+//#region ../../node_modules/yaml/dist/schema/tags.js
 var require_tags = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var map = require_map();
 	var _null = require_null();
@@ -7983,7 +7983,7 @@ var require_tags = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/schema/Schema.js
+//#region ../../node_modules/yaml/dist/schema/Schema.js
 var require_Schema = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var map = require_map();
@@ -8013,7 +8013,7 @@ var require_Schema = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/stringify/stringifyDocument.js
+//#region ../../node_modules/yaml/dist/stringify/stringifyDocument.js
 var require_stringifyDocument = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var stringify = require_stringify();
@@ -8075,7 +8075,7 @@ var require_stringifyDocument = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/doc/Document.js
+//#region ../../node_modules/yaml/dist/doc/Document.js
 var require_Document = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Alias = require_Alias();
 	var Collection = require_Collection();
@@ -8357,7 +8357,7 @@ var require_Document = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/errors.js
+//#region ../../node_modules/yaml/dist/errors.js
 var require_errors = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var YAMLError = class extends Error {
 		constructor(name, pos, code, message) {
@@ -8411,7 +8411,7 @@ var require_errors = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-props.js
+//#region ../../node_modules/yaml/dist/compose/resolve-props.js
 var require_resolve_props = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function resolveProps(tokens, { flow, indicator, next, offset, onError, parentIndent, startOnNewline }) {
 		let spaceBefore = false;
@@ -8519,7 +8519,7 @@ var require_resolve_props = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/util-contains-newline.js
+//#region ../../node_modules/yaml/dist/compose/util-contains-newline.js
 var require_util_contains_newline = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function containsNewline(key) {
 		if (!key) return null;
@@ -8549,7 +8549,7 @@ var require_util_contains_newline = /* @__PURE__ */ __commonJSMin(((exports) => 
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/util-flow-indent-check.js
+//#region ../../node_modules/yaml/dist/compose/util-flow-indent-check.js
 var require_util_flow_indent_check = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var utilContainsNewline = require_util_contains_newline();
 	function flowIndentCheck(indent, fc, onError) {
@@ -8562,7 +8562,7 @@ var require_util_flow_indent_check = /* @__PURE__ */ __commonJSMin(((exports) =>
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/util-map-includes.js
+//#region ../../node_modules/yaml/dist/compose/util-map-includes.js
 var require_util_map_includes = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	function mapIncludes(ctx, items, search) {
@@ -8575,7 +8575,7 @@ var require_util_map_includes = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-block-map.js
+//#region ../../node_modules/yaml/dist/compose/resolve-block-map.js
 var require_resolve_block_map = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Pair = require_Pair();
 	var YAMLMap = require_YAMLMap();
@@ -8660,7 +8660,7 @@ var require_resolve_block_map = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-block-seq.js
+//#region ../../node_modules/yaml/dist/compose/resolve-block-seq.js
 var require_resolve_block_seq = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var YAMLSeq = require_YAMLSeq();
 	var resolveProps = require_resolve_props();
@@ -8703,7 +8703,7 @@ var require_resolve_block_seq = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-end.js
+//#region ../../node_modules/yaml/dist/compose/resolve-end.js
 var require_resolve_end = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function resolveEnd(end, offset, reqSpace, onError) {
 		let comment = "";
@@ -8742,7 +8742,7 @@ var require_resolve_end = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-flow-collection.js
+//#region ../../node_modules/yaml/dist/compose/resolve-flow-collection.js
 var require_resolve_flow_collection = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Pair = require_Pair();
@@ -8898,7 +8898,7 @@ var require_resolve_flow_collection = /* @__PURE__ */ __commonJSMin(((exports) =
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/compose-collection.js
+//#region ../../node_modules/yaml/dist/compose/compose-collection.js
 var require_compose_collection = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Scalar = require_Scalar();
@@ -8951,7 +8951,7 @@ var require_compose_collection = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-block-scalar.js
+//#region ../../node_modules/yaml/dist/compose/resolve-block-scalar.js
 var require_resolve_block_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	function resolveBlockScalar(ctx, scalar, onError) {
@@ -9127,7 +9127,7 @@ var require_resolve_block_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/resolve-flow-scalar.js
+//#region ../../node_modules/yaml/dist/compose/resolve-flow-scalar.js
 var require_resolve_flow_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Scalar = require_Scalar();
 	var resolveEnd = require_resolve_end();
@@ -9334,7 +9334,7 @@ var require_resolve_flow_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/compose-scalar.js
+//#region ../../node_modules/yaml/dist/compose/compose-scalar.js
 var require_compose_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var identity = require_identity();
 	var Scalar = require_Scalar();
@@ -9394,7 +9394,7 @@ var require_compose_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/util-empty-scalar-position.js
+//#region ../../node_modules/yaml/dist/compose/util-empty-scalar-position.js
 var require_util_empty_scalar_position = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function emptyScalarPosition(offset, before, pos) {
 		if (before) {
@@ -9422,7 +9422,7 @@ var require_util_empty_scalar_position = /* @__PURE__ */ __commonJSMin(((exports
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/compose-node.js
+//#region ../../node_modules/yaml/dist/compose/compose-node.js
 var require_compose_node = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Alias = require_Alias();
 	var identity = require_identity();
@@ -9508,7 +9508,7 @@ var require_compose_node = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/compose-doc.js
+//#region ../../node_modules/yaml/dist/compose/compose-doc.js
 var require_compose_doc = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var Document = require_Document();
 	var composeNode = require_compose_node();
@@ -9551,7 +9551,7 @@ var require_compose_doc = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/compose/composer.js
+//#region ../../node_modules/yaml/dist/compose/composer.js
 var require_composer = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var node_process$2 = require("process");
 	var directives = require_directives();
@@ -9750,7 +9750,7 @@ var require_composer = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/cst-scalar.js
+//#region ../../node_modules/yaml/dist/parse/cst-scalar.js
 var require_cst_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var resolveBlockScalar = require_resolve_block_scalar();
 	var resolveFlowScalar = require_resolve_flow_scalar();
@@ -10018,7 +10018,7 @@ var require_cst_scalar = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/cst-stringify.js
+//#region ../../node_modules/yaml/dist/parse/cst-stringify.js
 var require_cst_stringify = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Stringify a CST document, token, or collection item
@@ -10070,7 +10070,7 @@ var require_cst_stringify = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/cst-visit.js
+//#region ../../node_modules/yaml/dist/parse/cst-visit.js
 var require_cst_visit = /* @__PURE__ */ __commonJSMin(((exports) => {
 	const BREAK = Symbol("break visit");
 	const SKIP = Symbol("skip children");
@@ -10162,7 +10162,7 @@ var require_cst_visit = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/cst.js
+//#region ../../node_modules/yaml/dist/parse/cst.js
 var require_cst = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var cstScalar = require_cst_scalar();
 	var cstStringify = require_cst_stringify();
@@ -10242,7 +10242,7 @@ var require_cst = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/lexer.js
+//#region ../../node_modules/yaml/dist/parse/lexer.js
 var require_lexer = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var cst = require_cst();
 	function isEmpty(ch) {
@@ -10762,7 +10762,7 @@ var require_lexer = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/line-counter.js
+//#region ../../node_modules/yaml/dist/parse/line-counter.js
 var require_line_counter = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Tracks newlines during parsing in order to provide an efficient API for
@@ -10810,7 +10810,7 @@ var require_line_counter = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/parse/parser.js
+//#region ../../node_modules/yaml/dist/parse/parser.js
 var require_parser = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var node_process$1 = require("process");
 	var cst = require_cst();
@@ -11667,7 +11667,7 @@ var require_parser = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/public-api.js
+//#region ../../node_modules/yaml/dist/public-api.js
 var require_public_api = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var composer = require_composer();
 	var Document = require_Document();
@@ -11755,7 +11755,7 @@ var require_public_api = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 
 //#endregion
-//#region ../../../../../node_modules/yaml/dist/index.js
+//#region ../../node_modules/yaml/dist/index.js
 var require_dist = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var composer = require_composer();
 	var Document = require_Document();
@@ -11979,15 +11979,12 @@ function cmdConfigEnsureSection(cwd, raw) {
 	try {
 		if (!node_fs.default.existsSync(planningDir)) node_fs.default.mkdirSync(planningDir, { recursive: true });
 	} catch (err) {
-		error("Failed to create .planning directory: " + err.message);
+		return cmdErr("Failed to create .planning directory: " + err.message);
 	}
-	if (node_fs.default.existsSync(configPath)) {
-		output({
-			created: false,
-			reason: "already_exists"
-		}, raw, "exists");
-		return;
-	}
+	if (node_fs.default.existsSync(configPath)) return cmdOk({
+		created: false,
+		reason: "already_exists"
+	}, raw ? "exists" : void 0);
 	const homedir = node_os.default.homedir();
 	const braveKeyFile = node_path.default.join(homedir, ".maxsim", "brave_api_key");
 	const hasBraveSearch = !!(process.env.BRAVE_API_KEY || node_fs.default.existsSync(braveKeyFile));
@@ -12010,17 +12007,17 @@ function cmdConfigEnsureSection(cwd, raw) {
 	};
 	try {
 		node_fs.default.writeFileSync(configPath, JSON.stringify(defaults, null, 2), "utf-8");
-		output({
+		return cmdOk({
 			created: true,
 			path: ".planning/config.json"
-		}, raw, "created");
+		}, raw ? "created" : void 0);
 	} catch (err) {
-		error("Failed to create config.json: " + err.message);
+		return cmdErr("Failed to create config.json: " + err.message);
 	}
 }
 function cmdConfigSet(cwd, keyPath, value, raw) {
 	const configPath = node_path.default.join(cwd, ".planning", "config.json");
-	if (!keyPath) error("Usage: config-set <key.path> <value>");
+	if (!keyPath) return cmdErr("Usage: config-set <key.path> <value>");
 	let parsedValue = value;
 	if (value === "true") parsedValue = true;
 	else if (value === "false") parsedValue = false;
@@ -12029,7 +12026,7 @@ function cmdConfigSet(cwd, keyPath, value, raw) {
 	try {
 		if (node_fs.default.existsSync(configPath)) config = JSON.parse(node_fs.default.readFileSync(configPath, "utf-8"));
 	} catch (err) {
-		error("Failed to read config.json: " + err.message);
+		return cmdErr("Failed to read config.json: " + err.message);
 	}
 	const keys = keyPath.split(".");
 	let current = config;
@@ -12041,38 +12038,37 @@ function cmdConfigSet(cwd, keyPath, value, raw) {
 	current[keys[keys.length - 1]] = parsedValue;
 	try {
 		node_fs.default.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
-		output({
+		return cmdOk({
 			updated: true,
 			key: keyPath,
 			value: parsedValue
-		}, raw, `${keyPath}=${parsedValue}`);
+		}, raw ? `${keyPath}=${parsedValue}` : void 0);
 	} catch (err) {
-		error("Failed to write config.json: " + err.message);
+		return cmdErr("Failed to write config.json: " + err.message);
 	}
 }
 function cmdConfigGet(cwd, keyPath, raw) {
 	const configPath = node_path.default.join(cwd, ".planning", "config.json");
-	if (!keyPath) error("Usage: config-get <key.path>");
+	if (!keyPath) return cmdErr("Usage: config-get <key.path>");
 	let config = {};
 	try {
 		if (node_fs.default.existsSync(configPath)) config = JSON.parse(node_fs.default.readFileSync(configPath, "utf-8"));
-		else error("No config.json found at " + configPath);
+		else return cmdErr("No config.json found at " + configPath);
 	} catch (err) {
-		if (err.message.startsWith("No config.json")) throw err;
-		error("Failed to read config.json: " + err.message);
+		return cmdErr("Failed to read config.json: " + err.message);
 	}
 	const keys = keyPath.split(".");
 	let current = config;
 	for (const key of keys) {
-		if (current === void 0 || current === null || typeof current !== "object") error(`Key not found: ${keyPath}`);
+		if (current === void 0 || current === null || typeof current !== "object") return cmdErr(`Key not found: ${keyPath}`);
 		current = current[key];
 	}
-	if (current === void 0) error(`Key not found: ${keyPath}`);
-	output(current, raw, String(current));
+	if (current === void 0) return cmdErr(`Key not found: ${keyPath}`);
+	return cmdOk(current, raw ? String(current) : void 0);
 }
 
 //#endregion
-//#region ../../../../../node_modules/escape-string-regexp/index.js
+//#region ../../node_modules/escape-string-regexp/index.js
 function escapeStringRegexp(string) {
 	if (typeof string !== "string") throw new TypeError("Expected a string");
 	return string.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&").replace(/-/g, "\\x2d");
@@ -12154,7 +12150,7 @@ async function cmdStateLoad(cwd, raw) {
 	};
 	if (raw) {
 		const c = config;
-		output(result, true, [
+		return cmdOk(result, [
 			`model_profile=${c.model_profile}`,
 			`commit_docs=${c.commit_docs}`,
 			`branching_strategy=${c.branching_strategy}`,
@@ -12169,32 +12165,23 @@ async function cmdStateLoad(cwd, raw) {
 			`state_exists=${stateExists}`
 		].join("\n"));
 	}
-	output(result);
+	return cmdOk(result);
 }
 function cmdStateGet(cwd, section, raw) {
 	const statePath$2 = statePath(cwd);
 	try {
 		const content = node_fs.default.readFileSync(statePath$2, "utf-8");
-		if (!section) {
-			output({ content }, raw, content);
-			return;
-		}
+		if (!section) return cmdOk({ content }, raw ? content : void 0);
 		const fieldValue = stateExtractField(content, section);
-		if (fieldValue !== null) {
-			output({ [section]: fieldValue }, raw, fieldValue);
-			return;
-		}
+		if (fieldValue !== null) return cmdOk({ [section]: fieldValue }, raw ? fieldValue : void 0);
 		const fieldEscaped = escapeStringRegexp(section);
 		const sectionPattern = new RegExp(`#{2,3}\\s*${fieldEscaped}\\s*\\n\\s*\\n?([\\s\\S]*?)(?=\\n#{2,3}\\s|$)`, "i");
 		const sectionMatch = content.match(sectionPattern);
-		if (sectionMatch) {
-			output({ [section]: sectionMatch[1].trim() }, raw, sectionMatch[1].trim());
-			return;
-		}
-		output({ error: `Section or field "${section}" not found` }, raw, "");
+		if (sectionMatch) return cmdOk({ [section]: sectionMatch[1].trim() }, raw ? sectionMatch[1].trim() : void 0);
+		return cmdOk({ error: `Section or field "${section}" not found` }, raw ? "" : void 0);
 	} catch (e) {
 		rethrowCliSignals(e);
-		error("STATE.md not found");
+		return cmdErr("STATE.md not found");
 	}
 }
 function cmdStatePatch(cwd, patches, raw) {
@@ -12213,27 +12200,27 @@ function cmdStatePatch(cwd, patches, raw) {
 			} else results.failed.push(field);
 		}
 		if (results.updated.length > 0) node_fs.default.writeFileSync(statePath$3, content, "utf-8");
-		output(results, raw, results.updated.length > 0 ? "true" : "false");
+		return cmdOk(results, raw ? results.updated.length > 0 ? "true" : "false" : void 0);
 	} catch (e) {
 		rethrowCliSignals(e);
-		error("STATE.md not found");
+		return cmdErr("STATE.md not found");
 	}
 }
 function cmdStateUpdate(cwd, field, value) {
-	if (!field || value === void 0) error("field and value required for state update");
+	if (!field || value === void 0) return cmdErr("field and value required for state update");
 	const statePath$4 = statePath(cwd);
 	try {
 		const result = stateReplaceField(node_fs.default.readFileSync(statePath$4, "utf-8"), field, value);
 		if (result) {
 			node_fs.default.writeFileSync(statePath$4, result, "utf-8");
-			output({ updated: true });
-		} else output({
+			return cmdOk({ updated: true });
+		} else return cmdOk({
 			updated: false,
 			reason: `Field "${field}" not found in STATE.md`
 		});
 	} catch (e) {
 		rethrowCliSignals(e);
-		output({
+		return cmdOk({
 			updated: false,
 			reason: "STATE.md not found"
 		});
@@ -12241,55 +12228,43 @@ function cmdStateUpdate(cwd, field, value) {
 }
 function cmdStateAdvancePlan(cwd, raw) {
 	const statePath$5 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$5)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$5)) return cmdOk({ error: "STATE.md not found" });
 	let content = node_fs.default.readFileSync(statePath$5, "utf-8");
 	const currentPlan = parseInt(stateExtractField(content, "Current Plan") ?? "", 10);
 	const totalPlans = parseInt(stateExtractField(content, "Total Plans in Phase") ?? "", 10);
 	const today = todayISO();
-	if (isNaN(currentPlan) || isNaN(totalPlans)) {
-		output({ error: "Cannot parse Current Plan or Total Plans in Phase from STATE.md" }, raw);
-		return;
-	}
+	if (isNaN(currentPlan) || isNaN(totalPlans)) return cmdOk({ error: "Cannot parse Current Plan or Total Plans in Phase from STATE.md" });
 	if (currentPlan >= totalPlans) {
 		content = stateReplaceField(content, "Status", "Phase complete — ready for verification") || content;
 		content = stateReplaceField(content, "Last Activity", today) || content;
 		node_fs.default.writeFileSync(statePath$5, content, "utf-8");
-		output({
+		return cmdOk({
 			advanced: false,
 			reason: "last_plan",
 			current_plan: currentPlan,
 			total_plans: totalPlans,
 			status: "ready_for_verification"
-		}, raw, "false");
+		}, raw ? "false" : void 0);
 	} else {
 		const newPlan = currentPlan + 1;
 		content = stateReplaceField(content, "Current Plan", String(newPlan)) || content;
 		content = stateReplaceField(content, "Status", "Ready to execute") || content;
 		content = stateReplaceField(content, "Last Activity", today) || content;
 		node_fs.default.writeFileSync(statePath$5, content, "utf-8");
-		output({
+		return cmdOk({
 			advanced: true,
 			previous_plan: currentPlan,
 			current_plan: newPlan,
 			total_plans: totalPlans
-		}, raw, "true");
+		}, raw ? "true" : void 0);
 	}
 }
 function cmdStateRecordMetric(cwd, options, raw) {
 	const statePath$6 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$6)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$6)) return cmdOk({ error: "STATE.md not found" });
 	let content = node_fs.default.readFileSync(statePath$6, "utf-8");
 	const { phase, plan, duration, tasks, files } = options;
-	if (!phase || !plan || !duration) {
-		output({ error: "phase, plan, and duration required" }, raw);
-		return;
-	}
+	if (!phase || !plan || !duration) return cmdOk({ error: "phase, plan, and duration required" });
 	const metricsPattern = /(#{2,3}\s*Performance Metrics[\s\S]*?\n\|[^\n]+\n\|[\s:|\-]+\n)([\s\S]*?)(?=\n#{2,3}\s|\n$|$)/i;
 	const metricsMatch = content.match(metricsPattern);
 	if (metricsMatch) {
@@ -12299,23 +12274,20 @@ function cmdStateRecordMetric(cwd, options, raw) {
 		else tableBody = tableBody + "\n" + newRow;
 		content = content.replace(metricsPattern, (_match, header) => `${header}${tableBody}\n`);
 		node_fs.default.writeFileSync(statePath$6, content, "utf-8");
-		output({
+		return cmdOk({
 			recorded: true,
 			phase,
 			plan,
 			duration
-		}, raw, "true");
-	} else output({
+		}, raw ? "true" : void 0);
+	} else return cmdOk({
 		recorded: false,
 		reason: "Performance Metrics section not found in STATE.md"
-	}, raw, "false");
+	}, raw ? "false" : void 0);
 }
 function cmdStateUpdateProgress(cwd, raw) {
 	const statePath$7 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$7)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$7)) return cmdOk({ error: "STATE.md not found" });
 	let content = node_fs.default.readFileSync(statePath$7, "utf-8");
 	const phasesDir = phasesPath(cwd);
 	let totalPlans = 0;
@@ -12335,24 +12307,21 @@ function cmdStateUpdateProgress(cwd, raw) {
 	const result = stateReplaceField(content, "Progress", progressStr);
 	if (result) {
 		node_fs.default.writeFileSync(statePath$7, result, "utf-8");
-		output({
+		return cmdOk({
 			updated: true,
 			percent,
 			completed: totalSummaries,
 			total: totalPlans,
 			bar: progressStr
-		}, raw, progressStr);
-	} else output({
+		}, raw ? progressStr : void 0);
+	} else return cmdOk({
 		updated: false,
 		reason: "Progress field not found in STATE.md"
-	}, raw, "false");
+	}, raw ? "false" : void 0);
 }
 function cmdStateAddDecision(cwd, options, raw) {
 	const statePath$8 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$8)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$8)) return cmdOk({ error: "STATE.md not found" });
 	const { phase, summary, summary_file, rationale, rationale_file } = options;
 	let summaryText;
 	let rationaleText = "";
@@ -12360,73 +12329,56 @@ function cmdStateAddDecision(cwd, options, raw) {
 		summaryText = readTextArgOrFile(cwd, summary, summary_file, "summary");
 		rationaleText = readTextArgOrFile(cwd, rationale || "", rationale_file, "rationale") || "";
 	} catch (thrown) {
-		output({
+		return cmdOk({
 			added: false,
 			reason: thrown.message
-		}, raw, "false");
-		return;
+		}, raw ? "false" : void 0);
 	}
-	if (!summaryText) {
-		output({ error: "summary required" }, raw);
-		return;
-	}
+	if (!summaryText) return cmdOk({ error: "summary required" });
 	const content = node_fs.default.readFileSync(statePath$8, "utf-8");
 	const entry = `- [Phase ${phase || "?"}]: ${summaryText}${rationaleText ? ` — ${rationaleText}` : ""}`;
 	const updated = appendToStateSection(content, /(###?\s*(?:Decisions|Decisions Made|Accumulated.*Decisions)\s*\n)([\s\S]*?)(?=\n###?|\n##[^#]|$)/i, entry, [/None yet\.?\s*\n?/gi, /No decisions yet\.?\s*\n?/gi]);
 	if (updated) {
 		node_fs.default.writeFileSync(statePath$8, updated, "utf-8");
-		output({
+		return cmdOk({
 			added: true,
 			decision: entry
-		}, raw, "true");
-	} else output({
+		}, raw ? "true" : void 0);
+	} else return cmdOk({
 		added: false,
 		reason: "Decisions section not found in STATE.md"
-	}, raw, "false");
+	}, raw ? "false" : void 0);
 }
 function cmdStateAddBlocker(cwd, text, raw) {
 	const statePath$9 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$9)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$9)) return cmdOk({ error: "STATE.md not found" });
 	const blockerOptions = typeof text === "object" && text !== null ? text : { text };
 	let blockerText;
 	try {
 		blockerText = readTextArgOrFile(cwd, blockerOptions.text, blockerOptions.text_file, "blocker");
 	} catch (thrown) {
-		output({
+		return cmdOk({
 			added: false,
 			reason: thrown.message
-		}, raw, "false");
-		return;
+		}, raw ? "false" : void 0);
 	}
-	if (!blockerText) {
-		output({ error: "text required" }, raw);
-		return;
-	}
+	if (!blockerText) return cmdOk({ error: "text required" });
 	const updated = appendToStateSection(node_fs.default.readFileSync(statePath$9, "utf-8"), /(###?\s*(?:Blockers|Blockers\/Concerns|Concerns)\s*\n)([\s\S]*?)(?=\n###?|\n##[^#]|$)/i, `- ${blockerText}`, [/None\.?\s*\n?/gi, /None yet\.?\s*\n?/gi]);
 	if (updated) {
 		node_fs.default.writeFileSync(statePath$9, updated, "utf-8");
-		output({
+		return cmdOk({
 			added: true,
 			blocker: blockerText
-		}, raw, "true");
-	} else output({
+		}, raw ? "true" : void 0);
+	} else return cmdOk({
 		added: false,
 		reason: "Blockers section not found in STATE.md"
-	}, raw, "false");
+	}, raw ? "false" : void 0);
 }
 function cmdStateResolveBlocker(cwd, text, raw) {
 	const statePath$10 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$10)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
-	if (!text) {
-		output({ error: "text required" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$10)) return cmdOk({ error: "STATE.md not found" });
+	if (!text) return cmdOk({ error: "text required" });
 	let content = node_fs.default.readFileSync(statePath$10, "utf-8");
 	const sectionPattern = /(#{2,3}\s*(?:Blockers|Blockers\/Concerns|Concerns)\s*\n\s*\n?)([\s\S]*?)(?=\n#{2,3}\s|$)/i;
 	const match = content.match(sectionPattern);
@@ -12438,21 +12390,18 @@ function cmdStateResolveBlocker(cwd, text, raw) {
 		if (!newBody.trim() || !/^\s*[-*]\s+/m.test(newBody)) newBody = "None\n";
 		content = content.replace(sectionPattern, (_match, header) => `${header}${newBody}`);
 		node_fs.default.writeFileSync(statePath$10, content, "utf-8");
-		output({
+		return cmdOk({
 			resolved: true,
 			blocker: text
-		}, raw, "true");
-	} else output({
+		}, raw ? "true" : void 0);
+	} else return cmdOk({
 		resolved: false,
 		reason: "Blockers section not found in STATE.md"
-	}, raw, "false");
+	}, raw ? "false" : void 0);
 }
 function cmdStateRecordSession(cwd, options, raw) {
 	const statePath$11 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$11)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$11)) return cmdOk({ error: "STATE.md not found" });
 	let content = node_fs.default.readFileSync(statePath$11, "utf-8");
 	const now = (/* @__PURE__ */ new Date()).toISOString();
 	const updated = [];
@@ -12483,21 +12432,18 @@ function cmdStateRecordSession(cwd, options, raw) {
 	}
 	if (updated.length > 0) {
 		node_fs.default.writeFileSync(statePath$11, content, "utf-8");
-		output({
+		return cmdOk({
 			recorded: true,
 			updated
-		}, raw, "true");
-	} else output({
+		}, raw ? "true" : void 0);
+	} else return cmdOk({
 		recorded: false,
 		reason: "No session fields found in STATE.md"
-	}, raw, "false");
+	}, raw ? "false" : void 0);
 }
 function cmdStateSnapshot(cwd, raw) {
 	const statePath$12 = statePath(cwd);
-	if (!node_fs.default.existsSync(statePath$12)) {
-		output({ error: "STATE.md not found" }, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(statePath$12)) return cmdOk({ error: "STATE.md not found" });
 	const content = node_fs.default.readFileSync(statePath$12, "utf-8");
 	const extractField = (fieldName) => stateExtractField(content, fieldName);
 	const currentPhase = extractField("Current Phase");
@@ -12545,7 +12491,7 @@ function cmdStateSnapshot(cwd, raw) {
 		session.stopped_at = stateExtractField(sessionSection, "Stopped At") || stateExtractField(sessionSection, "Stopped at");
 		session.resume_file = stateExtractField(sessionSection, "Resume File") || stateExtractField(sessionSection, "Resume file");
 	}
-	output({
+	return cmdOk({
 		current_phase: currentPhase,
 		current_phase_name: currentPhaseName,
 		total_phases: totalPhases,
@@ -12559,7 +12505,7 @@ function cmdStateSnapshot(cwd, raw) {
 		blockers,
 		paused_at: pausedAt,
 		session
-	}, raw);
+	});
 }
 
 //#endregion
@@ -12569,15 +12515,12 @@ function cmdStateSnapshot(cwd, raw) {
 *
 * Ported from maxsim/bin/lib/roadmap.cjs
 */
-function cmdRoadmapGetPhase(cwd, phaseNum, raw) {
+function cmdRoadmapGetPhase(cwd, phaseNum) {
 	const rmPath = roadmapPath(cwd);
-	if (!node_fs.default.existsSync(rmPath)) {
-		output({
-			found: false,
-			error: "ROADMAP.md not found"
-		}, raw, "");
-		return;
-	}
+	if (!node_fs.default.existsSync(rmPath)) return cmdOk({
+		found: false,
+		error: "ROADMAP.md not found"
+	}, "");
 	try {
 		const content = node_fs.default.readFileSync(rmPath, "utf-8");
 		const escapedPhase = phaseNum.replace(/\./g, "\\.");
@@ -12586,21 +12529,17 @@ function cmdRoadmapGetPhase(cwd, phaseNum, raw) {
 		if (!headerMatch) {
 			const checklistPattern = new RegExp(`-\\s*\\[[ x]\\]\\s*\\*\\*Phase\\s+${escapedPhase}:\\s*([^*]+)\\*\\*`, "i");
 			const checklistMatch = content.match(checklistPattern);
-			if (checklistMatch) {
-				output({
-					found: false,
-					phase_number: phaseNum,
-					phase_name: checklistMatch[1].trim(),
-					error: "malformed_roadmap",
-					message: `Phase ${phaseNum} exists in summary list but missing "### Phase ${phaseNum}:" detail section. ROADMAP.md needs both formats.`
-				}, raw, "");
-				return;
-			}
-			output({
+			if (checklistMatch) return cmdOk({
+				found: false,
+				phase_number: phaseNum,
+				phase_name: checklistMatch[1].trim(),
+				error: "malformed_roadmap",
+				message: `Phase ${phaseNum} exists in summary list but missing "### Phase ${phaseNum}:" detail section. ROADMAP.md needs both formats.`
+			}, "");
+			return cmdOk({
 				found: false,
 				phase_number: phaseNum
-			}, raw, "");
-			return;
+			}, "");
 		}
 		const phaseName = headerMatch[1].trim();
 		const headerIndex = headerMatch.index;
@@ -12610,30 +12549,26 @@ function cmdRoadmapGetPhase(cwd, phaseNum, raw) {
 		const goalMatch = section.match(/\*\*Goal(?::\*\*|\*\*:)\s*([^\n]+)/i);
 		const goal = goalMatch ? goalMatch[1].trim() : null;
 		const criteriaMatch = section.match(/\*\*Success Criteria\*\*[^\n]*:\s*\n((?:\s*\d+\.\s*[^\n]+\n?)+)/i);
-		output({
+		return cmdOk({
 			found: true,
 			phase_number: phaseNum,
 			phase_name: phaseName,
 			goal,
 			success_criteria: criteriaMatch ? criteriaMatch[1].trim().split("\n").map((line) => line.replace(/^\s*\d+\.\s*/, "").trim()).filter(Boolean) : [],
 			section
-		}, raw, section);
+		}, section);
 	} catch (e) {
-		rethrowCliSignals(e);
-		error("Failed to read ROADMAP.md: " + e.message);
+		return cmdErr("Failed to read ROADMAP.md: " + e.message);
 	}
 }
-async function cmdRoadmapAnalyze(cwd, raw) {
+async function cmdRoadmapAnalyze(cwd) {
 	const content = await safeReadFileAsync(roadmapPath(cwd));
-	if (!content) {
-		output({
-			error: "ROADMAP.md not found",
-			milestones: [],
-			phases: [],
-			current_phase: null
-		}, raw);
-		return;
-	}
+	if (!content) return cmdOk({
+		error: "ROADMAP.md not found",
+		milestones: [],
+		phases: [],
+		current_phase: null
+	});
 	const phasesDir = phasesPath(cwd);
 	const phasePattern = getPhasePattern();
 	const parsedPhases = [];
@@ -12719,7 +12654,7 @@ async function cmdRoadmapAnalyze(cwd, raw) {
 	while ((checklistMatch = checklistPattern.exec(content)) !== null) checklistPhases.add(checklistMatch[1]);
 	const detailPhases = new Set(phases.map((p) => p.number));
 	const missingDetails = [...checklistPhases].filter((p) => !detailPhases.has(p));
-	output({
+	return cmdOk({
 		milestones,
 		phases,
 		phase_count: phases.length,
@@ -12730,57 +12665,46 @@ async function cmdRoadmapAnalyze(cwd, raw) {
 		current_phase: currentPhase ? currentPhase.number : null,
 		next_phase: nextPhase ? nextPhase.number : null,
 		missing_phase_details: missingDetails.length > 0 ? missingDetails : null
-	}, raw);
+	});
 }
-function cmdRoadmapUpdatePlanProgress(cwd, phaseNum, raw) {
-	if (!phaseNum) error("phase number required for roadmap update-plan-progress");
+function cmdRoadmapUpdatePlanProgress(cwd, phaseNum) {
+	if (!phaseNum) return cmdErr("phase number required for roadmap update-plan-progress");
 	const rmPath = roadmapPath(cwd);
 	const phaseInfo = findPhaseInternal(cwd, phaseNum);
-	if (!phaseInfo) error(`Phase ${phaseNum} not found`);
+	if (!phaseInfo) return cmdErr(`Phase ${phaseNum} not found`);
 	const planCount = phaseInfo.plans.length;
 	const summaryCount = phaseInfo.summaries.length;
-	if (planCount === 0) {
-		output({
-			updated: false,
-			reason: "No plans found",
-			plan_count: 0,
-			summary_count: 0
-		}, raw, "no plans");
-		return;
-	}
+	if (planCount === 0) return cmdOk({
+		updated: false,
+		reason: "No plans found",
+		plan_count: 0,
+		summary_count: 0
+	}, "no plans");
 	const isComplete = summaryCount >= planCount;
 	const status = isComplete ? "Complete" : summaryCount > 0 ? "In Progress" : "Planned";
 	const today = todayISO();
-	if (!node_fs.default.existsSync(rmPath)) {
-		output({
-			updated: false,
-			reason: "ROADMAP.md not found",
-			plan_count: planCount,
-			summary_count: summaryCount
-		}, raw, "no roadmap");
-		return;
-	}
+	if (!node_fs.default.existsSync(rmPath)) return cmdOk({
+		updated: false,
+		reason: "ROADMAP.md not found",
+		plan_count: planCount,
+		summary_count: summaryCount
+	}, "no roadmap");
 	let roadmapContent = node_fs.default.readFileSync(rmPath, "utf-8");
 	const phaseEscaped = phaseNum.replace(".", "\\.");
-	const tablePattern = new RegExp(`(\\|\\s*${phaseEscaped}\\.?\\s[^|]*\\|)[^|]*(\\|)\\s*[^|]*(\\|)\\s*[^|]*(\\|)`, "i");
 	const dateField = isComplete ? ` ${today} ` : "  ";
-	roadmapContent = roadmapContent.replace(tablePattern, `$1 ${summaryCount}/${planCount} $2 ${status.padEnd(11)}$3${dateField}$4`);
-	const planCountPattern = new RegExp(`(#{2,4}\\s*Phase\\s+${phaseEscaped}[\\s\\S]*?\\*\\*Plans:\\*\\*\\s*)[^\\n]+`, "i");
+	roadmapContent = roadmapContent.replace(new RegExp(`(\\|\\s*${phaseEscaped}\\.?\\s[^|]*\\|)[^|]*(\\|)\\s*[^|]*(\\|)\\s*[^|]*(\\|)`, "i"), `$1 ${summaryCount}/${planCount} $2 ${status.padEnd(11)}$3${dateField}$4`);
 	const planCountText = isComplete ? `${summaryCount}/${planCount} plans complete` : `${summaryCount}/${planCount} plans executed`;
-	roadmapContent = roadmapContent.replace(planCountPattern, `$1${planCountText}`);
-	if (isComplete) {
-		const checkboxPattern = new RegExp(`(-\\s*\\[)[ ](\\]\\s*.*Phase\\s+${phaseEscaped}[:\\s][^\\n]*)`, "i");
-		roadmapContent = roadmapContent.replace(checkboxPattern, `$1x$2 (completed ${today})`);
-	}
+	roadmapContent = roadmapContent.replace(new RegExp(`(#{2,4}\\s*Phase\\s+${phaseEscaped}[\\s\\S]*?\\*\\*Plans:\\*\\*\\s*)[^\\n]+`, "i"), `$1${planCountText}`);
+	if (isComplete) roadmapContent = roadmapContent.replace(new RegExp(`(-\\s*\\[)[ ](\\]\\s*.*Phase\\s+${phaseEscaped}[:\\s][^\\n]*)`, "i"), `$1x$2 (completed ${today})`);
 	node_fs.default.writeFileSync(rmPath, roadmapContent, "utf-8");
-	output({
+	return cmdOk({
 		updated: true,
 		phase: phaseNum,
 		plan_count: planCount,
 		summary_count: summaryCount,
 		status,
 		complete: isComplete
-	}, raw, `${summaryCount}/${planCount} ${status}`);
+	}, `${summaryCount}/${planCount} ${status}`);
 }
 
 //#endregion
@@ -12915,7 +12839,7 @@ function cmdMilestoneComplete(cwd, version, options) {
 }
 
 //#endregion
-//#region ../../../../../node_modules/chalk/source/vendor/ansi-styles/index.js
+//#region ../../node_modules/chalk/source/vendor/ansi-styles/index.js
 const ANSI_BACKGROUND_OFFSET = 10;
 const wrapAnsi16 = (offset = 0) => (code) => `\u001B[${code + offset}m`;
 const wrapAnsi256 = (offset = 0) => (code) => `\u001B[${38 + offset};5;${code}m`;
@@ -13080,7 +13004,7 @@ function assembleStyles() {
 const ansiStyles = assembleStyles();
 
 //#endregion
-//#region ../../../../../node_modules/chalk/source/vendor/supports-color/index.js
+//#region ../../node_modules/chalk/source/vendor/supports-color/index.js
 function hasFlag$1(flag, argv = globalThis.Deno ? globalThis.Deno.args : node_process.default.argv) {
 	const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
 	const position = argv.indexOf(prefix + flag);
@@ -13169,7 +13093,7 @@ const supportsColor = {
 };
 
 //#endregion
-//#region ../../../../../node_modules/chalk/source/utilities.js
+//#region ../../node_modules/chalk/source/utilities.js
 function stringReplaceAll(string, substring, replacer) {
 	let index = string.indexOf(substring);
 	if (index === -1) return string;
@@ -13198,7 +13122,7 @@ function stringEncaseCRLFWithFirstIndex(string, prefix, postfix, index) {
 }
 
 //#endregion
-//#region ../../../../../node_modules/chalk/source/index.js
+//#region ../../node_modules/chalk/source/index.js
 const { stdout: stdoutColor, stderr: stderrColor } = supportsColor;
 const GENERATOR = Symbol("GENERATOR");
 const STYLER = Symbol("STYLER");
@@ -13340,12 +13264,12 @@ function parseTodoFrontmatter(content) {
 	};
 }
 function cmdGenerateSlug(text, raw) {
-	if (!text) error("text required for slug generation");
+	if (!text) return cmdErr("text required for slug generation");
 	const slug = (0, import_slugify.default)(text, {
 		lower: true,
 		strict: true
 	});
-	output({ slug }, raw, slug);
+	return cmdOk({ slug }, raw ? slug : void 0);
 }
 function cmdCurrentTimestamp(format, raw) {
 	const now = /* @__PURE__ */ new Date();
@@ -13361,7 +13285,7 @@ function cmdCurrentTimestamp(format, raw) {
 			result = now.toISOString();
 			break;
 	}
-	output({ timestamp: result }, raw, result);
+	return cmdOk({ timestamp: result }, raw ? result : void 0);
 }
 function cmdListTodos(cwd, area, raw) {
 	const pendingDir = planningPath(cwd, "todos", "pending");
@@ -13386,26 +13310,26 @@ function cmdListTodos(cwd, area, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		count,
 		todos
-	}, raw, count.toString());
+	}, raw ? count.toString() : void 0);
 }
 function cmdVerifyPathExists(cwd, targetPath, raw) {
-	if (!targetPath) error("path required for verification");
+	if (!targetPath) return cmdErr("path required for verification");
 	const fullPath = node_path.default.isAbsolute(targetPath) ? targetPath : node_path.default.join(cwd, targetPath);
 	try {
 		const stats = node_fs.default.statSync(fullPath);
-		output({
+		return cmdOk({
 			exists: true,
 			type: stats.isDirectory() ? "directory" : stats.isFile() ? "file" : "other"
-		}, raw, "true");
+		}, raw ? "true" : void 0);
 	} catch (e) {
 		rethrowCliSignals(e);
-		output({
+		return cmdOk({
 			exists: false,
 			type: null
-		}, raw, "false");
+		}, raw ? "false" : void 0);
 	}
 }
 function cmdHistoryDigest(cwd, raw) {
@@ -13432,14 +13356,11 @@ function cmdHistoryDigest(cwd, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	if (allPhaseDirs.length === 0) {
-		output({
-			phases: {},
-			decisions: [],
-			tech_stack: []
-		}, raw);
-		return;
-	}
+	if (allPhaseDirs.length === 0) return cmdOk({
+		phases: {},
+		decisions: [],
+		tech_stack: []
+	});
 	try {
 		for (const { name: dir, fullPath: dirPath } of allPhaseDirs) {
 			const summaries = node_fs.default.readdirSync(dirPath).filter((f) => isSummaryFile(f));
@@ -13480,49 +13401,40 @@ function cmdHistoryDigest(cwd, raw) {
 			affects: [...data.affects],
 			patterns: [...data.patterns]
 		};
-		output(outputDigest, raw);
+		return cmdOk(outputDigest);
 	} catch (e) {
 		rethrowCliSignals(e);
-		error("Failed to generate history digest: " + e.message);
+		return cmdErr("Failed to generate history digest: " + e.message);
 	}
 }
 function cmdResolveModel(cwd, agentType, raw) {
-	if (!agentType) error("agent-type required");
+	if (!agentType) return cmdErr("agent-type required");
 	const profile = loadConfig(cwd).model_profile || "balanced";
 	const agentModels = MODEL_PROFILES[agentType];
-	if (!agentModels) {
-		output({
-			model: "sonnet",
-			profile,
-			unknown_agent: true
-		}, raw, "sonnet");
-		return;
-	}
+	if (!agentModels) return cmdOk({
+		model: "sonnet",
+		profile,
+		unknown_agent: true
+	}, raw ? "sonnet" : void 0);
 	const resolved = agentModels[profile] || agentModels["balanced"] || "sonnet";
 	const model = resolved === "opus" ? "inherit" : resolved;
-	output({
+	return cmdOk({
 		model,
 		profile
-	}, raw, model);
+	}, raw ? model : void 0);
 }
 async function cmdCommit(cwd, message, files, raw, amend) {
-	if (!message && !amend) error("commit message required");
-	if (!loadConfig(cwd).commit_docs) {
-		output({
-			committed: false,
-			hash: null,
-			reason: "skipped_commit_docs_false"
-		}, raw, "skipped");
-		return;
-	}
-	if (await isGitIgnored(cwd, ".planning")) {
-		output({
-			committed: false,
-			hash: null,
-			reason: "skipped_gitignored"
-		}, raw, "skipped");
-		return;
-	}
+	if (!message && !amend) return cmdErr("commit message required");
+	if (!loadConfig(cwd).commit_docs) return cmdOk({
+		committed: false,
+		hash: null,
+		reason: "skipped_commit_docs_false"
+	}, raw ? "skipped" : void 0);
+	if (await isGitIgnored(cwd, ".planning")) return cmdOk({
+		committed: false,
+		hash: null,
+		reason: "skipped_gitignored"
+	}, raw ? "skipped" : void 0);
 	const filesToStage = files && files.length > 0 ? files : [".planning/"];
 	for (const file of filesToStage) await execGit(cwd, ["add", file]);
 	const commitResult = await execGit(cwd, amend ? [
@@ -13535,21 +13447,17 @@ async function cmdCommit(cwd, message, files, raw, amend) {
 		message
 	]);
 	if (commitResult.exitCode !== 0) {
-		if (commitResult.stdout.includes("nothing to commit") || commitResult.stderr.includes("nothing to commit")) {
-			output({
-				committed: false,
-				hash: null,
-				reason: "nothing_to_commit"
-			}, raw, "nothing");
-			return;
-		}
-		output({
+		if (commitResult.stdout.includes("nothing to commit") || commitResult.stderr.includes("nothing to commit")) return cmdOk({
+			committed: false,
+			hash: null,
+			reason: "nothing_to_commit"
+		}, raw ? "nothing" : void 0);
+		return cmdOk({
 			committed: false,
 			hash: null,
 			reason: "nothing_to_commit",
 			error: commitResult.stderr
-		}, raw, "nothing");
-		return;
+		}, raw ? "nothing" : void 0);
 	}
 	const hashResult = await execGit(cwd, [
 		"rev-parse",
@@ -13557,22 +13465,19 @@ async function cmdCommit(cwd, message, files, raw, amend) {
 		"HEAD"
 	]);
 	const hash = hashResult.exitCode === 0 ? hashResult.stdout : null;
-	output({
+	return cmdOk({
 		committed: true,
 		hash,
 		reason: "committed"
-	}, raw, hash || "committed");
+	}, raw ? hash || "committed" : void 0);
 }
 function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
-	if (!summaryPath) error("summary-path required for summary-extract");
+	if (!summaryPath) return cmdErr("summary-path required for summary-extract");
 	const fullPath = node_path.default.join(cwd, summaryPath);
-	if (!node_fs.default.existsSync(fullPath)) {
-		output({
-			error: "File not found",
-			path: summaryPath
-		}, raw);
-		return;
-	}
+	if (!node_fs.default.existsSync(fullPath)) return cmdOk({
+		error: "File not found",
+		path: summaryPath
+	});
 	const fm = extractFrontmatter(node_fs.default.readFileSync(fullPath, "utf-8"));
 	const parseDecisions = (decisionsList) => {
 		if (!decisionsList || !Array.isArray(decisionsList)) return [];
@@ -13601,27 +13506,20 @@ function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
 	if (fields && fields.length > 0) {
 		const filtered = { path: summaryPath };
 		for (const field of fields) if (fullResult[field] !== void 0) filtered[field] = fullResult[field];
-		output(filtered, raw);
-		return;
+		return cmdOk(filtered);
 	}
-	output(fullResult, raw);
+	return cmdOk(fullResult);
 }
 async function cmdWebsearch(query, options, raw) {
 	const apiKey = process.env.BRAVE_API_KEY;
-	if (!apiKey) {
-		output({
-			available: false,
-			reason: "BRAVE_API_KEY not set"
-		}, raw, "");
-		return;
-	}
-	if (!query) {
-		output({
-			available: false,
-			error: "Query required"
-		}, raw, "");
-		return;
-	}
+	if (!apiKey) return cmdOk({
+		available: false,
+		reason: "BRAVE_API_KEY not set"
+	}, raw ? "" : void 0);
+	if (!query) return cmdOk({
+		available: false,
+		error: "Query required"
+	}, raw ? "" : void 0);
 	const params = new URLSearchParams({
 		q: query,
 		count: String(options.limit || 10),
@@ -13635,31 +13533,28 @@ async function cmdWebsearch(query, options, raw) {
 			Accept: "application/json",
 			"X-Subscription-Token": apiKey
 		} });
-		if (!response.ok) {
-			output({
-				available: false,
-				error: `API error: ${response.status}`
-			}, raw, "");
-			return;
-		}
+		if (!response.ok) return cmdOk({
+			available: false,
+			error: `API error: ${response.status}`
+		}, raw ? "" : void 0);
 		const results = ((await response.json()).web?.results || []).map((r) => ({
 			title: r.title,
 			url: r.url,
 			description: r.description,
 			age: r.age || null
 		}));
-		output({
+		return cmdOk({
 			available: true,
 			query,
 			count: results.length,
 			results
-		}, raw, results.map((r) => `${r.title}\n${r.url}\n${r.description}`).join("\n\n"));
+		}, raw ? results.map((r) => `${r.title}\n${r.url}\n${r.description}`).join("\n\n") : void 0);
 	} catch (err) {
 		rethrowCliSignals(err);
-		output({
+		return cmdOk({
 			available: false,
 			error: err.message
-		}, raw, "");
+		}, raw ? "" : void 0);
 	}
 }
 function cmdProgressRender(cwd, format, raw) {
@@ -13707,17 +13602,17 @@ function cmdProgressRender(cwd, format, raw) {
 		out += `| Phase | Name | Plans | Status |\n`;
 		out += `|-------|------|-------|--------|\n`;
 		for (const p of phases) out += `| ${p.number} | ${p.name} | ${p.summaries}/${p.plans} | ${p.status} |\n`;
-		output({ rendered: out }, raw, out);
+		return cmdOk({ rendered: out }, raw ? out : void 0);
 	} else if (format === "bar") {
 		const barWidth = 20;
 		const filled = Math.round(percent / 100 * barWidth);
 		const text = `[${"█".repeat(filled) + "░".repeat(barWidth - filled)}] ${totalSummaries}/${totalPlans} plans (${percent}%)`;
-		output({
+		return cmdOk({
 			bar: text,
 			percent,
 			completed: totalSummaries,
 			total: totalPlans
-		}, raw, text);
+		}, raw ? text : void 0);
 	} else if (format === "phase-bars") {
 		const doneCount = phases.filter((p) => p.status === "Complete").length;
 		const inProgressCount = phases.filter((p) => p.status === "In Progress").length;
@@ -13737,39 +13632,39 @@ function cmdProgressRender(cwd, format, raw) {
 			lines.push(line);
 		}
 		const rendered = lines.join("\n");
-		output({
+		return cmdOk({
 			rendered,
 			done: doneCount,
 			in_progress: inProgressCount,
 			total: totalCount,
 			percent
-		}, raw, rendered);
-	} else output({
+		}, raw ? rendered : void 0);
+	} else return cmdOk({
 		milestone_version: milestone.version,
 		milestone_name: milestone.name,
 		phases,
 		total_plans: totalPlans,
 		total_summaries: totalSummaries,
 		percent
-	}, raw);
+	});
 }
 function cmdTodoComplete(cwd, filename, raw) {
-	if (!filename) error("filename required for todo complete");
+	if (!filename) return cmdErr("filename required for todo complete");
 	const pendingDir = planningPath(cwd, "todos", "pending");
 	const completedDir = planningPath(cwd, "todos", "completed");
 	const sourcePath = node_path.default.join(pendingDir, filename);
-	if (!node_fs.default.existsSync(sourcePath)) error(`Todo not found: ${filename}`);
+	if (!node_fs.default.existsSync(sourcePath)) return cmdErr(`Todo not found: ${filename}`);
 	node_fs.default.mkdirSync(completedDir, { recursive: true });
 	let content = node_fs.default.readFileSync(sourcePath, "utf-8");
 	const today = todayISO();
 	content = `completed: ${today}\n` + content;
 	node_fs.default.writeFileSync(node_path.default.join(completedDir, filename), content, "utf-8");
 	node_fs.default.unlinkSync(sourcePath);
-	output({
+	return cmdOk({
 		completed: true,
 		file: filename,
 		date: today
-	}, raw, "completed");
+	}, raw ? "completed" : void 0);
 }
 function cmdScaffold(cwd, type, options, raw) {
 	const { phase, name } = options;
@@ -13777,7 +13672,7 @@ function cmdScaffold(cwd, type, options, raw) {
 	const today = todayISO();
 	const phaseInfo = phase ? findPhaseInternal(cwd, phase) : null;
 	const phaseDir = phaseInfo ? node_path.default.join(cwd, phaseInfo.directory) : null;
-	if (phase && !phaseDir && type !== "phase-dir") error(`Phase ${phase} directory not found`);
+	if (phase && !phaseDir && type !== "phase-dir") return cmdErr(`Phase ${phase} directory not found`);
 	let filePath;
 	let content;
 	switch (type) {
@@ -13794,37 +13689,31 @@ function cmdScaffold(cwd, type, options, raw) {
 			content = `---\nphase: "${padded}"\nname: "${name || phaseInfo?.phase_name || "Unnamed"}"\ncreated: ${today}\nstatus: pending\n---\n\n# Phase ${phase}: ${name || phaseInfo?.phase_name || "Unnamed"} — Verification\n\n## Goal-Backward Verification\n\n**Phase Goal:** [From ROADMAP.md]\n\n## Checks\n\n| # | Requirement | Status | Evidence |\n|---|------------|--------|----------|\n\n## Result\n\n_Pending verification_\n`;
 			break;
 		case "phase-dir": {
-			if (!phase || !name) error("phase and name required for phase-dir scaffold");
+			if (!phase || !name) return cmdErr("phase and name required for phase-dir scaffold");
 			const dirName = `${padded}-${generateSlugInternal(name)}`;
 			const phasesParent = phasesPath(cwd);
 			node_fs.default.mkdirSync(phasesParent, { recursive: true });
 			const dirPath = node_path.default.join(phasesParent, dirName);
 			node_fs.default.mkdirSync(dirPath, { recursive: true });
-			output({
+			return cmdOk({
 				created: true,
 				directory: `.planning/phases/${dirName}`,
 				path: dirPath
-			}, raw, dirPath);
-			return;
+			}, raw ? dirPath : void 0);
 		}
-		default:
-			error(`Unknown scaffold type: ${type}. Available: context, uat, verification, phase-dir`);
-			return;
+		default: return cmdErr(`Unknown scaffold type: ${type}. Available: context, uat, verification, phase-dir`);
 	}
-	if (node_fs.default.existsSync(filePath)) {
-		output({
-			created: false,
-			reason: "already_exists",
-			path: filePath
-		}, raw, "exists");
-		return;
-	}
+	if (node_fs.default.existsSync(filePath)) return cmdOk({
+		created: false,
+		reason: "already_exists",
+		path: filePath
+	}, raw ? "exists" : void 0);
 	node_fs.default.writeFileSync(filePath, content, "utf-8");
 	const relPath = node_path.default.relative(cwd, filePath);
-	output({
+	return cmdOk({
 		created: true,
 		path: relPath
-	}, raw, relPath);
+	}, raw ? relPath : void 0);
 }
 
 //#endregion
@@ -14594,22 +14483,19 @@ function phaseCompleteCore(cwd, phaseNum) {
 		requirements_updated: requirementsUpdated
 	};
 }
-async function cmdPhasesList(cwd, options, raw) {
+async function cmdPhasesList(cwd, options) {
 	const phasesDirPath = phasesPath(cwd);
 	const { type, phase, includeArchived, offset, limit } = options;
-	if (!node_fs.default.existsSync(phasesDirPath)) {
-		if (type) output({
-			files: [],
-			count: 0,
-			total: 0
-		}, raw, "");
-		else output({
-			directories: [],
-			count: 0,
-			total: 0
-		}, raw, "");
-		return;
-	}
+	if (!node_fs.default.existsSync(phasesDirPath)) if (type) return cmdOk({
+		files: [],
+		count: 0,
+		total: 0
+	}, "");
+	else return cmdOk({
+		directories: [],
+		count: 0,
+		total: 0
+	}, "");
 	try {
 		let dirs = await listSubDirsAsync(phasesDirPath);
 		if (includeArchived) {
@@ -14620,16 +14506,13 @@ async function cmdPhasesList(cwd, options, raw) {
 		if (phase) {
 			const normalized = normalizePhaseName(phase);
 			const match = dirs.find((d) => d.startsWith(normalized));
-			if (!match) {
-				output({
-					files: [],
-					count: 0,
-					total: 0,
-					phase_dir: null,
-					error: "Phase not found"
-				}, raw, "");
-				return;
-			}
+			if (!match) return cmdOk({
+				files: [],
+				count: 0,
+				total: 0,
+				phase_dir: null,
+				error: "Phase not found"
+			}, "");
 			dirs = [match];
 		}
 		if (type) {
@@ -14642,39 +14525,34 @@ async function cmdPhasesList(cwd, options, raw) {
 				else filtered = dirFiles;
 				return filtered.sort();
 			}))).flat();
-			output({
+			return cmdOk({
 				files,
 				count: files.length,
 				total: files.length,
 				phase_dir: phase ? dirs[0].replace(/^\d+(?:\.\d+)?-?/, "") : null
-			}, raw, files.join("\n"));
-			return;
+			}, files.join("\n"));
 		}
 		const total = dirs.length;
 		const start = offset ?? 0;
 		const paginated = limit !== void 0 ? dirs.slice(start, start + limit) : dirs.slice(start);
-		output({
+		return cmdOk({
 			directories: paginated,
 			count: paginated.length,
 			total
-		}, raw, paginated.join("\n"));
+		}, paginated.join("\n"));
 	} catch (e) {
-		rethrowCliSignals(e);
-		error("Failed to list phases: " + e.message);
+		return cmdErr("Failed to list phases: " + e.message);
 	}
 }
-function cmdPhaseNextDecimal(cwd, basePhase, raw) {
+function cmdPhaseNextDecimal(cwd, basePhase) {
 	const phasesDirPath = phasesPath(cwd);
 	const normalized = normalizePhaseName(basePhase);
-	if (!node_fs.default.existsSync(phasesDirPath)) {
-		output({
-			found: false,
-			base_phase: normalized,
-			next: `${normalized}.1`,
-			existing: []
-		}, raw, `${normalized}.1`);
-		return;
-	}
+	if (!node_fs.default.existsSync(phasesDirPath)) return cmdOk({
+		found: false,
+		base_phase: normalized,
+		next: `${normalized}.1`,
+		existing: []
+	}, `${normalized}.1`);
 	try {
 		const dirs = listSubDirs(phasesDirPath);
 		const baseExists = dirs.some((d) => d.startsWith(normalized + "-") || d === normalized);
@@ -14693,19 +14571,18 @@ function cmdPhaseNextDecimal(cwd, basePhase, raw) {
 			const lastDecimal = existingDecimals[existingDecimals.length - 1];
 			nextDecimal = `${normalized}.${parseInt(lastDecimal.split(".")[1], 10) + 1}`;
 		}
-		output({
+		return cmdOk({
 			found: baseExists,
 			base_phase: normalized,
 			next: nextDecimal,
 			existing: existingDecimals
-		}, raw, nextDecimal);
+		}, nextDecimal);
 	} catch (e) {
-		rethrowCliSignals(e);
-		error("Failed to calculate next decimal phase: " + e.message);
+		return cmdErr("Failed to calculate next decimal phase: " + e.message);
 	}
 }
-function cmdFindPhase(cwd, phase, raw) {
-	if (!phase) error("phase identifier required");
+function cmdFindPhase(cwd, phase) {
+	if (!phase) return cmdErr("phase identifier required");
 	const phasesDirPath = phasesPath(cwd);
 	const normalized = normalizePhaseName(phase);
 	const notFound = {
@@ -14718,10 +14595,7 @@ function cmdFindPhase(cwd, phase, raw) {
 	};
 	try {
 		const match = listSubDirs(phasesDirPath, true).find((d) => d.startsWith(normalized));
-		if (!match) {
-			output(notFound, raw, "");
-			return;
-		}
+		if (!match) return cmdOk(notFound, "");
 		const dirMatch = match.match(/^(\d+[A-Z]?(?:\.\d+)?)-?(.*)/i);
 		const phaseNumber = dirMatch ? dirMatch[1] : normalized;
 		const phaseName = dirMatch && dirMatch[2] ? dirMatch[2] : null;
@@ -14737,14 +14611,13 @@ function cmdFindPhase(cwd, phase, raw) {
 			plans,
 			summaries
 		};
-		output(result, raw, result.directory);
+		return cmdOk(result, result.directory);
 	} catch (e) {
-		rethrowCliSignals(e);
-		output(notFound, raw, "");
+		return cmdOk(notFound, "");
 	}
 }
-function cmdPhasePlanIndex(cwd, phase, raw) {
-	if (!phase) error("phase required for phase-plan-index");
+function cmdPhasePlanIndex(cwd, phase) {
+	if (!phase) return cmdErr("phase required for phase-plan-index");
 	const phasesDirPath = phasesPath(cwd);
 	const normalized = normalizePhaseName(phase);
 	let phaseDir = null;
@@ -14754,17 +14627,14 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
 	} catch (e) {
 		debugLog("phase-plan-index-failed", e);
 	}
-	if (!phaseDir) {
-		output({
-			phase: normalized,
-			error: "Phase not found",
-			plans: [],
-			waves: {},
-			incomplete: [],
-			has_checkpoints: false
-		}, raw);
-		return;
-	}
+	if (!phaseDir) return cmdOk({
+		phase: normalized,
+		error: "Phase not found",
+		plans: [],
+		waves: {},
+		incomplete: [],
+		has_checkpoints: false
+	});
 	const phaseFiles = node_fs.default.readdirSync(phaseDir);
 	const planFiles = phaseFiles.filter(isPlanFile).sort();
 	const summaryFiles = phaseFiles.filter(isSummaryFile);
@@ -14801,52 +14671,50 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
 		if (!waves[waveKey]) waves[waveKey] = [];
 		waves[waveKey].push(id);
 	}
-	output({
+	return cmdOk({
 		phase: normalized,
 		plans,
 		waves,
 		incomplete,
 		has_checkpoints: hasCheckpoints
-	}, raw);
+	});
 }
-function cmdPhaseAdd(cwd, description, raw) {
-	if (!description) error("description required for phase add");
+function cmdPhaseAdd(cwd, description) {
+	if (!description) return cmdErr("description required for phase add");
 	try {
 		const result = phaseAddCore(cwd, description, { includeStubs: false });
-		output({
+		return cmdOk({
 			phase_number: result.phase_number,
 			padded: result.padded,
 			name: result.description,
 			slug: result.slug,
 			directory: result.directory
-		}, raw, result.padded);
+		}, result.padded);
 	} catch (e) {
-		rethrowCliSignals(e);
-		error(e.message);
+		return cmdErr(e.message);
 	}
 }
-function cmdPhaseInsert(cwd, afterPhase, description, raw) {
-	if (!afterPhase || !description) error("after-phase and description required for phase insert");
+function cmdPhaseInsert(cwd, afterPhase, description) {
+	if (!afterPhase || !description) return cmdErr("after-phase and description required for phase insert");
 	try {
 		const result = phaseInsertCore(cwd, afterPhase, description, { includeStubs: false });
-		output({
+		return cmdOk({
 			phase_number: result.phase_number,
 			after_phase: result.after_phase,
 			name: result.description,
 			slug: result.slug,
 			directory: result.directory
-		}, raw, result.phase_number);
+		}, result.phase_number);
 	} catch (e) {
-		rethrowCliSignals(e);
-		error(e.message);
+		return cmdErr(e.message);
 	}
 }
-function cmdPhaseRemove(cwd, targetPhase, options, raw) {
-	if (!targetPhase) error("phase number required for phase remove");
+function cmdPhaseRemove(cwd, targetPhase, options) {
+	if (!targetPhase) return cmdErr("phase number required for phase remove");
 	const rmPath = roadmapPath(cwd);
 	const phasesDirPath = phasesPath(cwd);
 	const force = options.force || false;
-	if (!node_fs.default.existsSync(rmPath)) error("ROADMAP.md not found");
+	if (!node_fs.default.existsSync(rmPath)) return cmdErr("ROADMAP.md not found");
 	const normalized = normalizePhaseName(targetPhase);
 	const isDecimal = targetPhase.includes(".");
 	let targetDir = null;
@@ -14858,7 +14726,7 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
 	if (targetDir && !force) {
 		const targetPath = node_path.default.join(phasesDirPath, targetDir);
 		const summaries = node_fs.default.readdirSync(targetPath).filter(isSummaryFile);
-		if (summaries.length > 0) error(`Phase ${targetPhase} has ${summaries.length} executed plan(s). Use --force to remove anyway.`);
+		if (summaries.length > 0) return cmdErr(`Phase ${targetPhase} has ${summaries.length} executed plan(s). Use --force to remove anyway.`);
 	}
 	if (targetDir) node_fs.default.rmSync(node_path.default.join(phasesDirPath, targetDir), {
 		recursive: true,
@@ -15002,20 +14870,20 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
 		}
 		node_fs.default.writeFileSync(stPath, stateContent, "utf-8");
 	}
-	output({
+	return cmdOk({
 		removed: targetPhase,
 		directory_deleted: targetDir || null,
 		renamed_directories: renamedDirs,
 		renamed_files: renamedFiles,
 		roadmap_updated: true,
 		state_updated: node_fs.default.existsSync(stPath)
-	}, raw);
+	});
 }
-function cmdPhaseComplete(cwd, phaseNum, raw) {
-	if (!phaseNum) error("phase number required for phase complete");
+function cmdPhaseComplete(cwd, phaseNum) {
+	if (!phaseNum) return cmdErr("phase number required for phase complete");
 	try {
 		const result = phaseCompleteCore(cwd, phaseNum);
-		output({
+		return cmdOk({
 			completed_phase: result.completed_phase,
 			phase_name: result.phase_name,
 			plans_executed: result.plans_executed,
@@ -15025,10 +14893,9 @@ function cmdPhaseComplete(cwd, phaseNum, raw) {
 			date: result.date,
 			roadmap_updated: result.roadmap_updated,
 			state_updated: result.state_updated
-		}, raw);
+		});
 	} catch (e) {
-		rethrowCliSignals(e);
-		error(e.message);
+		return cmdErr(e.message);
 	}
 }
 
@@ -15258,18 +15125,17 @@ const ARTEFAKT_FILES = {
 	"acceptance-criteria": "ACCEPTANCE-CRITERIA.md",
 	"no-gos": "NO-GOS.md"
 };
+function isValidType(type) {
+	return !!type && type in ARTEFAKT_FILES;
+}
 function resolveArtefaktPath(cwd, type, phase) {
 	const filename = ARTEFAKT_FILES[type];
 	if (phase) {
 		const phaseInfo = findPhaseInternal(cwd, phase);
-		if (!phaseInfo?.directory) error(`Phase ${phase} not found`);
+		if (!phaseInfo?.directory) return null;
 		return node_path.default.join(cwd, phaseInfo.directory, filename);
 	}
 	return planningPath(cwd, filename);
-}
-function validateType(type) {
-	if (!type || !(type in ARTEFAKT_FILES)) error(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(", ")}`);
-	return type;
 }
 function getTemplate(type) {
 	const today = todayISO();
@@ -15280,61 +15146,61 @@ function getTemplate(type) {
 	}
 }
 function cmdArtefakteRead(cwd, type, phase, raw) {
-	const artefaktType = validateType(type);
-	const content = safeReadFile(resolveArtefaktPath(cwd, artefaktType, phase));
-	if (content === null) {
-		output({
-			exists: false,
-			type: artefaktType,
-			phase: phase ?? null,
-			content: null
-		}, raw, "");
-		return;
-	}
-	output({
+	if (!isValidType(type)) return cmdErr(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(", ")}`);
+	const filePath = resolveArtefaktPath(cwd, type, phase);
+	if (!filePath) return cmdErr(`Phase ${phase} not found`);
+	const content = safeReadFile(filePath);
+	if (content === null) return cmdOk({
+		exists: false,
+		type,
+		phase: phase ?? null,
+		content: null
+	}, raw ? "" : void 0);
+	return cmdOk({
 		exists: true,
-		type: artefaktType,
+		type,
 		phase: phase ?? null,
 		content
-	}, raw, content);
+	}, raw ? content : void 0);
 }
 function cmdArtefakteWrite(cwd, type, content, phase, raw) {
-	const artefaktType = validateType(type);
-	const fileContent = content ?? getTemplate(artefaktType);
-	const filePath = resolveArtefaktPath(cwd, artefaktType, phase);
-	const dir = node_path.default.dirname(filePath);
-	node_fs.default.mkdirSync(dir, { recursive: true });
+	if (!isValidType(type)) return cmdErr(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(", ")}`);
+	const fileContent = content ?? getTemplate(type);
+	const filePath = resolveArtefaktPath(cwd, type, phase);
+	if (!filePath) return cmdErr(`Phase ${phase} not found`);
+	node_fs.default.mkdirSync(node_path.default.dirname(filePath), { recursive: true });
 	node_fs.default.writeFileSync(filePath, fileContent, "utf-8");
 	const relPath = node_path.default.relative(cwd, filePath);
-	output({
+	return cmdOk({
 		written: true,
-		type: artefaktType,
+		type,
 		phase: phase ?? null,
 		path: relPath
-	}, raw, relPath);
+	}, raw ? relPath : void 0);
 }
 function cmdArtefakteAppend(cwd, type, entry, phase, raw) {
-	if (!entry) error("entry required for artefakte append");
-	const artefaktType = validateType(type);
-	const filePath = resolveArtefaktPath(cwd, artefaktType, phase);
-	let content = safeReadFile(filePath);
-	if (content === null) content = getTemplate(artefaktType);
-	content = content.replace(/^-\s*_No entries yet\._\s*$/m, "");
+	if (!entry) return cmdErr("entry required for artefakte append");
+	if (!isValidType(type)) return cmdErr(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(", ")}`);
+	const filePath = resolveArtefaktPath(cwd, type, phase);
+	if (!filePath) return cmdErr(`Phase ${phase} not found`);
+	let fileContent = safeReadFile(filePath);
+	if (fileContent === null) fileContent = getTemplate(type);
+	fileContent = fileContent.replace(/^-\s*_No entries yet\._\s*$/m, "");
 	const today = todayISO();
 	let appendLine;
-	if (artefaktType === "decisions") appendLine = `| ${(content.match(/^\|\s*\d+/gm) || []).length + 1} | ${entry} | - | ${today} | - |`;
-	else if (artefaktType === "acceptance-criteria") appendLine = `| ${(content.match(/^\|\s*\d+/gm) || []).length + 1} | ${entry} | pending | - |`;
+	if (type === "decisions") appendLine = `| ${(fileContent.match(/^\|\s*\d+/gm) || []).length + 1} | ${entry} | - | ${today} | - |`;
+	else if (type === "acceptance-criteria") appendLine = `| ${(fileContent.match(/^\|\s*\d+/gm) || []).length + 1} | ${entry} | pending | - |`;
 	else appendLine = `- ${entry}`;
-	content = content.trimEnd() + "\n" + appendLine + "\n";
-	node_fs.default.writeFileSync(filePath, content, "utf-8");
+	fileContent = fileContent.trimEnd() + "\n" + appendLine + "\n";
+	node_fs.default.writeFileSync(filePath, fileContent, "utf-8");
 	const relPath = node_path.default.relative(cwd, filePath);
-	output({
+	return cmdOk({
 		appended: true,
-		type: artefaktType,
+		type,
 		phase: phase ?? null,
 		entry: appendLine,
 		path: relPath
-	}, raw, "true");
+	}, raw ? "true" : void 0);
 }
 function cmdArtefakteList(cwd, phase, raw) {
 	const results = [];
@@ -15342,10 +15208,7 @@ function cmdArtefakteList(cwd, phase, raw) {
 		let filePath;
 		if (phase) {
 			const phaseInfo = findPhaseInternal(cwd, phase);
-			if (!phaseInfo?.directory) {
-				output({ error: `Phase ${phase} not found` }, raw);
-				return;
-			}
+			if (!phaseInfo?.directory) return cmdOk({ error: `Phase ${phase} not found` });
 			filePath = node_path.default.join(cwd, phaseInfo.directory, filename);
 		} else filePath = planningPath(cwd, filename);
 		results.push({
@@ -15354,10 +15217,10 @@ function cmdArtefakteList(cwd, phase, raw) {
 			path: node_path.default.relative(cwd, filePath)
 		});
 	}
-	output({
+	return cmdOk({
 		phase: phase ?? null,
 		artefakte: results
-	}, raw);
+	});
 }
 
 //#endregion
@@ -15472,6 +15335,134 @@ function cmdContextLoad(cwd, phase, topic, includeHistory) {
 }
 
 //#endregion
+//#region src/core/skills.ts
+/**
+* Skills — List, install, and update skill templates
+*
+* Skills are installed to `.claude/skills/<name>/SKILL.md`.
+* Source templates live in `templates/skills/<name>/SKILL.md`.
+*/
+/**
+* Resolve the installed skills directory for the current project.
+* Skills live at `.claude/skills/` relative to cwd.
+*/
+function skillsDir(cwd) {
+	return node_path.default.join(cwd, ".claude", "skills");
+}
+/**
+* Resolve the templates source directory for skills.
+* At runtime (from dist/cli.cjs), templates are bundled at dist/assets/templates/skills/.
+*/
+function skillsTemplateDir() {
+	return node_path.default.resolve(__dirname, "assets", "templates", "skills");
+}
+/**
+* Read a single skill's metadata from its SKILL.md frontmatter.
+*/
+function readSkillInfo(skillDir, dirName) {
+	const content = safeReadFile(node_path.default.join(skillDir, "SKILL.md"));
+	if (!content) return null;
+	const fm = extractFrontmatter(content);
+	return {
+		name: fm.name ?? dirName,
+		description: fm.description ?? "",
+		directory: dirName
+	};
+}
+/**
+* List all installed skills from `.claude/skills/`.
+*/
+function cmdSkillList(cwd, raw) {
+	const dir = skillsDir(cwd);
+	if (!node_fs.default.existsSync(dir)) output({
+		skills: [],
+		count: 0
+	}, raw, "No skills installed.");
+	const entries = node_fs.default.readdirSync(dir, { withFileTypes: true });
+	const skills = [];
+	for (const entry of entries) {
+		if (!entry.isDirectory()) continue;
+		const info = readSkillInfo(node_path.default.join(dir, entry.name), entry.name);
+		if (info) skills.push(info);
+	}
+	output({
+		skills,
+		count: skills.length
+	}, raw, skills.map((s) => `${s.name}: ${s.description}`).join("\n"));
+}
+/**
+* Install a specific skill from the templates directory.
+*/
+function cmdSkillInstall(cwd, skillName, raw) {
+	if (!skillName) error("skill name required. Usage: skill-install <name>");
+	const srcFile = node_path.default.join(skillsTemplateDir(), skillName, "SKILL.md");
+	if (!node_fs.default.existsSync(srcFile)) error(`Skill "${skillName}" not found in templates. Available: ${listAvailableTemplates().join(", ")}`);
+	const destDir = node_path.default.join(skillsDir(cwd), skillName);
+	const destFile = node_path.default.join(destDir, "SKILL.md");
+	node_fs.default.mkdirSync(destDir, { recursive: true });
+	node_fs.default.copyFileSync(srcFile, destFile);
+	output({
+		installed: true,
+		skill: skillName,
+		path: node_path.default.relative(cwd, destFile)
+	}, raw, `Installed skill: ${skillName}`);
+}
+/**
+* Update one or all installed skills from the templates source.
+*/
+function cmdSkillUpdate(cwd, skillName, raw) {
+	const dir = skillsDir(cwd);
+	const templateDir = skillsTemplateDir();
+	if (skillName) {
+		const srcFile = node_path.default.join(templateDir, skillName, "SKILL.md");
+		if (!node_fs.default.existsSync(srcFile)) error(`Skill template "${skillName}" not found.`);
+		const destDir = node_path.default.join(dir, skillName);
+		if (!node_fs.default.existsSync(destDir)) error(`Skill "${skillName}" is not installed. Use skill-install first.`);
+		const destFile = node_path.default.join(destDir, "SKILL.md");
+		node_fs.default.copyFileSync(srcFile, destFile);
+		output({
+			updated: [skillName],
+			skipped: [],
+			not_found: []
+		}, raw, `Updated skill: ${skillName}`);
+		return;
+	}
+	if (!node_fs.default.existsSync(dir)) {
+		output({
+			updated: [],
+			skipped: [],
+			not_found: []
+		}, raw, "No skills installed.");
+		return;
+	}
+	const entries = node_fs.default.readdirSync(dir, { withFileTypes: true });
+	const updated = [];
+	const skipped = [];
+	for (const entry of entries) {
+		if (!entry.isDirectory()) continue;
+		const name = entry.name;
+		const srcFile = node_path.default.join(templateDir, name, "SKILL.md");
+		if (!node_fs.default.existsSync(srcFile)) {
+			skipped.push(name);
+			continue;
+		}
+		const destFile = node_path.default.join(dir, name, "SKILL.md");
+		node_fs.default.copyFileSync(srcFile, destFile);
+		updated.push(name);
+	}
+	const summary = updated.length > 0 ? `Updated ${updated.length} skill(s): ${updated.join(", ")}` : "No skills updated.";
+	output({
+		updated,
+		skipped
+	}, raw, summary);
+}
+function listAvailableTemplates() {
+	const dir = skillsTemplateDir();
+	if (!node_fs.default.existsSync(dir)) return [];
+	return node_fs.default.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+}
+
+//#endregion
 //#region src/core/dashboard-launcher.ts
 /**
 * Dashboard Launcher — Shared dashboard lifecycle utilities
@@ -15480,7 +15471,7 @@ function cmdContextLoad(cwd, phase, topic, includeHistory) {
 */
 const DEFAULT_PORT = 3333;
 const PORT_RANGE_END = 3343;
-const HEALTH_TIMEOUT_MS = 1500;
+const HEALTH_TIMEOUT_MS = 1e4;
 /**
 * Check if a dashboard health endpoint is responding on the given port.
 */
@@ -15689,21 +15680,20 @@ function openBrowser(url) {
 		if (err) debugLog("open-browser-failed", err);
 	});
 }
-async function cmdStart(cwd, options, raw) {
+async function cmdStart(cwd, options) {
 	const existingPort = await findRunningDashboard();
 	if (existingPort) {
 		const url = `http://localhost:${existingPort}`;
 		if (!options.noBrowser) openBrowser(url);
-		output({
+		return cmdOk({
 			started: true,
 			url,
 			already_running: true,
 			port: existingPort
-		}, raw, url);
-		return;
+		}, url);
 	}
 	const serverPath = resolveDashboardServer();
-	if (!serverPath) error("Dashboard server not found. Run `npx maxsimcli` to install first.");
+	if (!serverPath) return cmdErr("Dashboard server not found. Run `npx maxsimcli` to install first.");
 	const serverDir = node_path.default.dirname(serverPath);
 	const dashConfig = readDashboardConfig(serverPath);
 	ensureNodePty(serverDir);
@@ -15712,25 +15702,25 @@ async function cmdStart(cwd, options, raw) {
 		projectCwd: dashConfig.projectCwd,
 		networkMode: options.networkMode
 	});
-	if (!pid) error("Failed to spawn dashboard process.");
+	if (!pid) return cmdErr("Failed to spawn dashboard process.");
 	const url = await waitForDashboard();
 	if (url) {
 		if (!options.noBrowser) openBrowser(url);
-		output({
+		return cmdOk({
 			started: true,
 			url,
 			already_running: false,
 			pid
-		}, raw, url);
+		}, url);
 	} else {
 		const fallbackUrl = `http://localhost:${DEFAULT_PORT}`;
-		output({
+		return cmdOk({
 			started: true,
 			url: fallbackUrl,
 			already_running: false,
 			pid,
 			warning: "Dashboard spawned but health check timed out. It may still be starting."
-		}, raw, fallbackUrl);
+		}, fallbackUrl);
 	}
 }
 
@@ -15764,13 +15754,47 @@ function scanPhaseArtifacts(cwd, phaseDirectory) {
 	}
 	return result;
 }
-function cmdInitExecutePhase(cwd, phase, raw) {
-	if (!phase) error("phase required for init execute-phase");
+const CODE_EXTENSIONS = new Set([
+	".ts",
+	".js",
+	".py",
+	".go",
+	".rs",
+	".swift",
+	".java"
+]);
+const EXCLUDED_DIRS = new Set(["node_modules", ".git"]);
+function findCodeFiles(dir, maxDepth = 3, limit = 5) {
+	const results = [];
+	function walk(currentDir, depth) {
+		if (depth > maxDepth || results.length >= limit) return;
+		let entries;
+		try {
+			entries = node_fs.default.readdirSync(currentDir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+		for (const entry of entries) {
+			if (results.length >= limit) return;
+			if (EXCLUDED_DIRS.has(entry.name)) continue;
+			const fullPath = node_path.default.join(currentDir, entry.name);
+			if (entry.isDirectory()) walk(fullPath, depth + 1);
+			else if (entry.isFile()) {
+				const ext = node_path.default.extname(entry.name).toLowerCase();
+				if (CODE_EXTENSIONS.has(ext)) results.push(fullPath);
+			}
+		}
+	}
+	walk(dir, 1);
+	return results;
+}
+function cmdInitExecutePhase(cwd, phase) {
+	if (!phase) return cmdErr("phase required for init execute-phase");
 	const config = loadConfig(cwd);
 	const phaseInfo = findPhaseInternal(cwd, phase);
 	const milestone = getMilestoneInfo(cwd);
 	const phase_req_ids = extractReqIds(cwd, phase);
-	output({
+	return cmdOk({
 		executor_model: resolveModelInternal(cwd, "maxsim-executor"),
 		verifier_model: resolveModelInternal(cwd, "maxsim-verifier"),
 		commit_docs: config.commit_docs,
@@ -15800,10 +15824,10 @@ function cmdInitExecutePhase(cwd, phase, raw) {
 		state_path: ".planning/STATE.md",
 		roadmap_path: ".planning/ROADMAP.md",
 		config_path: ".planning/config.json"
-	}, raw);
+	});
 }
-function cmdInitPlanPhase(cwd, phase, raw) {
-	if (!phase) error("phase required for init plan-phase");
+function cmdInitPlanPhase(cwd, phase) {
+	if (!phase) return cmdErr("phase required for init plan-phase");
 	const config = loadConfig(cwd);
 	const phaseInfo = findPhaseInternal(cwd, phase);
 	const phase_req_ids = extractReqIds(cwd, phase);
@@ -15838,30 +15862,16 @@ function cmdInitPlanPhase(cwd, phase, raw) {
 		if (artifacts.verification_path) result.verification_path = artifacts.verification_path;
 		if (artifacts.uat_path) result.uat_path = artifacts.uat_path;
 	}
-	output(result, raw);
+	return cmdOk(result);
 }
-function cmdInitNewProject(cwd, raw) {
+function cmdInitNewProject(cwd) {
 	const config = loadConfig(cwd);
 	const homedir = node_os.default.homedir();
 	const braveKeyFile = node_path.default.join(homedir, ".maxsim", "brave_api_key");
 	const hasBraveSearch = !!(process.env.BRAVE_API_KEY || node_fs.default.existsSync(braveKeyFile));
-	let hasCode = false;
-	let hasPackageFile = false;
-	try {
-		hasCode = (0, node_child_process.execSync)("find . -maxdepth 3 \\( -name \"*.ts\" -o -name \"*.js\" -o -name \"*.py\" -o -name \"*.go\" -o -name \"*.rs\" -o -name \"*.swift\" -o -name \"*.java\" \\) 2>/dev/null | grep -v node_modules | grep -v .git | head -5", {
-			cwd,
-			encoding: "utf-8",
-			stdio: [
-				"pipe",
-				"pipe",
-				"pipe"
-			]
-		}).trim().length > 0;
-	} catch (e) {
-		debugLog(e);
-	}
-	hasPackageFile = pathExistsInternal(cwd, "package.json") || pathExistsInternal(cwd, "requirements.txt") || pathExistsInternal(cwd, "Cargo.toml") || pathExistsInternal(cwd, "go.mod") || pathExistsInternal(cwd, "Package.swift");
-	output({
+	const hasCode = findCodeFiles(cwd).length > 0;
+	const hasPackageFile = pathExistsInternal(cwd, "package.json") || pathExistsInternal(cwd, "requirements.txt") || pathExistsInternal(cwd, "Cargo.toml") || pathExistsInternal(cwd, "go.mod") || pathExistsInternal(cwd, "Package.swift");
+	return cmdOk({
 		researcher_model: resolveModelInternal(cwd, "maxsim-project-researcher"),
 		synthesizer_model: resolveModelInternal(cwd, "maxsim-research-synthesizer"),
 		roadmapper_model: resolveModelInternal(cwd, "maxsim-roadmapper"),
@@ -15876,12 +15886,12 @@ function cmdInitNewProject(cwd, raw) {
 		has_git: pathExistsInternal(cwd, ".git"),
 		brave_search_available: hasBraveSearch,
 		project_path: ".planning/PROJECT.md"
-	}, raw);
+	});
 }
-function cmdInitNewMilestone(cwd, raw) {
+function cmdInitNewMilestone(cwd) {
 	const config = loadConfig(cwd);
 	const milestone = getMilestoneInfo(cwd);
-	output({
+	return cmdOk({
 		researcher_model: resolveModelInternal(cwd, "maxsim-project-researcher"),
 		synthesizer_model: resolveModelInternal(cwd, "maxsim-research-synthesizer"),
 		roadmapper_model: resolveModelInternal(cwd, "maxsim-roadmapper"),
@@ -15895,9 +15905,9 @@ function cmdInitNewMilestone(cwd, raw) {
 		project_path: ".planning/PROJECT.md",
 		roadmap_path: ".planning/ROADMAP.md",
 		state_path: ".planning/STATE.md"
-	}, raw);
+	});
 }
-function cmdInitQuick(cwd, description, raw) {
+function cmdInitQuick(cwd, description) {
 	const config = loadConfig(cwd);
 	const now = /* @__PURE__ */ new Date();
 	const slug = description ? generateSlugInternal(description)?.substring(0, 40) ?? null : null;
@@ -15909,7 +15919,7 @@ function cmdInitQuick(cwd, description, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		planner_model: resolveModelInternal(cwd, "maxsim-planner"),
 		executor_model: resolveModelInternal(cwd, "maxsim-executor"),
 		checker_model: resolveModelInternal(cwd, "maxsim-plan-checker"),
@@ -15924,9 +15934,9 @@ function cmdInitQuick(cwd, description, raw) {
 		task_dir: slug ? `.planning/quick/${nextNum}-${slug}` : null,
 		roadmap_exists: pathExistsInternal(cwd, ".planning/ROADMAP.md"),
 		planning_exists: pathExistsInternal(cwd, ".planning")
-	}, raw);
+	});
 }
-function cmdInitResume(cwd, raw) {
+function cmdInitResume(cwd) {
 	const config = loadConfig(cwd);
 	let interruptedAgentId = null;
 	try {
@@ -15934,7 +15944,7 @@ function cmdInitResume(cwd, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		state_exists: pathExistsInternal(cwd, ".planning/STATE.md"),
 		roadmap_exists: pathExistsInternal(cwd, ".planning/ROADMAP.md"),
 		project_exists: pathExistsInternal(cwd, ".planning/PROJECT.md"),
@@ -15945,13 +15955,13 @@ function cmdInitResume(cwd, raw) {
 		has_interrupted_agent: !!interruptedAgentId,
 		interrupted_agent_id: interruptedAgentId,
 		commit_docs: config.commit_docs
-	}, raw);
+	});
 }
-function cmdInitVerifyWork(cwd, phase, raw) {
-	if (!phase) error("phase required for init verify-work");
+function cmdInitVerifyWork(cwd, phase) {
+	if (!phase) return cmdErr("phase required for init verify-work");
 	const config = loadConfig(cwd);
 	const phaseInfo = findPhaseInternal(cwd, phase);
-	output({
+	return cmdOk({
 		planner_model: resolveModelInternal(cwd, "maxsim-planner"),
 		checker_model: resolveModelInternal(cwd, "maxsim-plan-checker"),
 		commit_docs: config.commit_docs,
@@ -15960,9 +15970,9 @@ function cmdInitVerifyWork(cwd, phase, raw) {
 		phase_number: phaseInfo?.phase_number ?? null,
 		phase_name: phaseInfo?.phase_name ?? null,
 		has_verification: phaseInfo?.has_verification ?? false
-	}, raw);
+	});
 }
-function cmdInitPhaseOp(cwd, phase, raw) {
+function cmdInitPhaseOp(cwd, phase) {
 	const config = loadConfig(cwd);
 	let phaseInfo = findPhaseInternal(cwd, phase ?? "");
 	if (!phaseInfo) {
@@ -16011,9 +16021,9 @@ function cmdInitPhaseOp(cwd, phase, raw) {
 		if (artifacts.verification_path) result.verification_path = artifacts.verification_path;
 		if (artifacts.uat_path) result.uat_path = artifacts.uat_path;
 	}
-	output(result, raw);
+	return cmdOk(result);
 }
-function cmdInitTodos(cwd, area, raw) {
+function cmdInitTodos(cwd, area) {
 	const config = loadConfig(cwd);
 	const now = /* @__PURE__ */ new Date();
 	const pendingDir = planningPath(cwd, "todos", "pending");
@@ -16042,7 +16052,7 @@ function cmdInitTodos(cwd, area, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		commit_docs: config.commit_docs,
 		date: todayISO(),
 		timestamp: now.toISOString(),
@@ -16054,9 +16064,9 @@ function cmdInitTodos(cwd, area, raw) {
 		planning_exists: pathExistsInternal(cwd, ".planning"),
 		todos_dir_exists: pathExistsInternal(cwd, ".planning/todos"),
 		pending_dir_exists: pathExistsInternal(cwd, ".planning/todos/pending")
-	}, raw);
+	});
 }
-function cmdInitMilestoneOp(cwd, raw) {
+function cmdInitMilestoneOp(cwd) {
 	const config = loadConfig(cwd);
 	const milestone = getMilestoneInfo(cwd);
 	let phaseCount = 0;
@@ -16080,7 +16090,7 @@ function cmdInitMilestoneOp(cwd, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		commit_docs: config.commit_docs,
 		milestone_version: milestone.version,
 		milestone_name: milestone.name,
@@ -16095,9 +16105,9 @@ function cmdInitMilestoneOp(cwd, raw) {
 		state_exists: pathExistsInternal(cwd, ".planning/STATE.md"),
 		archive_exists: pathExistsInternal(cwd, ".planning/archive"),
 		phases_dir_exists: pathExistsInternal(cwd, ".planning/phases")
-	}, raw);
+	});
 }
-function cmdInitMapCodebase(cwd, raw) {
+function cmdInitMapCodebase(cwd) {
 	const config = loadConfig(cwd);
 	const codebaseDir = planningPath(cwd, "codebase");
 	let existingMaps = [];
@@ -16106,7 +16116,7 @@ function cmdInitMapCodebase(cwd, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		mapper_model: resolveModelInternal(cwd, "maxsim-codebase-mapper"),
 		commit_docs: config.commit_docs,
 		search_gitignored: config.search_gitignored,
@@ -16116,29 +16126,15 @@ function cmdInitMapCodebase(cwd, raw) {
 		has_maps: existingMaps.length > 0,
 		planning_exists: pathExistsInternal(cwd, ".planning"),
 		codebase_dir_exists: pathExistsInternal(cwd, ".planning/codebase")
-	}, raw);
+	});
 }
-function cmdInitExisting(cwd, raw) {
+function cmdInitExisting(cwd) {
 	const config = loadConfig(cwd);
 	const homedir = node_os.default.homedir();
 	const braveKeyFile = node_path.default.join(homedir, ".maxsim", "brave_api_key");
 	const hasBraveSearch = !!(process.env.BRAVE_API_KEY || node_fs.default.existsSync(braveKeyFile));
-	let hasCode = false;
-	let hasPackageFile = false;
-	try {
-		hasCode = (0, node_child_process.execSync)("find . -maxdepth 3 \\( -name \"*.ts\" -o -name \"*.js\" -o -name \"*.py\" -o -name \"*.go\" -o -name \"*.rs\" -o -name \"*.swift\" -o -name \"*.java\" \\) 2>/dev/null | grep -v node_modules | grep -v .git | head -5", {
-			cwd,
-			encoding: "utf-8",
-			stdio: [
-				"pipe",
-				"pipe",
-				"pipe"
-			]
-		}).trim().length > 0;
-	} catch (e) {
-		debugLog(e);
-	}
-	hasPackageFile = pathExistsInternal(cwd, "package.json") || pathExistsInternal(cwd, "requirements.txt") || pathExistsInternal(cwd, "Cargo.toml") || pathExistsInternal(cwd, "go.mod") || pathExistsInternal(cwd, "Package.swift");
+	const hasCode = findCodeFiles(cwd).length > 0;
+	const hasPackageFile = pathExistsInternal(cwd, "package.json") || pathExistsInternal(cwd, "requirements.txt") || pathExistsInternal(cwd, "Cargo.toml") || pathExistsInternal(cwd, "go.mod") || pathExistsInternal(cwd, "Package.swift");
 	let planningFiles = [];
 	try {
 		const planDir = planningPath(cwd);
@@ -16146,7 +16142,7 @@ function cmdInitExisting(cwd, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		researcher_model: resolveModelInternal(cwd, "maxsim-project-researcher"),
 		synthesizer_model: resolveModelInternal(cwd, "maxsim-research-synthesizer"),
 		roadmapper_model: resolveModelInternal(cwd, "maxsim-roadmapper"),
@@ -16166,9 +16162,9 @@ function cmdInitExisting(cwd, raw) {
 		parallelization: config.parallelization,
 		project_path: ".planning/PROJECT.md",
 		codebase_dir: ".planning/codebase"
-	}, raw);
+	});
 }
-function cmdInitProgress(cwd, raw) {
+function cmdInitProgress(cwd) {
 	const config = loadConfig(cwd);
 	const milestone = getMilestoneInfo(cwd);
 	const progressPhasesDir = phasesPath(cwd);
@@ -16183,22 +16179,22 @@ function cmdInitProgress(cwd, raw) {
 			const phaseName = match && match[2] ? match[2] : null;
 			const phaseDirPath = node_path.default.join(progressPhasesDir, dir);
 			const phaseFiles = node_fs.default.readdirSync(phaseDirPath);
-			const plans = phaseFiles.filter((f) => isPlanFile(f));
+			const plansList = phaseFiles.filter((f) => isPlanFile(f));
 			const summaries = phaseFiles.filter((f) => isSummaryFile(f));
 			const hasResearch = phaseFiles.some((f) => f.endsWith("-RESEARCH.md") || f === "RESEARCH.md");
-			const status = summaries.length >= plans.length && plans.length > 0 ? "complete" : plans.length > 0 ? "in_progress" : hasResearch ? "researched" : "pending";
-			const phaseInfo = {
+			const status = summaries.length >= plansList.length && plansList.length > 0 ? "complete" : plansList.length > 0 ? "in_progress" : hasResearch ? "researched" : "pending";
+			const phaseInfoItem = {
 				number: phaseNumber,
 				name: phaseName,
 				directory: node_path.default.join(".planning", "phases", dir),
 				status,
-				plan_count: plans.length,
+				plan_count: plansList.length,
 				summary_count: summaries.length,
 				has_research: hasResearch
 			};
-			phases.push(phaseInfo);
-			if (!currentPhase && (status === "in_progress" || status === "researched")) currentPhase = phaseInfo;
-			if (!nextPhase && status === "pending") nextPhase = phaseInfo;
+			phases.push(phaseInfoItem);
+			if (!currentPhase && (status === "in_progress" || status === "researched")) currentPhase = phaseInfoItem;
+			if (!nextPhase && status === "pending") nextPhase = phaseInfoItem;
 		}
 	} catch (e) {
 		debugLog(e);
@@ -16210,7 +16206,7 @@ function cmdInitProgress(cwd, raw) {
 	} catch (e) {
 		debugLog(e);
 	}
-	output({
+	return cmdOk({
 		executor_model: resolveModelInternal(cwd, "maxsim-executor"),
 		planner_model: resolveModelInternal(cwd, "maxsim-planner"),
 		commit_docs: config.commit_docs,
@@ -16231,7 +16227,7 @@ function cmdInitProgress(cwd, raw) {
 		roadmap_path: ".planning/ROADMAP.md",
 		project_path: ".planning/PROJECT.md",
 		config_path: ".planning/config.json"
-	}, raw);
+	});
 }
 
 //#endregion
@@ -16241,15 +16237,6 @@ function cmdInitProgress(cwd, raw) {
 *
 * Usage: node maxsim-tools.cjs <command> [args] [--raw]
 */
-/** Convert a CmdResult into the output()/error() signal expected by main(). */
-function handleResult(r, raw) {
-	if (r.ok) throw new CliOutput(r.result, raw, r.rawValue);
-	throw new CliError(r.error);
-}
-/** Async variant for promise-returning commands. */
-async function handleResultAsync(p, raw) {
-	return handleResult(await p, raw);
-}
 /** Extract a single named flag's value from args */
 function getFlag(args, flag) {
 	const idx = args.indexOf(flag);
@@ -16268,6 +16255,11 @@ function getFlags(args, ...flags) {
 function hasFlag(args, flag) {
 	return args.includes(`--${flag}`);
 }
+/** Convert a CmdResult into the appropriate output()/error() call. */
+function handleResult(r, raw) {
+	if (r.ok) output(r.result, raw, r.rawValue);
+	else error(r.error);
+}
 const handleState = async (args, cwd, raw) => {
 	const sub = args[1];
 	const handler = sub ? {
@@ -16280,12 +16272,12 @@ const handleState = async (args, cwd, raw) => {
 				const value = args[i + 1];
 				if (key && value !== void 0) patches[key] = value;
 			}
-			cmdStatePatch(cwd, patches, raw);
+			return cmdStatePatch(cwd, patches, raw);
 		},
 		"advance-plan": () => cmdStateAdvancePlan(cwd, raw),
 		"record-metric": () => {
 			const f = getFlags(args, "phase", "plan", "duration", "tasks", "files");
-			cmdStateRecordMetric(cwd, {
+			return cmdStateRecordMetric(cwd, {
 				phase: f.phase ?? "",
 				plan: f.plan ?? "",
 				duration: f.duration ?? "",
@@ -16296,7 +16288,7 @@ const handleState = async (args, cwd, raw) => {
 		"update-progress": () => cmdStateUpdateProgress(cwd, raw),
 		"add-decision": () => {
 			const f = getFlags(args, "phase", "summary", "summary-file", "rationale", "rationale-file");
-			cmdStateAddDecision(cwd, {
+			return cmdStateAddDecision(cwd, {
 				phase: f.phase ?? void 0,
 				summary: f.summary ?? void 0,
 				summary_file: f["summary-file"] ?? void 0,
@@ -16306,7 +16298,7 @@ const handleState = async (args, cwd, raw) => {
 		},
 		"add-blocker": () => {
 			const f = getFlags(args, "text", "text-file");
-			cmdStateAddBlocker(cwd, {
+			return cmdStateAddBlocker(cwd, {
 				text: f.text ?? void 0,
 				text_file: f["text-file"] ?? void 0
 			}, raw);
@@ -16314,14 +16306,14 @@ const handleState = async (args, cwd, raw) => {
 		"resolve-blocker": () => cmdStateResolveBlocker(cwd, getFlag(args, "--text"), raw),
 		"record-session": () => {
 			const f = getFlags(args, "stopped-at", "resume-file");
-			cmdStateRecordSession(cwd, {
+			return cmdStateRecordSession(cwd, {
 				stopped_at: f["stopped-at"] ?? void 0,
 				resume_file: f["resume-file"] ?? "None"
 			}, raw);
 		}
 	}[sub] : void 0;
-	if (handler) return handler();
-	return cmdStateLoad(cwd, raw);
+	if (handler) return handleResult(await handler(), raw);
+	return handleResult(await cmdStateLoad(cwd, raw), raw);
 };
 const handleTemplate = (args, cwd, raw) => {
 	const sub = args[1];
@@ -16356,7 +16348,7 @@ const handleVerify = async (args, cwd, raw) => {
 		"plan-structure": () => handleResult(cmdVerifyPlanStructure(cwd, args[2]), raw),
 		"phase-completeness": () => handleResult(cmdVerifyPhaseCompleteness(cwd, args[2]), raw),
 		"references": () => handleResult(cmdVerifyReferences(cwd, args[2]), raw),
-		"commits": async () => handleResultAsync(cmdVerifyCommits(cwd, args.slice(2)), raw),
+		"commits": async () => handleResult(await cmdVerifyCommits(cwd, args.slice(2)), raw),
 		"artifacts": () => handleResult(cmdVerifyArtifacts(cwd, args[2]), raw),
 		"key-links": () => handleResult(cmdVerifyKeyLinks(cwd, args[2]), raw)
 	}[sub] : void 0;
@@ -16366,35 +16358,35 @@ const handleVerify = async (args, cwd, raw) => {
 const handlePhases = async (args, cwd, raw) => {
 	if (args[1] === "list") {
 		const f = getFlags(args, "type", "phase", "offset", "limit");
-		await cmdPhasesList(cwd, {
+		handleResult(await cmdPhasesList(cwd, {
 			type: f.type,
 			phase: f.phase,
 			includeArchived: hasFlag(args, "include-archived"),
 			offset: f.offset !== null ? parseInt(f.offset, 10) : void 0,
 			limit: f.limit !== null ? parseInt(f.limit, 10) : void 0
-		}, raw);
+		}), raw);
 	} else error("Unknown phases subcommand. Available: list");
 };
 const handleRoadmap = async (args, cwd, raw) => {
 	const sub = args[1];
 	const handler = sub ? {
-		"get-phase": () => cmdRoadmapGetPhase(cwd, args[2], raw),
-		"analyze": () => cmdRoadmapAnalyze(cwd, raw),
-		"update-plan-progress": () => cmdRoadmapUpdatePlanProgress(cwd, args[2], raw)
+		"get-phase": () => cmdRoadmapGetPhase(cwd, args[2]),
+		"analyze": () => cmdRoadmapAnalyze(cwd),
+		"update-plan-progress": () => cmdRoadmapUpdatePlanProgress(cwd, args[2])
 	}[sub] : void 0;
-	if (handler) return handler();
+	if (handler) return handleResult(await handler(), raw);
 	error("Unknown roadmap subcommand. Available: get-phase, analyze, update-plan-progress");
 };
 const handlePhase = (args, cwd, raw) => {
 	const sub = args[1];
 	const handler = sub ? {
-		"next-decimal": () => cmdPhaseNextDecimal(cwd, args[2], raw),
-		"add": () => cmdPhaseAdd(cwd, args.slice(2).join(" "), raw),
-		"insert": () => cmdPhaseInsert(cwd, args[2], args.slice(3).join(" "), raw),
-		"remove": () => cmdPhaseRemove(cwd, args[2], { force: hasFlag(args, "force") }, raw),
-		"complete": () => cmdPhaseComplete(cwd, args[2], raw)
+		"next-decimal": () => cmdPhaseNextDecimal(cwd, args[2]),
+		"add": () => cmdPhaseAdd(cwd, args.slice(2).join(" ")),
+		"insert": () => cmdPhaseInsert(cwd, args[2], args.slice(3).join(" ")),
+		"remove": () => cmdPhaseRemove(cwd, args[2], { force: hasFlag(args, "force") }),
+		"complete": () => cmdPhaseComplete(cwd, args[2])
 	}[sub] : void 0;
-	if (handler) return handler();
+	if (handler) return handleResult(handler(), raw);
 	error("Unknown phase subcommand. Available: next-decimal, add, insert, remove, complete");
 };
 const handleMilestone = (args, cwd, raw) => {
@@ -16427,47 +16419,47 @@ const handleValidate = (args, cwd, raw) => {
 const handleInit = (args, cwd, raw) => {
 	const workflow = args[1];
 	const handler = workflow ? {
-		"execute-phase": () => cmdInitExecutePhase(cwd, args[2], raw),
-		"plan-phase": () => cmdInitPlanPhase(cwd, args[2], raw),
-		"new-project": () => cmdInitNewProject(cwd, raw),
-		"new-milestone": () => cmdInitNewMilestone(cwd, raw),
-		"quick": () => cmdInitQuick(cwd, args.slice(2).join(" "), raw),
-		"resume": () => cmdInitResume(cwd, raw),
-		"verify-work": () => cmdInitVerifyWork(cwd, args[2], raw),
-		"phase-op": () => cmdInitPhaseOp(cwd, args[2], raw),
-		"todos": () => cmdInitTodos(cwd, args[2], raw),
-		"milestone-op": () => cmdInitMilestoneOp(cwd, raw),
-		"map-codebase": () => cmdInitMapCodebase(cwd, raw),
-		"init-existing": () => cmdInitExisting(cwd, raw),
-		"progress": () => cmdInitProgress(cwd, raw)
+		"execute-phase": () => cmdInitExecutePhase(cwd, args[2]),
+		"plan-phase": () => cmdInitPlanPhase(cwd, args[2]),
+		"new-project": () => cmdInitNewProject(cwd),
+		"new-milestone": () => cmdInitNewMilestone(cwd),
+		"quick": () => cmdInitQuick(cwd, args.slice(2).join(" ")),
+		"resume": () => cmdInitResume(cwd),
+		"verify-work": () => cmdInitVerifyWork(cwd, args[2]),
+		"phase-op": () => cmdInitPhaseOp(cwd, args[2]),
+		"todos": () => cmdInitTodos(cwd, args[2]),
+		"milestone-op": () => cmdInitMilestoneOp(cwd),
+		"map-codebase": () => cmdInitMapCodebase(cwd),
+		"init-existing": () => cmdInitExisting(cwd),
+		"progress": () => cmdInitProgress(cwd)
 	}[workflow] : void 0;
-	if (handler) return handler();
+	if (handler) return handleResult(handler(), raw);
 	error(`Unknown init workflow: ${workflow}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, init-existing, progress`);
 };
 const COMMANDS = {
 	"state": handleState,
-	"resolve-model": (args, cwd, raw) => cmdResolveModel(cwd, args[1], raw),
-	"find-phase": (args, cwd, raw) => cmdFindPhase(cwd, args[1], raw),
+	"resolve-model": (args, cwd, raw) => handleResult(cmdResolveModel(cwd, args[1], raw), raw),
+	"find-phase": (args, cwd, raw) => handleResult(cmdFindPhase(cwd, args[1]), raw),
 	"commit": async (args, cwd, raw) => {
 		const files = args.indexOf("--files") !== -1 ? args.slice(args.indexOf("--files") + 1).filter((a) => !a.startsWith("--")) : [];
-		await cmdCommit(cwd, args[1], files, raw, hasFlag(args, "amend"));
+		handleResult(await cmdCommit(cwd, args[1], files, raw, hasFlag(args, "amend")), raw);
 	},
 	"verify-summary": async (args, cwd, raw) => {
 		const countIndex = args.indexOf("--check-count");
 		const checkCount = countIndex !== -1 ? parseInt(args[countIndex + 1], 10) : 2;
-		await handleResultAsync(cmdVerifySummary(cwd, args[1], checkCount), raw);
+		handleResult(await cmdVerifySummary(cwd, args[1], checkCount), raw);
 	},
 	"template": handleTemplate,
 	"frontmatter": handleFrontmatter,
 	"verify": handleVerify,
-	"generate-slug": (args, _cwd, raw) => cmdGenerateSlug(args[1], raw),
-	"current-timestamp": (args, _cwd, raw) => cmdCurrentTimestamp(args[1] || "full", raw),
-	"list-todos": (args, cwd, raw) => cmdListTodos(cwd, args[1], raw),
-	"verify-path-exists": (args, cwd, raw) => cmdVerifyPathExists(cwd, args[1], raw),
-	"config-ensure-section": (_args, cwd, raw) => cmdConfigEnsureSection(cwd, raw),
-	"config-set": (args, cwd, raw) => cmdConfigSet(cwd, args[1], args[2], raw),
-	"config-get": (args, cwd, raw) => cmdConfigGet(cwd, args[1], raw),
-	"history-digest": (_args, cwd, raw) => cmdHistoryDigest(cwd, raw),
+	"generate-slug": (args, _cwd, raw) => handleResult(cmdGenerateSlug(args[1], raw), raw),
+	"current-timestamp": (args, _cwd, raw) => handleResult(cmdCurrentTimestamp(args[1] || "full", raw), raw),
+	"list-todos": (args, cwd, raw) => handleResult(cmdListTodos(cwd, args[1], raw), raw),
+	"verify-path-exists": (args, cwd, raw) => handleResult(cmdVerifyPathExists(cwd, args[1], raw), raw),
+	"config-ensure-section": (_args, cwd, raw) => handleResult(cmdConfigEnsureSection(cwd, raw), raw),
+	"config-set": (args, cwd, raw) => handleResult(cmdConfigSet(cwd, args[1], args[2], raw), raw),
+	"config-get": (args, cwd, raw) => handleResult(cmdConfigGet(cwd, args[1], raw), raw),
+	"history-digest": (_args, cwd, raw) => handleResult(cmdHistoryDigest(cwd, raw), raw),
 	"phases": handlePhases,
 	"roadmap": handleRoadmap,
 	"requirements": (args, cwd, raw) => {
@@ -16477,42 +16469,45 @@ const COMMANDS = {
 	"phase": handlePhase,
 	"milestone": handleMilestone,
 	"validate": handleValidate,
-	"progress": (args, cwd, raw) => cmdProgressRender(cwd, args[1] || "json", raw),
+	"progress": (args, cwd, raw) => handleResult(cmdProgressRender(cwd, args[1] || "json", raw), raw),
 	"todo": (args, cwd, raw) => {
-		if (args[1] === "complete") cmdTodoComplete(cwd, args[2], raw);
+		if (args[1] === "complete") handleResult(cmdTodoComplete(cwd, args[2], raw), raw);
 		else error("Unknown todo subcommand. Available: complete");
 	},
 	"scaffold": (args, cwd, raw) => {
 		const f = getFlags(args, "phase", "name");
-		cmdScaffold(cwd, args[1], {
+		handleResult(cmdScaffold(cwd, args[1], {
 			phase: f.phase,
 			name: f.name ? args.slice(args.indexOf("--name") + 1).join(" ") : null
-		}, raw);
+		}, raw), raw);
 	},
 	"init": handleInit,
-	"phase-plan-index": (args, cwd, raw) => cmdPhasePlanIndex(cwd, args[1], raw),
-	"state-snapshot": (_args, cwd, raw) => cmdStateSnapshot(cwd, raw),
+	"phase-plan-index": (args, cwd, raw) => handleResult(cmdPhasePlanIndex(cwd, args[1]), raw),
+	"state-snapshot": (_args, cwd, raw) => handleResult(cmdStateSnapshot(cwd, raw), raw),
 	"summary-extract": (args, cwd, raw) => {
 		const fieldsIndex = args.indexOf("--fields");
 		const fields = fieldsIndex !== -1 ? args[fieldsIndex + 1].split(",") : null;
-		cmdSummaryExtract(cwd, args[1], fields, raw);
+		handleResult(cmdSummaryExtract(cwd, args[1], fields, raw), raw);
 	},
 	"websearch": async (args, _cwd, raw) => {
 		const f = getFlags(args, "limit", "freshness");
-		await cmdWebsearch(args[1], {
+		handleResult(await cmdWebsearch(args[1], {
 			limit: f.limit ? parseInt(f.limit, 10) : 10,
 			freshness: f.freshness ?? void 0
-		}, raw);
+		}, raw), raw);
 	},
-	"artefakte-read": (args, cwd, raw) => cmdArtefakteRead(cwd, args[1], getFlag(args, "--phase") ?? void 0, raw),
-	"artefakte-write": (args, cwd, raw) => cmdArtefakteWrite(cwd, args[1], getFlag(args, "--content") ?? void 0, getFlag(args, "--phase") ?? void 0, raw),
-	"artefakte-append": (args, cwd, raw) => cmdArtefakteAppend(cwd, args[1], getFlag(args, "--entry") ?? void 0, getFlag(args, "--phase") ?? void 0, raw),
-	"artefakte-list": (args, cwd, raw) => cmdArtefakteList(cwd, getFlag(args, "--phase") ?? void 0, raw),
+	"artefakte-read": (args, cwd, raw) => handleResult(cmdArtefakteRead(cwd, args[1], getFlag(args, "--phase") ?? void 0, raw), raw),
+	"artefakte-write": (args, cwd, raw) => handleResult(cmdArtefakteWrite(cwd, args[1], getFlag(args, "--content") ?? void 0, getFlag(args, "--phase") ?? void 0, raw), raw),
+	"artefakte-append": (args, cwd, raw) => handleResult(cmdArtefakteAppend(cwd, args[1], getFlag(args, "--entry") ?? void 0, getFlag(args, "--phase") ?? void 0, raw), raw),
+	"artefakte-list": (args, cwd, raw) => handleResult(cmdArtefakteList(cwd, getFlag(args, "--phase") ?? void 0, raw), raw),
 	"context-load": (args, cwd, raw) => handleResult(cmdContextLoad(cwd, getFlag(args, "--phase") ?? void 0, getFlag(args, "--topic") ?? void 0, hasFlag(args, "include-history")), raw),
-	"start": async (args, cwd, raw) => cmdStart(cwd, {
+	"skill-list": (_args, cwd, raw) => cmdSkillList(cwd, raw),
+	"skill-install": (args, cwd, raw) => cmdSkillInstall(cwd, args[1], raw),
+	"skill-update": (args, cwd, raw) => cmdSkillUpdate(cwd, args[1], raw),
+	"start": async (args, cwd, raw) => handleResult(await cmdStart(cwd, {
 		noBrowser: hasFlag(args, "no-browser"),
 		networkMode: hasFlag(args, "network")
-	}, raw),
+	}), raw),
 	"dashboard": (args) => handleDashboard(args.slice(1)),
 	"start-server": async () => {
 		const serverPath = node_path.join(__dirname, "mcp-server.cjs");

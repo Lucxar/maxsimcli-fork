@@ -6,7 +6,7 @@ MAXSIM v2.0 is built on three pillars: deep collaborative planning, context engi
 
 ## Milestones
 
-- 🚧 **v2.0 Claude Code Edition** — Phases 1-10 (in progress)
+- ✅ **v2.0 Claude Code Edition** — Phases 1-15 (complete)
 
 ## Phases
 
@@ -156,3 +156,8 @@ Phase 1 → Phase 2 → Phase 3 ∥ Phase 4 → Phase 5 → Phase 6 → Phase 7 
 | 8. Planning Skills | 1/1 | Complete | 2026-03-02 |
 | 9. Dashboard Overhaul | 1/1 | Complete | 2026-03-02 |
 | 10. Performance | 1/1 | Complete | 2026-03-02 |
+| 11. Code Quality & Windows Fixes | 1/1 | Complete | 2026-03-02 |
+| 12. Skills Auto-Trigger & Lifecycle CLI | 1/1 | Complete | 2026-03-02 |
+| 13. Execution Pipeline Completion | 1/1 | Complete | 2026-03-02 |
+| 14. Dashboard & MCP Completion | 1/1 | Complete | 2026-03-02 |
+| 15. Traceability Repair | 1/1 | Complete | 2026-03-02 |

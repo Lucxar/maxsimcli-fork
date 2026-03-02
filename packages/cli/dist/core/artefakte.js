@@ -16,28 +16,25 @@ exports.cmdArtefakteList = cmdArtefakteList;
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const core_js_1 = require("./core.js");
+const types_js_1 = require("./types.js");
 const ARTEFAKT_FILES = {
     'decisions': 'DECISIONS.md',
     'acceptance-criteria': 'ACCEPTANCE-CRITERIA.md',
     'no-gos': 'NO-GOS.md',
 };
 // ─── Internal helpers ────────────────────────────────────────────────────────
+function isValidType(type) {
+    return !!type && type in ARTEFAKT_FILES;
+}
 function resolveArtefaktPath(cwd, type, phase) {
     const filename = ARTEFAKT_FILES[type];
     if (phase) {
         const phaseInfo = (0, core_js_1.findPhaseInternal)(cwd, phase);
-        if (!phaseInfo?.directory) {
-            (0, core_js_1.error)(`Phase ${phase} not found`);
-        }
+        if (!phaseInfo?.directory)
+            return null;
         return node_path_1.default.join(cwd, phaseInfo.directory, filename);
     }
     return (0, core_js_1.planningPath)(cwd, filename);
-}
-function validateType(type) {
-    if (!type || !(type in ARTEFAKT_FILES)) {
-        (0, core_js_1.error)(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
-    }
-    return type;
 }
 function getTemplate(type) {
     const today = (0, core_js_1.todayISO)();
@@ -52,59 +49,67 @@ function getTemplate(type) {
 }
 // ─── Commands ────────────────────────────────────────────────────────────────
 function cmdArtefakteRead(cwd, type, phase, raw) {
-    const artefaktType = validateType(type);
-    const filePath = resolveArtefaktPath(cwd, artefaktType, phase);
+    if (!isValidType(type)) {
+        return (0, types_js_1.cmdErr)(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
+    }
+    const filePath = resolveArtefaktPath(cwd, type, phase);
+    if (!filePath)
+        return (0, types_js_1.cmdErr)(`Phase ${phase} not found`);
     const content = (0, core_js_1.safeReadFile)(filePath);
     if (content === null) {
-        (0, core_js_1.output)({ exists: false, type: artefaktType, phase: phase ?? null, content: null }, raw, '');
-        return;
+        return (0, types_js_1.cmdOk)({ exists: false, type, phase: phase ?? null, content: null }, raw ? '' : undefined);
     }
-    (0, core_js_1.output)({ exists: true, type: artefaktType, phase: phase ?? null, content }, raw, content);
+    return (0, types_js_1.cmdOk)({ exists: true, type, phase: phase ?? null, content }, raw ? content : undefined);
 }
 function cmdArtefakteWrite(cwd, type, content, phase, raw) {
-    const artefaktType = validateType(type);
-    // If no content provided, use the template
-    const fileContent = content ?? getTemplate(artefaktType);
-    const filePath = resolveArtefaktPath(cwd, artefaktType, phase);
+    if (!isValidType(type)) {
+        return (0, types_js_1.cmdErr)(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
+    }
+    const fileContent = content ?? getTemplate(type);
+    const filePath = resolveArtefaktPath(cwd, type, phase);
+    if (!filePath)
+        return (0, types_js_1.cmdErr)(`Phase ${phase} not found`);
     // Ensure parent directory exists
-    const dir = node_path_1.default.dirname(filePath);
-    node_fs_1.default.mkdirSync(dir, { recursive: true });
+    node_fs_1.default.mkdirSync(node_path_1.default.dirname(filePath), { recursive: true });
     node_fs_1.default.writeFileSync(filePath, fileContent, 'utf-8');
     const relPath = node_path_1.default.relative(cwd, filePath);
-    (0, core_js_1.output)({ written: true, type: artefaktType, phase: phase ?? null, path: relPath }, raw, relPath);
+    return (0, types_js_1.cmdOk)({ written: true, type, phase: phase ?? null, path: relPath }, raw ? relPath : undefined);
 }
 function cmdArtefakteAppend(cwd, type, entry, phase, raw) {
     if (!entry) {
-        (0, core_js_1.error)('entry required for artefakte append');
+        return (0, types_js_1.cmdErr)('entry required for artefakte append');
     }
-    const artefaktType = validateType(type);
-    const filePath = resolveArtefaktPath(cwd, artefaktType, phase);
-    let content = (0, core_js_1.safeReadFile)(filePath);
-    if (content === null) {
+    if (!isValidType(type)) {
+        return (0, types_js_1.cmdErr)(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
+    }
+    const filePath = resolveArtefaktPath(cwd, type, phase);
+    if (!filePath)
+        return (0, types_js_1.cmdErr)(`Phase ${phase} not found`);
+    let fileContent = (0, core_js_1.safeReadFile)(filePath);
+    if (fileContent === null) {
         // Auto-create from template
-        content = getTemplate(artefaktType);
+        fileContent = getTemplate(type);
     }
     // Remove placeholder lines like "- _No entries yet._"
-    content = content.replace(/^-\s*_No entries yet\._\s*$/m, '');
+    fileContent = fileContent.replace(/^-\s*_No entries yet\._\s*$/m, '');
     // Append the entry
     const today = (0, core_js_1.todayISO)();
     let appendLine;
-    if (artefaktType === 'decisions') {
-        // Count existing rows to get next number
-        const rowCount = (content.match(/^\|\s*\d+/gm) || []).length;
+    if (type === 'decisions') {
+        const rowCount = (fileContent.match(/^\|\s*\d+/gm) || []).length;
         appendLine = `| ${rowCount + 1} | ${entry} | - | ${today} | - |`;
     }
-    else if (artefaktType === 'acceptance-criteria') {
-        const rowCount = (content.match(/^\|\s*\d+/gm) || []).length;
+    else if (type === 'acceptance-criteria') {
+        const rowCount = (fileContent.match(/^\|\s*\d+/gm) || []).length;
         appendLine = `| ${rowCount + 1} | ${entry} | pending | - |`;
     }
     else {
         appendLine = `- ${entry}`;
     }
-    content = content.trimEnd() + '\n' + appendLine + '\n';
-    node_fs_1.default.writeFileSync(filePath, content, 'utf-8');
+    fileContent = fileContent.trimEnd() + '\n' + appendLine + '\n';
+    node_fs_1.default.writeFileSync(filePath, fileContent, 'utf-8');
     const relPath = node_path_1.default.relative(cwd, filePath);
-    (0, core_js_1.output)({ appended: true, type: artefaktType, phase: phase ?? null, entry: appendLine, path: relPath }, raw, 'true');
+    return (0, types_js_1.cmdOk)({ appended: true, type, phase: phase ?? null, entry: appendLine, path: relPath }, raw ? 'true' : undefined);
 }
 function cmdArtefakteList(cwd, phase, raw) {
     const results = [];
@@ -113,8 +118,7 @@ function cmdArtefakteList(cwd, phase, raw) {
         if (phase) {
             const phaseInfo = (0, core_js_1.findPhaseInternal)(cwd, phase);
             if (!phaseInfo?.directory) {
-                (0, core_js_1.output)({ error: `Phase ${phase} not found` }, raw);
-                return;
+                return (0, types_js_1.cmdOk)({ error: `Phase ${phase} not found` });
             }
             filePath = node_path_1.default.join(cwd, phaseInfo.directory, filename);
         }
@@ -127,6 +131,6 @@ function cmdArtefakteList(cwd, phase, raw) {
             path: node_path_1.default.relative(cwd, filePath),
         });
     }
-    (0, core_js_1.output)({ phase: phase ?? null, artefakte: results }, raw);
+    return (0, types_js_1.cmdOk)({ phase: phase ?? null, artefakte: results });
 }
 //# sourceMappingURL=artefakte.js.map

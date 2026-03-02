@@ -3,7 +3,7 @@
  *
  * Ported from maxsim/bin/lib/phase.cjs
  */
-import type { PhasesListOptions } from './types.js';
+import type { PhasesListOptions, CmdResult } from './types.js';
 export interface PhaseCreateOptions {
     includeStubs?: boolean;
 }
@@ -37,14 +37,14 @@ export declare function scaffoldPhaseStubs(dirPath: string, phaseId: string, nam
 export declare function phaseAddCore(cwd: string, description: string, options?: PhaseCreateOptions): PhaseAddResult;
 export declare function phaseInsertCore(cwd: string, afterPhase: string, description: string, options?: PhaseCreateOptions): PhaseInsertResult;
 export declare function phaseCompleteCore(cwd: string, phaseNum: string): PhaseCompleteResult;
-export declare function cmdPhasesList(cwd: string, options: PhasesListOptions, raw: boolean): Promise<void>;
-export declare function cmdPhaseNextDecimal(cwd: string, basePhase: string, raw: boolean): void;
-export declare function cmdFindPhase(cwd: string, phase: string | undefined, raw: boolean): void;
-export declare function cmdPhasePlanIndex(cwd: string, phase: string | undefined, raw: boolean): void;
-export declare function cmdPhaseAdd(cwd: string, description: string | undefined, raw: boolean): void;
-export declare function cmdPhaseInsert(cwd: string, afterPhase: string | undefined, description: string | undefined, raw: boolean): void;
+export declare function cmdPhasesList(cwd: string, options: PhasesListOptions): Promise<CmdResult>;
+export declare function cmdPhaseNextDecimal(cwd: string, basePhase: string): CmdResult;
+export declare function cmdFindPhase(cwd: string, phase: string | undefined): CmdResult;
+export declare function cmdPhasePlanIndex(cwd: string, phase: string | undefined): CmdResult;
+export declare function cmdPhaseAdd(cwd: string, description: string | undefined): CmdResult;
+export declare function cmdPhaseInsert(cwd: string, afterPhase: string | undefined, description: string | undefined): CmdResult;
 export declare function cmdPhaseRemove(cwd: string, targetPhase: string | undefined, options: {
     force: boolean;
-}, raw: boolean): void;
-export declare function cmdPhaseComplete(cwd: string, phaseNum: string | undefined, raw: boolean): void;
+}): CmdResult;
+export declare function cmdPhaseComplete(cwd: string, phaseNum: string | undefined): CmdResult;
 //# sourceMappingURL=phase.d.ts.map

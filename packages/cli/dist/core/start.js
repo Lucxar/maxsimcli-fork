@@ -16,6 +16,7 @@ exports.cmdStart = cmdStart;
 const node_child_process_1 = require("node:child_process");
 const core_js_1 = require("./core.js");
 const dashboard_launcher_js_1 = require("./dashboard-launcher.js");
+const types_js_1 = require("./types.js");
 const node_path_1 = __importDefault(require("node:path"));
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function openBrowser(url) {
@@ -30,20 +31,19 @@ function openBrowser(url) {
     });
 }
 // ─── Command ─────────────────────────────────────────────────────────────────
-async function cmdStart(cwd, options, raw) {
+async function cmdStart(cwd, options) {
     // 1. Check if dashboard is already running
     const existingPort = await (0, dashboard_launcher_js_1.findRunningDashboard)();
     if (existingPort) {
         const url = `http://localhost:${existingPort}`;
         if (!options.noBrowser)
             openBrowser(url);
-        (0, core_js_1.output)({ started: true, url, already_running: true, port: existingPort }, raw, url);
-        return;
+        return (0, types_js_1.cmdOk)({ started: true, url, already_running: true, port: existingPort }, url);
     }
     // 2. Resolve the dashboard server
     const serverPath = (0, dashboard_launcher_js_1.resolveDashboardServer)();
     if (!serverPath) {
-        (0, core_js_1.error)('Dashboard server not found. Run `npx maxsimcli` to install first.');
+        return (0, types_js_1.cmdErr)('Dashboard server not found. Run `npx maxsimcli` to install first.');
     }
     const serverDir = node_path_1.default.dirname(serverPath);
     const dashConfig = (0, dashboard_launcher_js_1.readDashboardConfig)(serverPath);
@@ -56,25 +56,25 @@ async function cmdStart(cwd, options, raw) {
         networkMode: options.networkMode,
     });
     if (!pid) {
-        (0, core_js_1.error)('Failed to spawn dashboard process.');
+        return (0, types_js_1.cmdErr)('Failed to spawn dashboard process.');
     }
     // 5. Wait for dashboard to be ready
     const url = await (0, dashboard_launcher_js_1.waitForDashboard)();
     if (url) {
         if (!options.noBrowser)
             openBrowser(url);
-        (0, core_js_1.output)({ started: true, url, already_running: false, pid }, raw, url);
+        return (0, types_js_1.cmdOk)({ started: true, url, already_running: false, pid }, url);
     }
     else {
         // Dashboard was spawned but health check didn't respond in time
         const fallbackUrl = `http://localhost:${dashboard_launcher_js_1.DEFAULT_PORT}`;
-        (0, core_js_1.output)({
+        return (0, types_js_1.cmdOk)({
             started: true,
             url: fallbackUrl,
             already_running: false,
             pid,
             warning: 'Dashboard spawned but health check timed out. It may still be starting.',
-        }, raw, fallbackUrl);
+        }, fallbackUrl);
     }
 }
 //# sourceMappingURL=start.js.map

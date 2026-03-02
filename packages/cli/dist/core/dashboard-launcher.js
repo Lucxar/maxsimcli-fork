@@ -26,7 +26,7 @@ const core_js_1 = require("./core.js");
 // ─── Constants ──────────────────────────────────────────────────────────────
 exports.DEFAULT_PORT = 3333;
 exports.PORT_RANGE_END = 3343;
-exports.HEALTH_TIMEOUT_MS = 1500;
+exports.HEALTH_TIMEOUT_MS = 10_000;
 // ─── Health check ───────────────────────────────────────────────────────────
 /**
  * Check if a dashboard health endpoint is responding on the given port.

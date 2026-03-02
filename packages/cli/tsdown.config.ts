@@ -36,6 +36,7 @@ export default defineConfig([
   {
     ...shared,
     entry: { 'mcp-server': 'src/mcp-server.ts' },
+    noExternal: [/^@modelcontextprotocol/, /^zod/],
   },
   // Hooks — compiled as standalone bundles into dist/assets/hooks/
   {

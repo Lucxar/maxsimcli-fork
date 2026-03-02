@@ -36,6 +36,12 @@ function ok(data) {
 function err(error) {
     return { success: false, error };
 }
+function cmdOk(result, rawValue) {
+    return { ok: true, result, rawValue };
+}
+function cmdErr(error) {
+    return { ok: false, error };
+}
 exports.PLANNING_CONFIG_DEFAULTS = {
     model_profile: 'balanced',
     commit_docs: true,
@@ -51,10 +57,4 @@ exports.PLANNING_CONFIG_DEFAULTS = {
     parallelization: true,
     brave_search: false,
 };
-function cmdOk(result, rawValue) {
-    return { ok: true, result, rawValue };
-}
-function cmdErr(error) {
-    return { ok: false, error };
-}
 //# sourceMappingURL=types.js.map

@@ -27,6 +27,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const slugify_1 = __importDefault(require("slugify"));
 const core_js_1 = require("./core.js");
 const frontmatter_js_1 = require("./frontmatter.js");
+const types_js_1 = require("./types.js");
 function parseTodoFrontmatter(content) {
     const createdMatch = content.match(/^created:\s*(.+)$/m);
     const titleMatch = content.match(/^title:\s*(.+)$/m);
@@ -42,11 +43,11 @@ function parseTodoFrontmatter(content) {
 // ─── Slug generation ────────────────────────────────────────────────────────
 function cmdGenerateSlug(text, raw) {
     if (!text) {
-        (0, core_js_1.error)('text required for slug generation');
+        return (0, types_js_1.cmdErr)('text required for slug generation');
     }
     const slug = (0, slugify_1.default)(text, { lower: true, strict: true });
     const result = { slug };
-    (0, core_js_1.output)(result, raw, slug);
+    return (0, types_js_1.cmdOk)(result, raw ? slug : undefined);
 }
 // ─── Timestamp ──────────────────────────────────────────────────────────────
 function cmdCurrentTimestamp(format, raw) {
@@ -64,7 +65,7 @@ function cmdCurrentTimestamp(format, raw) {
             result = now.toISOString();
             break;
     }
-    (0, core_js_1.output)({ timestamp: result }, raw, result);
+    return (0, types_js_1.cmdOk)({ timestamp: result }, raw ? result : undefined);
 }
 // ─── Todos ──────────────────────────────────────────────────────────────────
 function cmdListTodos(cwd, area, raw) {
@@ -100,24 +101,24 @@ function cmdListTodos(cwd, area, raw) {
         (0, core_js_1.debugLog)(e);
     }
     const result = { count, todos };
-    (0, core_js_1.output)(result, raw, count.toString());
+    return (0, types_js_1.cmdOk)(result, raw ? count.toString() : undefined);
 }
 // ─── Path verification ──────────────────────────────────────────────────────
 function cmdVerifyPathExists(cwd, targetPath, raw) {
     if (!targetPath) {
-        (0, core_js_1.error)('path required for verification');
+        return (0, types_js_1.cmdErr)('path required for verification');
     }
     const fullPath = node_path_1.default.isAbsolute(targetPath) ? targetPath : node_path_1.default.join(cwd, targetPath);
     try {
         const stats = node_fs_1.default.statSync(fullPath);
         const type = stats.isDirectory() ? 'directory' : stats.isFile() ? 'file' : 'other';
         const result = { exists: true, type };
-        (0, core_js_1.output)(result, raw, 'true');
+        return (0, types_js_1.cmdOk)(result, raw ? 'true' : undefined);
     }
     catch (e) {
         (0, core_js_1.rethrowCliSignals)(e);
         const result = { exists: false, type: null };
-        (0, core_js_1.output)(result, raw, 'false');
+        return (0, types_js_1.cmdOk)(result, raw ? 'false' : undefined);
     }
 }
 // ─── History digest ─────────────────────────────────────────────────────────
@@ -146,8 +147,7 @@ function cmdHistoryDigest(cwd, raw) {
     }
     if (allPhaseDirs.length === 0) {
         const emptyDigest = { phases: {}, decisions: [], tech_stack: [] };
-        (0, core_js_1.output)(emptyDigest, raw);
-        return;
+        return (0, types_js_1.cmdOk)(emptyDigest);
     }
     try {
         for (const { name: dir, fullPath: dirPath } of allPhaseDirs) {
@@ -213,48 +213,45 @@ function cmdHistoryDigest(cwd, raw) {
                 patterns: [...data.patterns],
             };
         }
-        (0, core_js_1.output)(outputDigest, raw);
+        return (0, types_js_1.cmdOk)(outputDigest);
     }
     catch (e) {
         (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.error)('Failed to generate history digest: ' + e.message);
+        return (0, types_js_1.cmdErr)('Failed to generate history digest: ' + e.message);
     }
 }
 // ─── Model resolution ───────────────────────────────────────────────────────
 function cmdResolveModel(cwd, agentType, raw) {
     if (!agentType) {
-        (0, core_js_1.error)('agent-type required');
+        return (0, types_js_1.cmdErr)('agent-type required');
     }
     const config = (0, core_js_1.loadConfig)(cwd);
     const profile = config.model_profile || 'balanced';
     const agentModels = core_js_1.MODEL_PROFILES[agentType];
     if (!agentModels) {
         const result = { model: 'sonnet', profile, unknown_agent: true };
-        (0, core_js_1.output)(result, raw, 'sonnet');
-        return;
+        return (0, types_js_1.cmdOk)(result, raw ? 'sonnet' : undefined);
     }
     const resolved = agentModels[profile] || agentModels['balanced'] || 'sonnet';
     const model = resolved === 'opus' ? 'inherit' : resolved;
     const result = { model, profile };
-    (0, core_js_1.output)(result, raw, model);
+    return (0, types_js_1.cmdOk)(result, raw ? model : undefined);
 }
 // ─── Commit ─────────────────────────────────────────────────────────────────
 async function cmdCommit(cwd, message, files, raw, amend) {
     if (!message && !amend) {
-        (0, core_js_1.error)('commit message required');
+        return (0, types_js_1.cmdErr)('commit message required');
     }
     const config = (0, core_js_1.loadConfig)(cwd);
     // Check commit_docs config
     if (!config.commit_docs) {
         const result = { committed: false, hash: null, reason: 'skipped_commit_docs_false' };
-        (0, core_js_1.output)(result, raw, 'skipped');
-        return;
+        return (0, types_js_1.cmdOk)(result, raw ? 'skipped' : undefined);
     }
     // Check if .planning is gitignored
     if (await (0, core_js_1.isGitIgnored)(cwd, '.planning')) {
         const result = { committed: false, hash: null, reason: 'skipped_gitignored' };
-        (0, core_js_1.output)(result, raw, 'skipped');
-        return;
+        return (0, types_js_1.cmdOk)(result, raw ? 'skipped' : undefined);
     }
     // Stage files
     const filesToStage = files && files.length > 0 ? files : ['.planning/'];
@@ -267,28 +264,25 @@ async function cmdCommit(cwd, message, files, raw, amend) {
     if (commitResult.exitCode !== 0) {
         if (commitResult.stdout.includes('nothing to commit') || commitResult.stderr.includes('nothing to commit')) {
             const result = { committed: false, hash: null, reason: 'nothing_to_commit' };
-            (0, core_js_1.output)(result, raw, 'nothing');
-            return;
+            return (0, types_js_1.cmdOk)(result, raw ? 'nothing' : undefined);
         }
         const result = { committed: false, hash: null, reason: 'nothing_to_commit', error: commitResult.stderr };
-        (0, core_js_1.output)(result, raw, 'nothing');
-        return;
+        return (0, types_js_1.cmdOk)(result, raw ? 'nothing' : undefined);
     }
     // Get short hash
     const hashResult = await (0, core_js_1.execGit)(cwd, ['rev-parse', '--short', 'HEAD']);
     const hash = hashResult.exitCode === 0 ? hashResult.stdout : null;
     const result = { committed: true, hash, reason: 'committed' };
-    (0, core_js_1.output)(result, raw, hash || 'committed');
+    return (0, types_js_1.cmdOk)(result, raw ? (hash || 'committed') : undefined);
 }
 // ─── Summary extract ────────────────────────────────────────────────────────
 function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
     if (!summaryPath) {
-        (0, core_js_1.error)('summary-path required for summary-extract');
+        return (0, types_js_1.cmdErr)('summary-path required for summary-extract');
     }
     const fullPath = node_path_1.default.join(cwd, summaryPath);
     if (!node_fs_1.default.existsSync(fullPath)) {
-        (0, core_js_1.output)({ error: 'File not found', path: summaryPath }, raw);
-        return;
+        return (0, types_js_1.cmdOk)({ error: 'File not found', path: summaryPath });
     }
     const content = node_fs_1.default.readFileSync(fullPath, 'utf-8');
     const fm = (0, frontmatter_js_1.extractFrontmatter)(content);
@@ -326,21 +320,18 @@ function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
                 filtered[field] = fullResult[field];
             }
         }
-        (0, core_js_1.output)(filtered, raw);
-        return;
+        return (0, types_js_1.cmdOk)(filtered);
     }
-    (0, core_js_1.output)(fullResult, raw);
+    return (0, types_js_1.cmdOk)(fullResult);
 }
 // ─── Web search ─────────────────────────────────────────────────────────────
 async function cmdWebsearch(query, options, raw) {
     const apiKey = process.env.BRAVE_API_KEY;
     if (!apiKey) {
-        (0, core_js_1.output)({ available: false, reason: 'BRAVE_API_KEY not set' }, raw, '');
-        return;
+        return (0, types_js_1.cmdOk)({ available: false, reason: 'BRAVE_API_KEY not set' }, raw ? '' : undefined);
     }
     if (!query) {
-        (0, core_js_1.output)({ available: false, error: 'Query required' }, raw, '');
-        return;
+        return (0, types_js_1.cmdOk)({ available: false, error: 'Query required' }, raw ? '' : undefined);
     }
     const params = new URLSearchParams({
         q: query,
@@ -360,8 +351,7 @@ async function cmdWebsearch(query, options, raw) {
             },
         });
         if (!response.ok) {
-            (0, core_js_1.output)({ available: false, error: `API error: ${response.status}` }, raw, '');
-            return;
+            return (0, types_js_1.cmdOk)({ available: false, error: `API error: ${response.status}` }, raw ? '' : undefined);
         }
         const data = (await response.json());
         const results = (data.web?.results || []).map(r => ({
@@ -370,16 +360,16 @@ async function cmdWebsearch(query, options, raw) {
             description: r.description,
             age: r.age || null,
         }));
-        (0, core_js_1.output)({
+        return (0, types_js_1.cmdOk)({
             available: true,
             query,
             count: results.length,
             results,
-        }, raw, results.map(r => `${r.title}\n${r.url}\n${r.description}`).join('\n\n'));
+        }, raw ? results.map(r => `${r.title}\n${r.url}\n${r.description}`).join('\n\n') : undefined);
     }
     catch (err) {
         (0, core_js_1.rethrowCliSignals)(err);
-        (0, core_js_1.output)({ available: false, error: err.message }, raw, '');
+        return (0, types_js_1.cmdOk)({ available: false, error: err.message }, raw ? '' : undefined);
     }
 }
 // ─── Progress render ────────────────────────────────────────────────────────
@@ -436,14 +426,14 @@ function cmdProgressRender(cwd, format, raw) {
         for (const p of phases) {
             out += `| ${p.number} | ${p.name} | ${p.summaries}/${p.plans} | ${p.status} |\n`;
         }
-        (0, core_js_1.output)({ rendered: out }, raw, out);
+        return (0, types_js_1.cmdOk)({ rendered: out }, raw ? out : undefined);
     }
     else if (format === 'bar') {
         const barWidth = 20;
         const filled = Math.round((percent / 100) * barWidth);
         const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(barWidth - filled);
         const text = `[${bar}] ${totalSummaries}/${totalPlans} plans (${percent}%)`;
-        (0, core_js_1.output)({ bar: text, percent, completed: totalSummaries, total: totalPlans }, raw, text);
+        return (0, types_js_1.cmdOk)({ bar: text, percent, completed: totalSummaries, total: totalPlans }, raw ? text : undefined);
     }
     else if (format === 'phase-bars') {
         const doneCount = phases.filter(p => p.status === 'Complete').length;
@@ -472,29 +462,29 @@ function cmdProgressRender(cwd, format, raw) {
             lines.push(line);
         }
         const rendered = lines.join('\n');
-        (0, core_js_1.output)({ rendered, done: doneCount, in_progress: inProgressCount, total: totalCount, percent }, raw, rendered);
+        return (0, types_js_1.cmdOk)({ rendered, done: doneCount, in_progress: inProgressCount, total: totalCount, percent }, raw ? rendered : undefined);
     }
     else {
-        (0, core_js_1.output)({
+        return (0, types_js_1.cmdOk)({
             milestone_version: milestone.version,
             milestone_name: milestone.name,
             phases,
             total_plans: totalPlans,
             total_summaries: totalSummaries,
             percent,
-        }, raw);
+        });
     }
 }
 // ─── Todo complete ──────────────────────────────────────────────────────────
 function cmdTodoComplete(cwd, filename, raw) {
     if (!filename) {
-        (0, core_js_1.error)('filename required for todo complete');
+        return (0, types_js_1.cmdErr)('filename required for todo complete');
     }
     const pendingDir = (0, core_js_1.planningPath)(cwd, 'todos', 'pending');
     const completedDir = (0, core_js_1.planningPath)(cwd, 'todos', 'completed');
     const sourcePath = node_path_1.default.join(pendingDir, filename);
     if (!node_fs_1.default.existsSync(sourcePath)) {
-        (0, core_js_1.error)(`Todo not found: ${filename}`);
+        return (0, types_js_1.cmdErr)(`Todo not found: ${filename}`);
     }
     // Ensure completed directory exists
     node_fs_1.default.mkdirSync(completedDir, { recursive: true });
@@ -504,7 +494,7 @@ function cmdTodoComplete(cwd, filename, raw) {
     content = `completed: ${today}\n` + content;
     node_fs_1.default.writeFileSync(node_path_1.default.join(completedDir, filename), content, 'utf-8');
     node_fs_1.default.unlinkSync(sourcePath);
-    (0, core_js_1.output)({ completed: true, file: filename, date: today }, raw, 'completed');
+    return (0, types_js_1.cmdOk)({ completed: true, file: filename, date: today }, raw ? 'completed' : undefined);
 }
 // ─── Scaffold ───────────────────────────────────────────────────────────────
 function cmdScaffold(cwd, type, options, raw) {
@@ -515,7 +505,7 @@ function cmdScaffold(cwd, type, options, raw) {
     const phaseInfo = phase ? (0, core_js_1.findPhaseInternal)(cwd, phase) : null;
     const phaseDir = phaseInfo ? node_path_1.default.join(cwd, phaseInfo.directory) : null;
     if (phase && !phaseDir && type !== 'phase-dir') {
-        (0, core_js_1.error)(`Phase ${phase} directory not found`);
+        return (0, types_js_1.cmdErr)(`Phase ${phase} directory not found`);
     }
     let filePath;
     let content;
@@ -537,7 +527,7 @@ function cmdScaffold(cwd, type, options, raw) {
         }
         case 'phase-dir': {
             if (!phase || !name) {
-                (0, core_js_1.error)('phase and name required for phase-dir scaffold');
+                return (0, types_js_1.cmdErr)('phase and name required for phase-dir scaffold');
             }
             const slug = (0, core_js_1.generateSlugInternal)(name);
             const dirName = `${padded}-${slug}`;
@@ -545,19 +535,16 @@ function cmdScaffold(cwd, type, options, raw) {
             node_fs_1.default.mkdirSync(phasesParent, { recursive: true });
             const dirPath = node_path_1.default.join(phasesParent, dirName);
             node_fs_1.default.mkdirSync(dirPath, { recursive: true });
-            (0, core_js_1.output)({ created: true, directory: `.planning/phases/${dirName}`, path: dirPath }, raw, dirPath);
-            return;
+            return (0, types_js_1.cmdOk)({ created: true, directory: `.planning/phases/${dirName}`, path: dirPath }, raw ? dirPath : undefined);
         }
         default:
-            (0, core_js_1.error)(`Unknown scaffold type: ${type}. Available: context, uat, verification, phase-dir`);
-            return; // unreachable but satisfies TS
+            return (0, types_js_1.cmdErr)(`Unknown scaffold type: ${type}. Available: context, uat, verification, phase-dir`);
     }
     if (node_fs_1.default.existsSync(filePath)) {
-        (0, core_js_1.output)({ created: false, reason: 'already_exists', path: filePath }, raw, 'exists');
-        return;
+        return (0, types_js_1.cmdOk)({ created: false, reason: 'already_exists', path: filePath }, raw ? 'exists' : undefined);
     }
     node_fs_1.default.writeFileSync(filePath, content, 'utf-8');
     const relPath = node_path_1.default.relative(cwd, filePath);
-    (0, core_js_1.output)({ created: true, path: relPath }, raw, relPath);
+    return (0, types_js_1.cmdOk)({ created: true, path: relPath }, raw ? relPath : undefined);
 }
 //# sourceMappingURL=commands.js.map

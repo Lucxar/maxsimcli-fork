@@ -3,7 +3,7 @@
  *
  * Ported from maxsim/bin/lib/init.cjs
  */
-import type { BranchingStrategy, ModelResolution } from './types.js';
+import type { BranchingStrategy, ModelResolution, CmdResult } from './types.js';
 export type WorkflowType = 'execute-phase' | 'plan-phase' | 'new-project' | 'new-milestone' | 'quick' | 'resume' | 'verify-work' | 'phase-op' | 'todos' | 'milestone-op' | 'map-codebase' | 'init-existing' | 'progress';
 export interface ExecutePhaseContext {
     executor_model: ModelResolution;
@@ -256,18 +256,18 @@ export interface ProgressContext {
     config_path: string;
 }
 export type InitContext = ExecutePhaseContext | PlanPhaseContext | NewProjectContext | NewMilestoneContext | QuickContext | ResumeContext | VerifyWorkContext | PhaseOpContext | TodosContext | MilestoneOpContext | MapCodebaseContext | InitExistingContext | ProgressContext;
-export declare function cmdInitExecutePhase(cwd: string, phase: string | undefined, raw: boolean): void;
-export declare function cmdInitPlanPhase(cwd: string, phase: string | undefined, raw: boolean): void;
-export declare function cmdInitNewProject(cwd: string, raw: boolean): void;
-export declare function cmdInitNewMilestone(cwd: string, raw: boolean): void;
-export declare function cmdInitQuick(cwd: string, description: string | undefined, raw: boolean): void;
-export declare function cmdInitResume(cwd: string, raw: boolean): void;
-export declare function cmdInitVerifyWork(cwd: string, phase: string | undefined, raw: boolean): void;
-export declare function cmdInitPhaseOp(cwd: string, phase: string | undefined, raw: boolean): void;
-export declare function cmdInitTodos(cwd: string, area: string | undefined, raw: boolean): void;
-export declare function cmdInitMilestoneOp(cwd: string, raw: boolean): void;
-export declare function cmdInitMapCodebase(cwd: string, raw: boolean): void;
-export declare function cmdInitExisting(cwd: string, raw: boolean): void;
-export declare function cmdInitProgress(cwd: string, raw: boolean): void;
+export declare function cmdInitExecutePhase(cwd: string, phase: string | undefined): CmdResult;
+export declare function cmdInitPlanPhase(cwd: string, phase: string | undefined): CmdResult;
+export declare function cmdInitNewProject(cwd: string): CmdResult;
+export declare function cmdInitNewMilestone(cwd: string): CmdResult;
+export declare function cmdInitQuick(cwd: string, description: string | undefined): CmdResult;
+export declare function cmdInitResume(cwd: string): CmdResult;
+export declare function cmdInitVerifyWork(cwd: string, phase: string | undefined): CmdResult;
+export declare function cmdInitPhaseOp(cwd: string, phase: string | undefined): CmdResult;
+export declare function cmdInitTodos(cwd: string, area: string | undefined): CmdResult;
+export declare function cmdInitMilestoneOp(cwd: string): CmdResult;
+export declare function cmdInitMapCodebase(cwd: string): CmdResult;
+export declare function cmdInitExisting(cwd: string): CmdResult;
+export declare function cmdInitProgress(cwd: string): CmdResult;
 export {};
 //# sourceMappingURL=init.d.ts.map

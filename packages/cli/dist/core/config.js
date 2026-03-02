@@ -14,7 +14,6 @@ exports.cmdConfigGet = cmdConfigGet;
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_os_1 = __importDefault(require("node:os"));
-const core_js_1 = require("./core.js");
 const types_js_1 = require("./types.js");
 // ─── Config CRUD commands ───────────────────────────────────────────────────
 function cmdConfigEnsureSection(cwd, raw) {
@@ -26,12 +25,11 @@ function cmdConfigEnsureSection(cwd, raw) {
         }
     }
     catch (err) {
-        (0, core_js_1.error)('Failed to create .planning directory: ' + err.message);
+        return (0, types_js_1.cmdErr)('Failed to create .planning directory: ' + err.message);
     }
     if (node_fs_1.default.existsSync(configPath)) {
         const result = { created: false, reason: 'already_exists' };
-        (0, core_js_1.output)(result, raw, 'exists');
-        return;
+        return (0, types_js_1.cmdOk)(result, raw ? 'exists' : undefined);
     }
     // Detect Brave Search API key availability
     const homedir = node_os_1.default.homedir();
@@ -63,16 +61,16 @@ function cmdConfigEnsureSection(cwd, raw) {
     try {
         node_fs_1.default.writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf-8');
         const result = { created: true, path: '.planning/config.json' };
-        (0, core_js_1.output)(result, raw, 'created');
+        return (0, types_js_1.cmdOk)(result, raw ? 'created' : undefined);
     }
     catch (err) {
-        (0, core_js_1.error)('Failed to create config.json: ' + err.message);
+        return (0, types_js_1.cmdErr)('Failed to create config.json: ' + err.message);
     }
 }
 function cmdConfigSet(cwd, keyPath, value, raw) {
     const configPath = node_path_1.default.join(cwd, '.planning', 'config.json');
     if (!keyPath) {
-        (0, core_js_1.error)('Usage: config-set <key.path> <value>');
+        return (0, types_js_1.cmdErr)('Usage: config-set <key.path> <value>');
     }
     // Parse value (handle booleans and numbers)
     let parsedValue = value;
@@ -90,7 +88,7 @@ function cmdConfigSet(cwd, keyPath, value, raw) {
         }
     }
     catch (err) {
-        (0, core_js_1.error)('Failed to read config.json: ' + err.message);
+        return (0, types_js_1.cmdErr)('Failed to read config.json: ' + err.message);
     }
     // Set nested value using dot notation
     const keys = keyPath.split('.');
@@ -106,16 +104,16 @@ function cmdConfigSet(cwd, keyPath, value, raw) {
     try {
         node_fs_1.default.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
         const result = { updated: true, key: keyPath, value: parsedValue };
-        (0, core_js_1.output)(result, raw, `${keyPath}=${parsedValue}`);
+        return (0, types_js_1.cmdOk)(result, raw ? `${keyPath}=${parsedValue}` : undefined);
     }
     catch (err) {
-        (0, core_js_1.error)('Failed to write config.json: ' + err.message);
+        return (0, types_js_1.cmdErr)('Failed to write config.json: ' + err.message);
     }
 }
 function cmdConfigGet(cwd, keyPath, raw) {
     const configPath = node_path_1.default.join(cwd, '.planning', 'config.json');
     if (!keyPath) {
-        (0, core_js_1.error)('Usage: config-get <key.path>');
+        return (0, types_js_1.cmdErr)('Usage: config-get <key.path>');
     }
     let config = {};
     try {
@@ -123,25 +121,23 @@ function cmdConfigGet(cwd, keyPath, raw) {
             config = JSON.parse(node_fs_1.default.readFileSync(configPath, 'utf-8'));
         }
         else {
-            (0, core_js_1.error)('No config.json found at ' + configPath);
+            return (0, types_js_1.cmdErr)('No config.json found at ' + configPath);
         }
     }
     catch (err) {
-        if (err.message.startsWith('No config.json'))
-            throw err;
-        (0, core_js_1.error)('Failed to read config.json: ' + err.message);
+        return (0, types_js_1.cmdErr)('Failed to read config.json: ' + err.message);
     }
     const keys = keyPath.split('.');
     let current = config;
     for (const key of keys) {
         if (current === undefined || current === null || typeof current !== 'object') {
-            (0, core_js_1.error)(`Key not found: ${keyPath}`);
+            return (0, types_js_1.cmdErr)(`Key not found: ${keyPath}`);
         }
         current = current[key];
     }
     if (current === undefined) {
-        (0, core_js_1.error)(`Key not found: ${keyPath}`);
+        return (0, types_js_1.cmdErr)(`Key not found: ${keyPath}`);
     }
-    (0, core_js_1.output)(current, raw, String(current));
+    return (0, types_js_1.cmdOk)(current, raw ? String(current) : undefined);
 }
 //# sourceMappingURL=config.js.map

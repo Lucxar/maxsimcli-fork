@@ -24,6 +24,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const core_js_1 = require("./core.js");
 const frontmatter_js_1 = require("./frontmatter.js");
+const types_js_1 = require("./types.js");
 // ─── Stub scaffolding ───────────────────────────────────────────────────────
 function scaffoldPhaseStubs(dirPath, phaseId, name) {
     const today = (0, core_js_1.todayISO)();
@@ -229,17 +230,16 @@ function phaseCompleteCore(cwd, phaseNum) {
     };
 }
 // ─── Phase list ─────────────────────────────────────────────────────────────
-async function cmdPhasesList(cwd, options, raw) {
+async function cmdPhasesList(cwd, options) {
     const phasesDirPath = (0, core_js_1.phasesPath)(cwd);
     const { type, phase, includeArchived, offset, limit } = options;
     if (!node_fs_1.default.existsSync(phasesDirPath)) {
         if (type) {
-            (0, core_js_1.output)({ files: [], count: 0, total: 0 }, raw, '');
+            return (0, types_js_1.cmdOk)({ files: [], count: 0, total: 0 }, '');
         }
         else {
-            (0, core_js_1.output)({ directories: [], count: 0, total: 0 }, raw, '');
+            return (0, types_js_1.cmdOk)({ directories: [], count: 0, total: 0 }, '');
         }
-        return;
     }
     try {
         let dirs = await (0, core_js_1.listSubDirsAsync)(phasesDirPath);
@@ -254,8 +254,7 @@ async function cmdPhasesList(cwd, options, raw) {
             const normalized = (0, core_js_1.normalizePhaseName)(phase);
             const match = dirs.find(d => d.startsWith(normalized));
             if (!match) {
-                (0, core_js_1.output)({ files: [], count: 0, total: 0, phase_dir: null, error: 'Phase not found' }, raw, '');
-                return;
+                return (0, types_js_1.cmdOk)({ files: [], count: 0, total: 0, phase_dir: null, error: 'Phase not found' }, '');
             }
             dirs = [match];
         }
@@ -282,27 +281,24 @@ async function cmdPhasesList(cwd, options, raw) {
                 total: files.length,
                 phase_dir: phase ? dirs[0].replace(/^\d+(?:\.\d+)?-?/, '') : null,
             };
-            (0, core_js_1.output)(result, raw, files.join('\n'));
-            return;
+            return (0, types_js_1.cmdOk)(result, files.join('\n'));
         }
         // Apply pagination
         const total = dirs.length;
         const start = offset ?? 0;
         const paginated = limit !== undefined ? dirs.slice(start, start + limit) : dirs.slice(start);
-        (0, core_js_1.output)({ directories: paginated, count: paginated.length, total }, raw, paginated.join('\n'));
+        return (0, types_js_1.cmdOk)({ directories: paginated, count: paginated.length, total }, paginated.join('\n'));
     }
     catch (e) {
-        (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.error)('Failed to list phases: ' + e.message);
+        return (0, types_js_1.cmdErr)('Failed to list phases: ' + e.message);
     }
 }
 // ─── Next decimal ───────────────────────────────────────────────────────────
-function cmdPhaseNextDecimal(cwd, basePhase, raw) {
+function cmdPhaseNextDecimal(cwd, basePhase) {
     const phasesDirPath = (0, core_js_1.phasesPath)(cwd);
     const normalized = (0, core_js_1.normalizePhaseName)(basePhase);
     if (!node_fs_1.default.existsSync(phasesDirPath)) {
-        (0, core_js_1.output)({ found: false, base_phase: normalized, next: `${normalized}.1`, existing: [] }, raw, `${normalized}.1`);
-        return;
+        return (0, types_js_1.cmdOk)({ found: false, base_phase: normalized, next: `${normalized}.1`, existing: [] }, `${normalized}.1`);
     }
     try {
         const dirs = (0, core_js_1.listSubDirs)(phasesDirPath);
@@ -329,17 +325,16 @@ function cmdPhaseNextDecimal(cwd, basePhase, raw) {
             const lastNum = parseInt(lastDecimal.split('.')[1], 10);
             nextDecimal = `${normalized}.${lastNum + 1}`;
         }
-        (0, core_js_1.output)({ found: baseExists, base_phase: normalized, next: nextDecimal, existing: existingDecimals }, raw, nextDecimal);
+        return (0, types_js_1.cmdOk)({ found: baseExists, base_phase: normalized, next: nextDecimal, existing: existingDecimals }, nextDecimal);
     }
     catch (e) {
-        (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.error)('Failed to calculate next decimal phase: ' + e.message);
+        return (0, types_js_1.cmdErr)('Failed to calculate next decimal phase: ' + e.message);
     }
 }
 // ─── Find phase ─────────────────────────────────────────────────────────────
-function cmdFindPhase(cwd, phase, raw) {
+function cmdFindPhase(cwd, phase) {
     if (!phase) {
-        (0, core_js_1.error)('phase identifier required');
+        return (0, types_js_1.cmdErr)('phase identifier required');
     }
     const phasesDirPath = (0, core_js_1.phasesPath)(cwd);
     const normalized = (0, core_js_1.normalizePhaseName)(phase);
@@ -348,8 +343,7 @@ function cmdFindPhase(cwd, phase, raw) {
         const dirs = (0, core_js_1.listSubDirs)(phasesDirPath, true);
         const match = dirs.find(d => d.startsWith(normalized));
         if (!match) {
-            (0, core_js_1.output)(notFound, raw, '');
-            return;
+            return (0, types_js_1.cmdOk)(notFound, '');
         }
         const dirMatch = match.match(/^(\d+[A-Z]?(?:\.\d+)?)-?(.*)/i);
         const phaseNumber = dirMatch ? dirMatch[1] : normalized;
@@ -366,17 +360,16 @@ function cmdFindPhase(cwd, phase, raw) {
             plans,
             summaries,
         };
-        (0, core_js_1.output)(result, raw, result.directory);
+        return (0, types_js_1.cmdOk)(result, result.directory);
     }
     catch (e) {
-        (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.output)(notFound, raw, '');
+        return (0, types_js_1.cmdOk)(notFound, '');
     }
 }
 // ─── Phase plan index ───────────────────────────────────────────────────────
-function cmdPhasePlanIndex(cwd, phase, raw) {
+function cmdPhasePlanIndex(cwd, phase) {
     if (!phase) {
-        (0, core_js_1.error)('phase required for phase-plan-index');
+        return (0, types_js_1.cmdErr)('phase required for phase-plan-index');
     }
     const phasesDirPath = (0, core_js_1.phasesPath)(cwd);
     const normalized = (0, core_js_1.normalizePhaseName)(phase);
@@ -394,8 +387,7 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
         (0, core_js_1.debugLog)('phase-plan-index-failed', e);
     }
     if (!phaseDir) {
-        (0, core_js_1.output)({ phase: normalized, error: 'Phase not found', plans: [], waves: {}, incomplete: [], has_checkpoints: false }, raw);
-        return;
+        return (0, types_js_1.cmdOk)({ phase: normalized, error: 'Phase not found', plans: [], waves: {}, incomplete: [], has_checkpoints: false });
     }
     const phaseFiles = node_fs_1.default.readdirSync(phaseDir);
     const planFiles = phaseFiles.filter(core_js_1.isPlanFile).sort();
@@ -444,46 +436,44 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
         }
         waves[waveKey].push(id);
     }
-    (0, core_js_1.output)({ phase: normalized, plans, waves, incomplete, has_checkpoints: hasCheckpoints }, raw);
+    return (0, types_js_1.cmdOk)({ phase: normalized, plans, waves, incomplete, has_checkpoints: hasCheckpoints });
 }
 // ─── Phase add ──────────────────────────────────────────────────────────────
-function cmdPhaseAdd(cwd, description, raw) {
+function cmdPhaseAdd(cwd, description) {
     if (!description) {
-        (0, core_js_1.error)('description required for phase add');
+        return (0, types_js_1.cmdErr)('description required for phase add');
     }
     try {
         const result = phaseAddCore(cwd, description, { includeStubs: false });
-        (0, core_js_1.output)({ phase_number: result.phase_number, padded: result.padded, name: result.description, slug: result.slug, directory: result.directory }, raw, result.padded);
+        return (0, types_js_1.cmdOk)({ phase_number: result.phase_number, padded: result.padded, name: result.description, slug: result.slug, directory: result.directory }, result.padded);
     }
     catch (e) {
-        (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.error)(e.message);
+        return (0, types_js_1.cmdErr)(e.message);
     }
 }
 // ─── Phase insert ───────────────────────────────────────────────────────────
-function cmdPhaseInsert(cwd, afterPhase, description, raw) {
+function cmdPhaseInsert(cwd, afterPhase, description) {
     if (!afterPhase || !description) {
-        (0, core_js_1.error)('after-phase and description required for phase insert');
+        return (0, types_js_1.cmdErr)('after-phase and description required for phase insert');
     }
     try {
         const result = phaseInsertCore(cwd, afterPhase, description, { includeStubs: false });
-        (0, core_js_1.output)({ phase_number: result.phase_number, after_phase: result.after_phase, name: result.description, slug: result.slug, directory: result.directory }, raw, result.phase_number);
+        return (0, types_js_1.cmdOk)({ phase_number: result.phase_number, after_phase: result.after_phase, name: result.description, slug: result.slug, directory: result.directory }, result.phase_number);
     }
     catch (e) {
-        (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.error)(e.message);
+        return (0, types_js_1.cmdErr)(e.message);
     }
 }
 // ─── Phase remove ───────────────────────────────────────────────────────────
-function cmdPhaseRemove(cwd, targetPhase, options, raw) {
+function cmdPhaseRemove(cwd, targetPhase, options) {
     if (!targetPhase) {
-        (0, core_js_1.error)('phase number required for phase remove');
+        return (0, types_js_1.cmdErr)('phase number required for phase remove');
     }
     const rmPath = (0, core_js_1.roadmapPath)(cwd);
     const phasesDirPath = (0, core_js_1.phasesPath)(cwd);
     const force = options.force || false;
     if (!node_fs_1.default.existsSync(rmPath)) {
-        (0, core_js_1.error)('ROADMAP.md not found');
+        return (0, types_js_1.cmdErr)('ROADMAP.md not found');
     }
     const normalized = (0, core_js_1.normalizePhaseName)(targetPhase);
     const isDecimal = targetPhase.includes('.');
@@ -500,7 +490,7 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
         const files = node_fs_1.default.readdirSync(targetPath);
         const summaries = files.filter(core_js_1.isSummaryFile);
         if (summaries.length > 0) {
-            (0, core_js_1.error)(`Phase ${targetPhase} has ${summaries.length} executed plan(s). Use --force to remove anyway.`);
+            return (0, types_js_1.cmdErr)(`Phase ${targetPhase} has ${summaries.length} executed plan(s). Use --force to remove anyway.`);
         }
     }
     if (targetDir) {
@@ -638,23 +628,23 @@ function cmdPhaseRemove(cwd, targetPhase, options, raw) {
         }
         node_fs_1.default.writeFileSync(stPath, stateContent, 'utf-8');
     }
-    (0, core_js_1.output)({
+    return (0, types_js_1.cmdOk)({
         removed: targetPhase,
         directory_deleted: targetDir || null,
         renamed_directories: renamedDirs,
         renamed_files: renamedFiles,
         roadmap_updated: true,
         state_updated: node_fs_1.default.existsSync(stPath),
-    }, raw);
+    });
 }
 // ─── Phase complete ─────────────────────────────────────────────────────────
-function cmdPhaseComplete(cwd, phaseNum, raw) {
+function cmdPhaseComplete(cwd, phaseNum) {
     if (!phaseNum) {
-        (0, core_js_1.error)('phase number required for phase complete');
+        return (0, types_js_1.cmdErr)('phase number required for phase complete');
     }
     try {
         const result = phaseCompleteCore(cwd, phaseNum);
-        (0, core_js_1.output)({
+        return (0, types_js_1.cmdOk)({
             completed_phase: result.completed_phase,
             phase_name: result.phase_name,
             plans_executed: result.plans_executed,
@@ -664,11 +654,10 @@ function cmdPhaseComplete(cwd, phaseNum, raw) {
             date: result.date,
             roadmap_updated: result.roadmap_updated,
             state_updated: result.state_updated,
-        }, raw);
+        });
     }
     catch (e) {
-        (0, core_js_1.rethrowCliSignals)(e);
-        (0, core_js_1.error)(e.message);
+        return (0, types_js_1.cmdErr)(e.message);
     }
 }
 //# sourceMappingURL=phase.js.map
