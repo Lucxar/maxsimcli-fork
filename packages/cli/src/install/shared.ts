@@ -115,7 +115,6 @@ export interface InstallResult {
   settingsPath: string | null;
   settings: Record<string, unknown> | null;
   statuslineCommand: string | null;
-  runtime: 'claude';
 }
 
 /**
@@ -128,7 +127,6 @@ export interface InstallResult {
  */
 export function verifyInstallComplete(
   configDir: string,
-  _runtime?: RuntimeName,
   manifest: Manifest | null = null,
 ): { complete: boolean; missing: string[] } {
   const missing: string[] = [];

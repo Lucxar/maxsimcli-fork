@@ -498,15 +498,3 @@ export interface PhasesListOptions {
   limit?: number;
 }
 
-// ─── Adapter interfaces ─────────────────────────────────────────────────────
-
-export type RuntimeName = 'claude';
-
-export interface AdapterConfig {
-  runtime: RuntimeName;
-  dirName: string;
-  getGlobalDir(explicitDir?: string | null): string;
-  getConfigDirFromHome(isGlobal: boolean): string;
-  transformContent(content: string, pathPrefix: string): string;
-  commandStructure: 'nested';
-}

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-MAXSIM is a meta-prompting, context engineering, and spec-driven development system for Claude Code, OpenCode, Gemini CLI, and Codex. It solves "context rot" by offloading work to fresh-context subagents. Users install it via `npx maxsimcli@latest` and it installs command/workflow/agent files into their AI runtime's config directories.
+MAXSIM is a meta-prompting, context engineering, and spec-driven development system for Claude Code. It solves "context rot" by offloading work to fresh-context subagents. Users install it via `npx maxsimcli@latest` and it installs command/workflow/agent files into the Claude Code config directory (`~/.claude/`).
 
 ## Commands
 
@@ -44,7 +44,7 @@ This is an **npm workspaces** monorepo with 3 packages:
 
 | Package | Role |
 |---------|------|
-| `packages/cli` | Main package, published as `maxsimcli` to npm. Contains all core logic, adapters, hooks, CLI router, and installer. |
+| `packages/cli` | Main package, published as `maxsimcli` to npm. Contains all core logic, hooks, CLI router, and installer. |
 | `packages/dashboard` | Vite+React frontend + Express backend. Bundled into cli's `dist/assets/dashboard/` at build time. |
 | `packages/website` | Marketing website (separate, not part of npm publish). |
 
@@ -52,9 +52,8 @@ Static assets (markdown commands, agents, workflows) live in `templates/` at the
 
 ### Delivery Mechanism
 
-MAXSIM ships as an npm package that installs markdown files into AI runtime config directories:
-- **Claude Code:** `~/.claude/commands/maxsim/`, `~/.claude/agents/`, `~/.claude/hooks/`
-- **OpenCode/Gemini/Codex:** equivalent paths
+MAXSIM ships as an npm package that installs markdown files into the Claude Code config directory (`~/.claude/`):
+- `~/.claude/commands/maxsim/`, `~/.claude/agents/`, `~/.claude/hooks/`
 
 The "runtime" for MAXSIM commands is the AI itself — commands are markdown prompts, not executable code.
 
@@ -75,9 +74,8 @@ All business logic lives in `packages/cli/src/`:
 ```
 src/
 ├── cli.ts           ← Tools router (150+ commands, dispatches to core modules)
-├── install.ts       ← npm install orchestration (runtime selection, file copying)
+├── install.ts       ← npm install orchestration (file copying)
 ├── core/            ← Shared utilities (types, config, state, phase, roadmap, verify, etc.)
-├── adapters/        ← Runtime adapters (Claude, OpenCode, Gemini, Codex)
 └── hooks/           ← Compiled CLI hooks (statusline, context monitor, update check)
 ```
 

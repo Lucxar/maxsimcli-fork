@@ -102,7 +102,6 @@ if (hasHelp) {
 async function install(
   isGlobal: boolean,
 ): Promise<InstallResult> {
-  const runtime = 'claude' as const;
   const dirName = getDirName();
   const src = templatesRoot;
 
@@ -129,7 +128,7 @@ async function install(
   const isAlreadyCurrent = existingManifest !== null && existingManifest.version === pkg.version;
 
   if (existingManifest !== null) {
-    const { complete, missing } = verifyInstallComplete(targetDir, runtime, existingManifest);
+    const { complete, missing } = verifyInstallComplete(targetDir, existingManifest);
     if (!complete) {
       console.log(`  ${chalk.yellow('!')} Previous install (v${existingManifest.version}) is incomplete — ${missing.length} missing file(s). Re-installing.`);
     } else if (isAlreadyCurrent) {
@@ -438,7 +437,7 @@ async function install(
   // Configure statusline and hooks in settings.json
   const { settingsPath, settings, statuslineCommand } = configureSettingsHooks(targetDir, isGlobal);
 
-  return { settingsPath, settings, statuslineCommand, runtime };
+  return { settingsPath, settings, statuslineCommand };
 }
 
 /**
