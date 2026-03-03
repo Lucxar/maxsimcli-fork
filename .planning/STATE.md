@@ -5,15 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** Every AI-assisted coding task runs with the right amount of context — no more, no less — producing consistent, correct output from phase 1 to phase 50.
-**Current focus:** Phase 16 — Codebase Cleanup (complete)
+**Current focus:** Phase 17 — Skill System Cleanup (complete)
 
 ## Current Position
 
 Milestone: v5.0 SDD-Native Architecture
-Phase: 16 of 20 (Codebase Cleanup) -- Complete
-Plan: 1 of 1 in current phase (16-01-PLAN.md) -- Complete
+Phase: 17 of 20 (Skill-System-Cleanup) -- Complete
+Plan: 1 of 1 in current phase (17-01-PLAN.md) -- Complete
 Status: complete
-Last activity: 2026-03-03 -- Phase 16 plan 01 complete (adapter removal, Claude-only cleanup)
+Last activity: 2026-03-03 -- Phase 17 plan 01 complete (skill renames, registration, guard test)
 
 Progress: [█████████████████░░░] v2.0 done (15/15), v5.0 in progress (1/5)
 

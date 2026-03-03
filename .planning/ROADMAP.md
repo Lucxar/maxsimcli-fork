@@ -27,7 +27,7 @@ MAXSIM v2.0 is built on three pillars: deep collaborative planning, context engi
 - [x] **Phase 14: Dashboard & MCP Completion** - (completed 2026-03-02)
 - [x] **Phase 15: Traceability Repair** - (completed 2026-03-02)
 - [x] **Phase 16: Codebase Cleanup** - Remove multi-runtime dead code, update install flow, refresh docs for Claude Code-only focus (completed 2026-03-03)
-- [ ] **Phase 17: Skill System Cleanup** - Rename conflicting skills, eliminate coverage gaps, sharpen activation descriptions
+- [x] **Phase 17: Skill System Cleanup** - Rename conflicting skills, eliminate coverage gaps, sharpen activation descriptions (completed 2026-03-03)
 - [ ] **Phase 18: Deep Init Questioning** - Comprehensive onboarding with tech stack research, constraints, and no-go gathering
 - [ ] **Phase 19: Agent Coherence** - Coordinated agent prompt system with role-aware context and standard two-stage review
 - [ ] **Phase 20: Spec Drift Management** - `/maxsim:check-drift` command that compares spec to codebase and generates realignment plans
@@ -161,7 +161,7 @@ Make MAXSIM the definitive SDD platform for Claude Code. Agents and skills work 
 ### Phases
 
 - [x] **Phase 16: Codebase Cleanup** - Remove multi-runtime dead code, update install flow, refresh docs for Claude Code-only focus (completed 2026-03-03)
-- [ ] **Phase 17: Skill System Cleanup** - Rename conflicting skills, eliminate coverage gaps, sharpen activation descriptions
+- [x] **Phase 17: Skill System Cleanup** - Rename conflicting skills, eliminate coverage gaps, sharpen activation descriptions (completed 2026-03-03)
 - [ ] **Phase 18: Deep Init Questioning** - Comprehensive onboarding with tech stack research, constraints, and no-go gathering
 - [ ] **Phase 19: Agent Coherence** - Coordinated agent prompt system with role-aware context and standard two-stage review
 - [ ] **Phase 20: Spec Drift Management** - `/maxsim:check-drift` command that compares spec to codebase and generates realignment plans
@@ -178,7 +178,7 @@ Make MAXSIM the definitive SDD platform for Claude Code. Agents and skills work 
   3. README and docs describe MAXSIM as a Claude Code-only tool with v5.0 SDD-native vision
   4. `npm run build` passes and all existing tests pass after cleanup
 **Plans**:
-- [ ] 16-01: Inline adapter functions, delete adapters/, remove core types, update docs
+- [x] 16-01: Inline adapter functions, delete adapters/, remove core types, update docs
 
 ### Phase 17: Skill System Cleanup
 **Goal**: Skills have non-conflicting names, coherent coverage, and accurate activation descriptions
@@ -189,7 +189,8 @@ Make MAXSIM the definitive SDD platform for Claude Code. Agents and skills work 
   2. `batch` skill is renamed to `maxsim-batch` — no collision with Claude Code built-in `/batch` command
   3. Every skill has a distinct activation trigger — no two skills fire on the same condition, no workflow step falls through without a skill
   4. Each skill's `description` field accurately states the specific situation in which it should activate
-**Plans**: TBD
+**Plans**:
+- [x] 17-01: Register all skills, fix descriptions, update agent mappings, add guard test
 
 ### Phase 18: Deep Init Questioning
 **Goal**: New-project and init-existing produce context documents thorough enough that any agent can start work without asking follow-up questions
@@ -249,8 +250,8 @@ Phase 16 → Phase 17 ∥ Phase 18 → Phase 19 → Phase 20
 | 13. Execution Pipeline Completion | 1/1 | Complete | 2026-03-02 |
 | 14. Dashboard & MCP Completion | 1/1 | Complete | 2026-03-02 |
 | 15. Traceability Repair | 1/1 | Complete | 2026-03-02 |
-| 16. Codebase Cleanup | 0/1 | Planned | - |
-| 17. Skill System Cleanup | 0/? | Not started | - |
+| 16. Codebase Cleanup | 1/1 | Complete | 2026-03-03 |
+| 17. Skill System Cleanup | 1/1 | Complete | 2026-03-03 |
 | 18. Deep Init Questioning | 0/? | Not started | - |
 | 19. Agent Coherence | 0/? | Not started | - |
 | 20. Spec Drift Management | 0/? | Not started | - |
