@@ -1,8 +1,47 @@
 # Requirements: MAXSIM
 
 **Defined:** 2026-03-01
-**Core Value:** GSD + Superpowers — structured phase-based workflow + auto-triggering skills + MCP-first Core Logic Server (Dashboard optional on top)
+**Core Value:** Every AI-assisted coding task runs with the right amount of context — no more, no less — producing consistent, correct output from phase 1 to phase 50.
 **Stage:** MVP (published, real users, actively evolving)
+
+---
+
+## v5.0 Requirements — SDD-Native Architecture
+
+Active requirements for next milestone. Focus: agent coherence, spec drift management, deeper init questioning, codebase cleanup.
+
+### Agent Coherence
+
+- [ ] **AGENT-01**: Agent prompts reference and complement each other as a coordinated system
+- [ ] **AGENT-02**: Context assembly is role-aware — each agent gets exactly the context it needs, no more
+- [ ] **AGENT-03**: Two-stage review (spec compliance + code quality) is the standard post-task workflow
+- [ ] **AGENT-04**: Agent handoff protocol ensures no context is lost between agent transitions
+
+### Spec Drift Management
+
+- [ ] **DRIFT-01**: User can run a command to compare `.planning/` spec against actual codebase state
+- [ ] **DRIFT-02**: Drift detection identifies mismatches between planned requirements and implemented features
+- [ ] **DRIFT-03**: User can realign spec to match current codebase reality (update `.planning/` from code)
+- [ ] **DRIFT-04**: User can realign codebase to match spec (generate fix plans for divergence)
+
+### Initialization Depth
+
+- [ ] **INIT-01**: New-project and init-existing ask comprehensive tech stack questions before planning
+- [ ] **INIT-02**: Requirements gathering covers no-gos, constraints, and anti-patterns explicitly
+- [ ] **INIT-03**: Agentic research during init investigates tech stack choices and surfaces trade-offs
+- [ ] **INIT-04**: Context documents are thorough enough that any agent can start work without additional questions
+
+### Skill System Cleanup
+
+- [ ] **SKILL-07**: Rename conflicting skills (simplify -> maxsim-simplify, batch -> maxsim-batch) to avoid Claude Code collisions
+- [ ] **SKILL-08**: Skills trigger coherently — no overlap, no gaps in coverage
+- [ ] **SKILL-09**: Skill descriptions accurately reflect when they should activate
+
+### Codebase Cleanup
+
+- [ ] **CLEAN-01**: Remove remaining multi-runtime adapter dead code paths
+- [ ] **CLEAN-02**: Update install flow to remove any residual runtime selection logic
+- [ ] **CLEAN-03**: Update README and docs to reflect Claude Code-only focus and v5.0 vision
 
 ---
 
@@ -272,14 +311,33 @@
 | GUARD-02 | All phases | Active |
 | GUARD-03 | All phases | Active |
 | GUARD-04 | All phases | Active |
+| AGENT-01 | Phase 19 | Pending |
+| AGENT-02 | Phase 19 | Pending |
+| AGENT-03 | Phase 19 | Pending |
+| AGENT-04 | Phase 19 | Pending |
+| DRIFT-01 | Phase 20 | Pending |
+| DRIFT-02 | Phase 20 | Pending |
+| DRIFT-03 | Phase 20 | Pending |
+| DRIFT-04 | Phase 20 | Pending |
+| INIT-01 | Phase 18 | Pending |
+| INIT-02 | Phase 18 | Pending |
+| INIT-03 | Phase 18 | Pending |
+| INIT-04 | Phase 18 | Pending |
+| SKILL-07 | Phase 17 | Pending |
+| SKILL-08 | Phase 17 | Pending |
+| SKILL-09 | Phase 17 | Pending |
+| CLEAN-01 | Phase 16 | Pending |
+| CLEAN-02 | Phase 16 | Pending |
+| CLEAN-03 | Phase 16 | Pending |
 
 **Coverage:**
 - v1 requirements: 62 total (60 complete, 1 partial, 1 pending)
+- v5.0 requirements: 15 total (0 complete, 15 pending)
 - Guards: 4 total (active)
-- Mapped to phases: 62
+- Mapped to phases: 77 (v1) + 15 (v5.0) = 92
 - Unmapped: 0
 
 ---
 
 *Requirements defined: 2026-03-01*
-*Traceability updated: 2026-03-02*
+*Traceability updated: 2026-03-03*

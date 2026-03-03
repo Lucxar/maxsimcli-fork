@@ -2,28 +2,29 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-28)
+See: .planning/PROJECT.md (updated 2026-03-03)
 
-**Core value:** GSD + Superpowers -- MAXSIM Core Server (MCP + logic) always-on backend; Dashboard optional UI layer on top; auto-triggering skills with error memory
-**Current focus:** v2.0 Complete — all 10 phases done
+**Core value:** Every AI-assisted coding task runs with the right amount of context — no more, no less — producing consistent, correct output from phase 1 to phase 50.
+**Current focus:** v5.0 SDD-Native Architecture — Phase 16 (Codebase Cleanup) is next
 
 ## Current Position
 
-Phase: 10 of 10 (Performance) -- COMPLETE
-Plan: 1 of 1 in current phase
-Status: v2.0 Milestone Complete
-Last activity: 2026-03-02 -- Phase 10: Async I/O for hot-path commands + phase-list pagination
+Milestone: v5.0 SDD-Native Architecture
+Phase: 16 of 20 (Codebase Cleanup) -- Not started
+Plan: 0 of ? in current phase
+Status: v2.0 Complete — v5.0 roadmap created, ready to begin Phase 16
+Last activity: 2026-03-03 -- v5.0 roadmap initialized (Phases 16-20)
 
-Progress: [██████████] 100%
+Progress: [████████████████░░░░] v2.0 done (15/15), v5.0 starting (0/5)
 
 ## Performance Metrics
 
-**Velocity:**
+**v2.0 Velocity:**
 - Total plans completed: 4
 - Average duration: 13m 51s
 - Total execution time: 0.92 hours
 
-**By Phase:**
+**By Phase (v2.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
@@ -31,7 +32,7 @@ Progress: [██████████] 100%
 
 **Recent Trend:**
 - Last 5 plans: 01-01 (5m 29s), 01-02 (5m 14s), 01-03 (42m 31s), 01-04 (2m 8s)
-- Trend: 01-04 fast gap-closure plan
+- v5.0 velocity not yet established
 
 *Updated after each plan completion*
 
@@ -42,40 +43,36 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Architecture: THREE INDEPENDENT LAYERS, each optional:
-  1. Claude Code standalone (existing /maxsim:* commands) — always works without server
-  2. Core Server (MCP + logic) — started per CLI command, enhances Claude Code
-  3. Dashboard — optional UI on top of Core Server
-  Claude Code is NOT subordinate — server ENHANCES it. Users keep terminal-only workflow.
-- Phase order: MCP Core Server (1) → Quality Foundation (2, before dashboard) → Skills System (3) → Dashboard Evolution (4)
-- MCP-05 (Q&A routing) is Phase 4 since it requires dashboard UI to be built first
-- Quality hardening (QUAL-01–04) moved to Phase 2 — user wants clean foundation before building skills + dashboard
-- Core Server start: CLI command (can also be auto-started via hook). Not always-on daemon — started when needed.
-- Dashboard connects to running Core Server; starting dashboard also ensures Core Server is running
-- `@modelcontextprotocol/sdk` already installed in dashboard package — may need to add to cli package or make Core Server part of dashboard package
-- install.ts refactor (QUAL-03) includes splitting into: install/adapters.ts, install/dashboard.ts, install/hooks.ts + unit tests
-- Skills: using-maxsim registered in AGENTS.md (not hooks); memory via .claude/memory/ auto-memory system; new skills: memory-management, code-review, simplify
-- Skills strategy: COPY skills 1:1 from Superpowers and GSD reference repos FIRST, THEN adapt to MAXSIM. Both repos are well-written. Reference: `docs/superpowers-reference/skills/` and `docs/get-shit-done-reference/`
-- npx maxsimcli = starts Core Server (not dashboard). Dashboard is a separate command on top.
-- .mcp.json auto-discovery replaces need for session-start hook -- Claude Code natively spawns stdio servers from .mcp.json
-- MCP install is optional (graceful fallback to Bash tools router) -- MCP enhances but is not required
-- [Phase 01]: Template stubs (CONTEXT.md, RESEARCH.md) scaffolded in mcp_create_phase and mcp_insert_phase with placeholder content
+- **v5.0 scope**: Claude Code only — drop all multi-runtime adapter abstractions
+- **v5.0 strategy**: Agents and skills must operate as a coordinated system, not isolated prompts. Context assembly is role-aware per agent type.
+- **Skill rename**: `simplify` → `maxsim-simplify`, `batch` → `maxsim-batch` to avoid Claude Code built-in command collisions
+- **Spec drift**: New `/maxsim:check-drift` command compares `.planning/` to actual codebase, offers two-way realignment (update spec OR generate fix plan)
+- **Init depth**: Both new-project and init-existing must ask tech stack questions AND run agentic research before generating any plan
+- **Two-stage review**: Spec compliance + code quality review is the standard post-task workflow, not optional
+- **Phase order**: Phase 16 (cleanup) first — clean foundation before touching prompts. Phase 17 (skills) and Phase 18 (init) can run in parallel after 16. Phase 19 (agents) depends on 17+18. Phase 20 (drift) depends on 19.
+
+### Architecture (v2.0 decisions retained):
+
+- THREE INDEPENDENT LAYERS: Claude Code standalone + Core Server (MCP) + Dashboard (optional UI)
+- .mcp.json auto-discovery replaces need for session-start hook
+- MCP install is optional (graceful fallback to Bash tools router)
+- Skills installed at `.claude/skills/maxsim-*/SKILL.md`
+- `using-maxsim` registered in AGENTS.md (not hooks)
 
 ### Pending Todos
 
-None yet.
+None yet — Phase 16 plan not yet created.
 
 ### Blockers/Concerns
 
-- MCP server stub exists at `packages/dashboard/src/mcp-server.ts` — dashboard uses separate server; cli now has its own MCP server at `packages/cli/src/mcp-server.ts`
-- `@modelcontextprotocol/sdk ^1.27.1` now installed in both cli and dashboard packages
-- `output()`/`error()` call `process.exit()` from core layer — QUAL-02 (Phase 2) must fix before adding more cmd* functions
-- Windows `find` bug affects `cmdInitExisting` and `cmdInitNewProject` in `packages/cli/src/core/init.ts` lines 488, 844
-- Dashboard launch duplicate: `packages/cli/src/cli.ts` lines 418-618 vs `packages/cli/src/install.ts` lines 1953-2100
-- Reference repos cloned at `docs/get-shit-done-reference/` and `docs/superpowers-reference/` — study for implementation patterns
+- CLEAN-01/CLEAN-02: Multi-runtime adapter dead code still present — Phase 16 removes it
+- SKILL-07: `simplify` and `batch` skill names conflict with Claude Code built-ins — Phase 17 renames them
+- AGENT-02: Context assembly is currently ad-hoc — Phase 19 formalizes per-role context rules
+- DRIFT-01: No drift detection mechanism exists yet — Phase 20 builds `/maxsim:check-drift`
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Completed Phases 7-9 (Discussion, Planning Skills, Dashboard Overhaul) -- 9 of 10 phases complete, only Phase 10 (Performance) remains
+Last session: 2026-03-03
+Stopped at: v5.0 roadmap created (Phases 16-20). v2.0 milestone complete (Phases 1-15). Ready to plan Phase 16.
 Resume file: None
+Next action: Run /maxsim:plan-phase for Phase 16 (Codebase Cleanup)

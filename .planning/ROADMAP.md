@@ -7,6 +7,7 @@ MAXSIM v2.0 is built on three pillars: deep collaborative planning, context engi
 ## Milestones
 
 - ✅ **v2.0 Claude Code Edition** — Phases 1-15 (complete)
+- [ ] **v5.0 SDD-Native Architecture** — Phases 16-20 (active)
 
 ## Phases
 
@@ -20,6 +21,16 @@ MAXSIM v2.0 is built on three pillars: deep collaborative planning, context engi
 - [x] **Phase 8: Planning Skills** - Brainstorming, Roadmap-Writing + task-based context loading (completed 2026-03-02)
 - [x] **Phase 9: Dashboard Overhaul** - Unified mode, MCP Q&A, maxsimcli start, multi-project (completed 2026-03-02)
 - [x] **Phase 10: Performance** - Async hot-path I/O, paginated phase listings (completed 2026-03-02)
+- [x] **Phase 11: Code Quality & Windows Fixes** - (completed 2026-03-02)
+- [x] **Phase 12: Skills Auto-Trigger & Lifecycle CLI** - (completed 2026-03-02)
+- [x] **Phase 13: Execution Pipeline Completion** - (completed 2026-03-02)
+- [x] **Phase 14: Dashboard & MCP Completion** - (completed 2026-03-02)
+- [x] **Phase 15: Traceability Repair** - (completed 2026-03-02)
+- [ ] **Phase 16: Codebase Cleanup** - Remove multi-runtime dead code, update install flow, refresh docs for Claude Code-only focus
+- [ ] **Phase 17: Skill System Cleanup** - Rename conflicting skills, eliminate coverage gaps, sharpen activation descriptions
+- [ ] **Phase 18: Deep Init Questioning** - Comprehensive onboarding with tech stack research, constraints, and no-go gathering
+- [ ] **Phase 19: Agent Coherence** - Coordinated agent prompt system with role-aware context and standard two-stage review
+- [ ] **Phase 20: Spec Drift Management** - `/maxsim:check-drift` command that compares spec to codebase and generates realignment plans
 
 ## Phase Details
 
@@ -139,10 +150,86 @@ MAXSIM v2.0 is built on three pillars: deep collaborative planning, context engi
   3. Async migration passes all existing tests
 **Plans**: TBD
 
+---
+
+## v5.0 SDD-Native Architecture
+
+### Overview
+
+Make MAXSIM the definitive SDD platform for Claude Code. Agents and skills work as a coordinated system. Spec drift is detectable and correctable. Init questioning is thorough enough that any agent can start without additional questions. Multi-runtime dead code is gone.
+
+### Phases
+
+- [ ] **Phase 16: Codebase Cleanup** - Remove multi-runtime dead code, update install flow, refresh docs for Claude Code-only focus
+- [ ] **Phase 17: Skill System Cleanup** - Rename conflicting skills, eliminate coverage gaps, sharpen activation descriptions
+- [ ] **Phase 18: Deep Init Questioning** - Comprehensive onboarding with tech stack research, constraints, and no-go gathering
+- [ ] **Phase 19: Agent Coherence** - Coordinated agent prompt system with role-aware context and standard two-stage review
+- [ ] **Phase 20: Spec Drift Management** - `/maxsim:check-drift` command that compares spec to codebase and generates realignment plans
+
+### Phase Details
+
+### Phase 16: Codebase Cleanup
+**Goal**: The codebase contains only Claude Code-relevant code — multi-runtime paths deleted, install simplified, docs accurate
+**Depends on**: Nothing (first v5.0 phase, builds on completed v2.0 foundation)
+**Requirements**: CLEAN-01, CLEAN-02, CLEAN-03
+**Success Criteria** (what must be TRUE):
+  1. No multi-runtime adapter code paths remain in `packages/cli/src/` — only Claude Code adapter exists
+  2. `maxsimcli` install flow contains no runtime selection logic or multi-runtime conditional branches
+  3. README and docs describe MAXSIM as a Claude Code-only tool with v5.0 SDD-native vision
+  4. `npm run build` passes and all existing tests pass after cleanup
+**Plans**: TBD
+
+### Phase 17: Skill System Cleanup
+**Goal**: Skills have non-conflicting names, coherent coverage, and accurate activation descriptions
+**Depends on**: Phase 16
+**Requirements**: SKILL-07, SKILL-08, SKILL-09
+**Success Criteria** (what must be TRUE):
+  1. `simplify` skill is renamed to `maxsim-simplify` — no collision with Claude Code built-in `/simplify` command
+  2. `batch` skill is renamed to `maxsim-batch` — no collision with Claude Code built-in `/batch` command
+  3. Every skill has a distinct activation trigger — no two skills fire on the same condition, no workflow step falls through without a skill
+  4. Each skill's `description` field accurately states the specific situation in which it should activate
+**Plans**: TBD
+
+### Phase 18: Deep Init Questioning
+**Goal**: New-project and init-existing produce context documents thorough enough that any agent can start work without asking follow-up questions
+**Depends on**: Phase 16
+**Requirements**: INIT-01, INIT-02, INIT-03, INIT-04
+**Success Criteria** (what must be TRUE):
+  1. New-project and init-existing flows ask explicit questions about tech stack, libraries, and tooling choices before generating any plan
+  2. Both flows surface and document no-gos, hard constraints, and anti-patterns as named artefakte before planning begins
+  3. An agentic research step investigates tech stack choices and surfaces trade-offs the user may not have considered
+  4. Generated context documents (PROJECT.md, REQUIREMENTS.md, NO-GOS.md) contain enough detail that a fresh agent subcontext can begin a task without requesting clarification
+**Plans**: TBD
+
+### Phase 19: Agent Coherence
+**Goal**: Agents operate as a coordinated system — prompts complement each other, context is role-targeted, and two-stage review is the default post-task workflow
+**Depends on**: Phase 17, Phase 18
+**Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04
+**Success Criteria** (what must be TRUE):
+  1. Each agent prompt explicitly references which other agents it hands off to and what context it passes — no agent operates as an isolated prompt island
+  2. Context assembly per agent role is defined: executor agents receive task files + relevant core; reviewer agents receive spec + diff; planner agents receive roadmap + requirements
+  3. Two-stage review (spec compliance check then code quality check) runs automatically after every task completion without requiring user intervention
+  4. Agent handoff points are documented and implemented — context loss between agent transitions is eliminated
+**Plans**: TBD
+
+### Phase 20: Spec Drift Management
+**Goal**: Users can detect and correct divergence between `.planning/` spec and actual codebase state using a single command
+**Depends on**: Phase 19
+**Requirements**: DRIFT-01, DRIFT-02, DRIFT-03, DRIFT-04
+**Success Criteria** (what must be TRUE):
+  1. `/maxsim:check-drift` runs and produces a report comparing planned requirements to implemented features — no manual file inspection required
+  2. The drift report identifies specific mismatches: requirements marked complete but not implemented, and implemented features not captured in `.planning/`
+  3. User can invoke a realign-to-code path that updates `.planning/` documents to reflect the current codebase reality
+  4. User can invoke a realign-to-spec path that generates a fix plan listing what code changes are needed to match the spec
+**Plans**: TBD
+
 ## Progress
 
-**Execution Order:**
+**v2.0 Execution Order:**
 Phase 1 → Phase 2 → Phase 3 ∥ Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8 → Phase 9 → Phase 10
+
+**v5.0 Execution Order:**
+Phase 16 → Phase 17 ∥ Phase 18 → Phase 19 → Phase 20
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -161,3 +248,8 @@ Phase 1 → Phase 2 → Phase 3 ∥ Phase 4 → Phase 5 → Phase 6 → Phase 7 
 | 13. Execution Pipeline Completion | 1/1 | Complete | 2026-03-02 |
 | 14. Dashboard & MCP Completion | 1/1 | Complete | 2026-03-02 |
 | 15. Traceability Repair | 1/1 | Complete | 2026-03-02 |
+| 16. Codebase Cleanup | 0/? | Not started | - |
+| 17. Skill System Cleanup | 0/? | Not started | - |
+| 18. Deep Init Questioning | 0/? | Not started | - |
+| 19. Agent Coherence | 0/? | Not started | - |
+| 20. Spec Drift Management | 0/? | Not started | - |
