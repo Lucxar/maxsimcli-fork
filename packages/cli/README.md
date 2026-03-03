@@ -75,7 +75,7 @@ That's the loop. Discuss → Plan → Execute → Verify. Each phase is isolated
 
 ## How It Works
 
-MAXSIM installs 32 slash commands, 11 skills, and an MCP server into Claude Code. Each command is a structured workflow that spawns specialized subagents with fresh context.
+MAXSIM installs 35 slash commands, 11 skills, and an MCP server into Claude Code. Each command is a structured workflow that spawns specialized subagents with fresh context.
 
 ### The Core Loop
 
@@ -158,7 +158,9 @@ Real-time web dashboard — bundled inside the CLI, no separate setup needed.
 - **Phase drill-down** — expand phases to see individual tasks with checkboxes
 - **Inline Markdown editor** — edit plan files directly in the browser (CodeMirror, Ctrl+S)
 - **Todos & Blockers** — manage todos and resolve blockers from STATE.md
-- **Auto-launches** during `/maxsim:execute-phase` so you always have a live view
+- **Q&A panel** — answer discussion questions from Claude Code directly in the browser
+- **Embedded terminal** — xterm.js terminal with full Claude Code interaction
+- **Multi-project** — switch between running dashboard instances via project switcher
 - **LAN sharing** — share with teammates on the same network
 
 ```bash
@@ -178,6 +180,7 @@ npx maxsimcli dashboard --network  # LAN sharing + QR code
 | Command | Description |
 |---------|-------------|
 | `/maxsim:new-project` | Initialize: questions → research → requirements → roadmap |
+| `/maxsim:init-existing` | Onboard an existing codebase — scan, verify, capture vision |
 | `/maxsim:discuss-phase [N]` | Capture implementation decisions before planning |
 | `/maxsim:plan-phase [N]` | Research + plan + verify for a phase |
 | `/maxsim:execute-phase <N>` | Execute plans in parallel waves |
@@ -192,6 +195,8 @@ npx maxsimcli dashboard --network  # LAN sharing + QR code
 | `/maxsim:progress` | Where am I? What's next? |
 | `/maxsim:help` | Show all commands |
 | `/maxsim:quick` | Ad-hoc task with atomic commits (skips optional agents) |
+| `/maxsim:batch` | Decompose large tasks into parallel worktree agents |
+| `/maxsim:sdd` | Spec-driven development — fresh agent per task with 2-stage review |
 | `/maxsim:debug [desc]` | Systematic debugging with persistent state |
 | `/maxsim:map-codebase` | Analyze existing codebase with parallel mapper agents |
 | `/maxsim:pause-work` | Create handoff when stopping mid-phase |
@@ -209,6 +214,7 @@ npx maxsimcli dashboard --network  # LAN sharing + QR code
 | `/maxsim:remove-phase [N]` | Remove future phase, renumber |
 | `/maxsim:list-phase-assumptions [N]` | Surface Claude's assumptions before planning |
 | `/maxsim:research-phase [N]` | Standalone phase research |
+| `/maxsim:artefakte` | Manage decisions, acceptance criteria, and no-gos |
 
 ### Milestone & Quality
 
@@ -259,8 +265,8 @@ Verify with: `/maxsim:help`
 <summary><strong>Non-interactive Install (Docker, CI, Scripts)</strong></summary>
 
 ```bash
-npx maxsimcli --claude --global    # Global install → ~/.claude/
-npx maxsimcli --claude --local     # Project-scoped install → ./.claude/
+npx maxsimcli --global    # Global install → ~/.claude/
+npx maxsimcli --local     # Project-scoped install → ./.claude/
 ```
 
 </details>
@@ -276,6 +282,7 @@ Project settings live in `.planning/config.json`, created during `/maxsim:new-pr
   "model_profile": "balanced",
   "branching_strategy": "none",
   "commit_docs": true,
+  "search_gitignored": false,
   "research": true,
   "plan_checker": true,
   "verifier": true,
@@ -289,6 +296,7 @@ Project settings live in `.planning/config.json`, created during `/maxsim:new-pr
 | `model_profile` | `quality` \| `balanced` \| `budget` \| `tokenburner` | `balanced` | Which models agents use |
 | `branching_strategy` | `none` \| `phase` \| `milestone` | `none` | Git branch creation per phase or milestone |
 | `commit_docs` | boolean | `true` | Commit documentation changes separately |
+| `search_gitignored` | boolean | `false` | Include gitignored files in codebase searches |
 | `research` | boolean | `true` | Enable research agent before planning |
 | `plan_checker` | boolean | `true` | Enable plan-checker agent before execution |
 | `verifier` | boolean | `true` | Enable verifier agent after execution |
@@ -297,14 +305,23 @@ Project settings live in `.planning/config.json`, created during `/maxsim:new-pr
 
 ### Model Profiles
 
-MAXSIM has **4 model profiles** that control which Claude model each of the 13 specialized agents uses:
+MAXSIM has **4 model profiles** that control which Claude model each of the 11 profiled agents uses:
 
-| Profile | Planners & Executors | Researchers | Orchestrators |
-|---------|---------------------|-------------|---------------|
-| `quality` | Opus | Opus | Sonnet |
-| `balanced` *(default)* | Sonnet | Sonnet | Haiku |
-| `budget` | Sonnet | Haiku | Haiku |
-| `tokenburner` | **Opus everywhere** | **Opus everywhere** | **Opus everywhere** |
+| Agent | `quality` | `balanced` | `budget` | `tokenburner` |
+|-------|-----------|------------|----------|---------------|
+| Planner | Opus | Opus | Sonnet | Opus |
+| Roadmapper | Opus | Sonnet | Sonnet | Opus |
+| Executor | Opus | Sonnet | Sonnet | Opus |
+| Debugger | Opus | Sonnet | Sonnet | Opus |
+| Phase Researcher | Opus | Sonnet | Haiku | Opus |
+| Project Researcher | Opus | Sonnet | Haiku | Opus |
+| Research Synthesizer | Sonnet | Sonnet | Haiku | Opus |
+| Codebase Mapper | Sonnet | Haiku | Haiku | Opus |
+| Verifier | Sonnet | Sonnet | Haiku | Opus |
+| Plan Checker | Sonnet | Sonnet | Haiku | Opus |
+| Integration Checker | Sonnet | Sonnet | Haiku | Opus |
+
+The remaining 2 agents (Spec Reviewer and Code Reviewer) are spawned by the Executor and inherit its model.
 
 > `tokenburner` assigns Opus to every single agent. Use it when cost is no concern and you want maximum quality end-to-end.
 
@@ -392,9 +409,12 @@ MAXSIM includes 11 built-in skills that enforce workflow constraints and best pr
 MAXSIM installs an MCP (Model Context Protocol) server that exposes project tools directly to Claude Code. The server is auto-configured during installation via `.mcp.json`.
 
 **Exposed tools:**
-- **Phase operations** — list, add, complete, and remove phases
+- **Phase operations** — list, add, complete, insert, and remove phases
 - **State management** — read/update STATE.md (decisions, blockers, metrics)
 - **Todo operations** — create, list, and complete todos
+- **Roadmap analysis** — phase status, progress calculation, missing details
+- **Context loading** — intelligent file selection based on task topic
+- **Config management** — read/write `.planning/config.json` settings
 
 The MCP server runs as a stdio process managed by Claude Code — no manual startup needed.
 

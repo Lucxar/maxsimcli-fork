@@ -282,6 +282,7 @@ Project settings live in `.planning/config.json`, created during `/maxsim:new-pr
   "model_profile": "balanced",
   "branching_strategy": "none",
   "commit_docs": true,
+  "search_gitignored": false,
   "research": true,
   "plan_checker": true,
   "verifier": true,
@@ -295,6 +296,7 @@ Project settings live in `.planning/config.json`, created during `/maxsim:new-pr
 | `model_profile` | `quality` \| `balanced` \| `budget` \| `tokenburner` | `balanced` | Which models agents use |
 | `branching_strategy` | `none` \| `phase` \| `milestone` | `none` | Git branch creation per phase or milestone |
 | `commit_docs` | boolean | `true` | Commit documentation changes separately |
+| `search_gitignored` | boolean | `false` | Include gitignored files in codebase searches |
 | `research` | boolean | `true` | Enable research agent before planning |
 | `plan_checker` | boolean | `true` | Enable plan-checker agent before execution |
 | `verifier` | boolean | `true` | Enable verifier agent after execution |
@@ -303,14 +305,23 @@ Project settings live in `.planning/config.json`, created during `/maxsim:new-pr
 
 ### Model Profiles
 
-MAXSIM has **4 model profiles** that control which Claude model each of the 13 specialized agents uses:
+MAXSIM has **4 model profiles** that control which Claude model each of the 11 profiled agents uses:
 
-| Profile | Planners & Executors | Researchers | Orchestrators |
-|---------|---------------------|-------------|---------------|
-| `quality` | Opus | Opus | Sonnet |
-| `balanced` *(default)* | Sonnet | Sonnet | Haiku |
-| `budget` | Sonnet | Haiku | Haiku |
-| `tokenburner` | **Opus everywhere** | **Opus everywhere** | **Opus everywhere** |
+| Agent | `quality` | `balanced` | `budget` | `tokenburner` |
+|-------|-----------|------------|----------|---------------|
+| Planner | Opus | Opus | Sonnet | Opus |
+| Roadmapper | Opus | Sonnet | Sonnet | Opus |
+| Executor | Opus | Sonnet | Sonnet | Opus |
+| Debugger | Opus | Sonnet | Sonnet | Opus |
+| Phase Researcher | Opus | Sonnet | Haiku | Opus |
+| Project Researcher | Opus | Sonnet | Haiku | Opus |
+| Research Synthesizer | Sonnet | Sonnet | Haiku | Opus |
+| Codebase Mapper | Sonnet | Haiku | Haiku | Opus |
+| Verifier | Sonnet | Sonnet | Haiku | Opus |
+| Plan Checker | Sonnet | Sonnet | Haiku | Opus |
+| Integration Checker | Sonnet | Sonnet | Haiku | Opus |
+
+The remaining 2 agents (Spec Reviewer and Code Reviewer) are spawned by the Executor and inherit its model.
 
 > `tokenburner` assigns Opus to every single agent. Use it when cost is no concern and you want maximum quality end-to-end.
 
