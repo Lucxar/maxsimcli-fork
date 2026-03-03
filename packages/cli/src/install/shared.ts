@@ -2,10 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import fsExtra from 'fs-extra';
 
-import {
-  claudeAdapter,
-} from '../adapters/index.js';
-import type { RuntimeName } from '../core/types.js';
+import * as os from 'node:os';
+
+import { expandTilde } from './utils.js';
 import type { Manifest } from './manifest.js';
 
 // Get version from package.json — read at runtime so semantic-release's version bump
@@ -19,24 +18,32 @@ export const templatesRoot = path.resolve(__dirname, 'assets', 'templates');
 export const builtInSkills = ['tdd', 'systematic-debugging', 'verification-before-completion', 'simplify', 'code-review', 'memory-management', 'using-maxsim', 'brainstorming', 'roadmap-writing'] as const;
 
 /**
- * Get the global config directory, using the Claude adapter
+ * Get the global config directory for Claude Code.
+ * Priority: explicitDir > CLAUDE_CONFIG_DIR env > ~/.claude
  */
 export function getGlobalDir(explicitDir: string | null = null): string {
-  return claudeAdapter.getGlobalDir(explicitDir);
+  if (explicitDir) {
+    return expandTilde(explicitDir);
+  }
+  if (process.env.CLAUDE_CONFIG_DIR) {
+    return expandTilde(process.env.CLAUDE_CONFIG_DIR);
+  }
+  return path.join(os.homedir(), '.claude');
 }
 
 /**
- * Get the config directory path relative to home for hook templating
+ * Get the config directory path relative to home for hook templating.
+ * Used for path.join(homeDir, '<configDir>', ...) replacement in hooks.
  */
-export function getConfigDirFromHome(isGlobal: boolean): string {
-  return claudeAdapter.getConfigDirFromHome(isGlobal);
+export function getConfigDirFromHome(_isGlobal: boolean): string {
+  return "'.claude'";
 }
 
 /**
  * Get the local directory name
  */
 export function getDirName(): string {
-  return claudeAdapter.dirName;
+  return '.claude';
 }
 
 /**

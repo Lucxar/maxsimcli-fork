@@ -7,7 +7,7 @@ import {
   readSettings,
   writeSettings,
   buildHookCommand,
-} from '../adapters/index.js';
+} from './utils.js';
 import { getDirName, getConfigDirFromHome, verifyInstalled } from './shared.js';
 import * as path from 'node:path';
 import ora from 'ora';

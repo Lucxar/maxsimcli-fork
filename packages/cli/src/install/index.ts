@@ -11,7 +11,7 @@ import minimist from 'minimist';
 
 import {
   processAttribution,
-} from '../adapters/index.js';
+} from './utils.js';
 import {
   pkg,
   templatesRoot,

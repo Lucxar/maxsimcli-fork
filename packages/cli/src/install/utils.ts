@@ -1,5 +1,6 @@
 /**
- * @maxsim/adapters — Shared base utilities extracted from bin/install.js
+ * Install utilities — shared helper functions for the install pipeline.
+ * (Inlined from the former adapters/base.ts after multi-runtime removal.)
  */
 
 import * as path from 'node:path';
@@ -14,28 +15,6 @@ export function expandTilde(filePath: string): string {
     return path.join(os.homedir(), filePath.slice(2));
   }
   return filePath;
-}
-
-/**
- * Extract YAML frontmatter and body from markdown content.
- * Returns null frontmatter if content doesn't start with ---.
- */
-export function extractFrontmatterAndBody(
-  content: string,
-): { frontmatter: string | null; body: string } {
-  if (!content.startsWith('---')) {
-    return { frontmatter: null, body: content };
-  }
-
-  const endIndex = content.indexOf('---', 3);
-  if (endIndex === -1) {
-    return { frontmatter: null, body: content };
-  }
-
-  return {
-    frontmatter: content.substring(3, endIndex).trim(),
-    body: content.substring(endIndex + 3),
-  };
 }
 
 /**

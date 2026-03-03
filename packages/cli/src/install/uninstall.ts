@@ -4,7 +4,7 @@ import * as os from 'node:os';
 
 import chalk from 'chalk';
 
-import { readSettings, writeSettings } from '../adapters/index.js';
+import { readSettings, writeSettings } from './utils.js';
 import { getDirName, getGlobalDir, builtInSkills } from './shared.js';
 
 /**

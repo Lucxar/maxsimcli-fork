@@ -3,7 +3,7 @@ import * as path from 'node:path';
 
 import {
   processAttribution,
-} from '../adapters/index.js';
+} from './utils.js';
 import { getCommitAttribution } from './adapters.js';
 
 /**

@@ -2,7 +2,7 @@ import * as path from 'node:path';
 
 import {
   readSettings,
-} from '../adapters/index.js';
+} from './utils.js';
 import { getGlobalDir } from './shared.js';
 
 // Cache for attribution settings (populated once during install)
