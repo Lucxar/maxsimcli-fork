@@ -5,7 +5,7 @@
  * into install/utils.ts and install/shared.ts.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -17,6 +17,32 @@ import {
   readSettings,
   writeSettings,
 } from '../../src/install/utils.js';
+
+// shared.ts has module-level side effects (reads package.json via __dirname which
+// doesn't resolve in test context). Mock fs-extra and intercept the readFileSync call.
+vi.mock('fs-extra', () => ({ default: {}, ensureDirSync: vi.fn(), copySync: vi.fn() }));
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+  const origReadFileSync = actual.readFileSync;
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      readFileSync: (p: any, ...args: any[]) => {
+        if (typeof p === 'string' && p.endsWith('package.json')) {
+          return JSON.stringify({ version: '0.0.0-test' });
+        }
+        return origReadFileSync(p, ...args);
+      },
+    },
+    readFileSync: (p: any, ...args: any[]) => {
+      if (typeof p === 'string' && p.endsWith('package.json')) {
+        return JSON.stringify({ version: '0.0.0-test' });
+      }
+      return origReadFileSync(p, ...args);
+    },
+  };
+});
 
 import {
   getGlobalDir,
