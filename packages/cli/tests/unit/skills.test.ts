@@ -50,6 +50,42 @@ describe('cmdSkillList', () => {
   });
 });
 
+// ─── builtInSkills sync guard ─────────────────────────────────────────────────
+
+describe('builtInSkills sync guard', () => {
+  // Resolve repo root from test location
+  const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
+  const skillsDir = path.join(repoRoot, 'templates', 'skills');
+  const sharedPath = path.join(repoRoot, 'packages', 'cli', 'src', 'install', 'shared.ts');
+
+  // Parse builtInSkills from source to avoid module-level side effects
+  function parseBuiltInSkills(): string[] {
+    const src = fs.readFileSync(sharedPath, 'utf-8');
+    const match = src.match(/builtInSkills\s*=\s*\[([\s\S]*?)\]/);
+    if (!match) throw new Error('builtInSkills not found in shared.ts');
+    return (match[1].match(/'([^']+)'/g) || []).map(s => s.replace(/'/g, ''));
+  }
+
+  it('builtInSkills matches templates/skills/ directory contents', () => {
+    const skills = parseBuiltInSkills();
+    const dirs = fs.readdirSync(skillsDir).filter((d: string) =>
+      fs.statSync(path.join(skillsDir, d)).isDirectory(),
+    );
+
+    expect(skills.sort()).toEqual(dirs.sort());
+    expect(skills.length).toBe(dirs.length);
+  });
+
+  it('includes renamed skills and excludes old names', () => {
+    const skills = parseBuiltInSkills();
+
+    expect(skills).toContain('maxsim-simplify');
+    expect(skills).toContain('maxsim-batch');
+    expect(skills).not.toContain('simplify');
+    expect(skills).not.toContain('batch-worktree');
+  });
+});
+
 // ─── cmdSkillInstall ──────────────────────────────────────────────────────────
 
 describe('cmdSkillInstall', () => {
