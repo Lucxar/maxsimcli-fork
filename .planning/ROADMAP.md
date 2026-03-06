@@ -28,7 +28,7 @@ MAXSIM is a working product with 35+ commands, 13 agents, 11 skills, and a dashb
   3. A reprocess command or hook detects planning documents with stale phase references and offers cleanup
   4. ROADMAP.md for a 50-phase project contains only the active milestone's phases, not all historical phases
 **Plans**: 2 plans in 2 waves
-  - [ ] 01-01: Phase archive sweep (ROT-01, ROT-03) — Wave 1
+  - [x] 01-01: Phase archive sweep (ROT-01, ROT-03) — Wave 1
   - [ ] 01-02: Stale detection + milestone reset (ROT-02, ROT-04) — Wave 2
 
 ### Phase 2: Deep Init Questioning
@@ -80,7 +80,7 @@ Phase 1 -> Phase 2 || Phase 5 -> Phase 3 -> Phase 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Context Rot Prevention | 0/2 | Planning complete | - |
+| 1. Context Rot Prevention | 1/2 | Executing | - |
 | 2. Deep Init Questioning | 0/? | Not started | - |
 | 3. Agent Coherence | 0/? | Not started | - |
 | 4. Spec Drift Management | 0/? | Not started | - |
