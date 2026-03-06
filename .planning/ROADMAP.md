@@ -40,7 +40,10 @@ MAXSIM is a working product with 35+ commands, 13 agents, 11 skills, and a dashb
   2. Both flows surface and document no-gos, hard constraints, and anti-patterns as named artefakte before planning begins
   3. An agentic research step investigates tech stack choices and surfaces trade-offs the user may not have considered
   4. A fresh agent subcontext receiving only PROJECT.md + REQUIREMENTS.md + NO-GOS.md can begin a task without requesting clarification
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+  - [ ] 02-01: Questioning depth + no-gos + research agents (INIT-01, INIT-02, INIT-03) — Wave 1
+  - [ ] 02-02: CONVENTIONS.md + PROJECT.md templates (INIT-04) — Wave 1
+  - [ ] 02-03: Workflow integration + CLI wiring (INIT-01, INIT-02, INIT-03, INIT-04) — Wave 2
 
 ### Phase 3: Agent Coherence
 **Goal**: Agents operate as a coordinated system -- prompts complement each other, context is role-targeted, and two-stage review is the default post-task workflow
@@ -81,7 +84,7 @@ Phase 1 -> Phase 2 || Phase 5 -> Phase 3 -> Phase 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Context Rot Prevention | 1/2 | Executing | - |
-| 2. Deep Init Questioning | 0/? | Not started | - |
+| 2. Deep Init Questioning | 0/3 | Planned | - |
 | 3. Agent Coherence | 0/? | Not started | - |
 | 4. Spec Drift Management | 0/? | Not started | - |
 | 5. Workflow Coverage | 0/? | Not started | - |
