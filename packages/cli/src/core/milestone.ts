@@ -5,9 +5,10 @@
  */
 
 import fs from 'node:fs';
+import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 
-import { planningPath, roadmapPath as roadmapPathUtil, statePath as statePathUtil, phasesPath, todayISO, listSubDirs, isPlanFile, isSummaryFile, debugLog } from './core.js';
+import { planningPath, roadmapPath as roadmapPathUtil, statePath as statePathUtil, phasesPath, todayISO, listSubDirs, listSubDirsAsync, isPlanFile, isSummaryFile, debugLog, archivePath as archivePathHelper, pathExistsAsync, safeReadFileAsync } from './core.js';
 import { extractFrontmatter } from './frontmatter.js';
 import type {
   CmdResult,
@@ -85,11 +86,11 @@ export function cmdRequirementsMarkComplete(cwd: string, reqIdsRaw: string[]): C
 
 // ─── Milestone commands ──────────────────────────────────────────────────────
 
-export function cmdMilestoneComplete(
+export async function cmdMilestoneComplete(
   cwd: string,
   version: string | undefined,
   options: MilestoneCompleteOptions,
-): CmdResult {
+): Promise<CmdResult> {
   if (!version) {
     return cmdErr('version required for milestone complete (e.g., v1.0)');
   }
@@ -98,12 +99,12 @@ export function cmdMilestoneComplete(
   const reqPath = planningPath(cwd, 'REQUIREMENTS.md');
   const statePath = statePathUtil(cwd);
   const milestonesPath = planningPath(cwd, 'MILESTONES.md');
-  const archiveDir = planningPath(cwd, 'milestones');
+  const archiveDir = archivePathHelper(cwd, version);
   const phasesDir = phasesPath(cwd);
   const today = todayISO();
   const milestoneName = options.name || version;
 
-  fs.mkdirSync(archiveDir, { recursive: true });
+  await fsp.mkdir(archiveDir, { recursive: true });
 
   let phaseCount = 0;
   let totalPlans = 0;
@@ -111,18 +112,18 @@ export function cmdMilestoneComplete(
   const accomplishments: string[] = [];
 
   try {
-    const dirs = listSubDirs(phasesDir, true);
+    const dirs = await listSubDirsAsync(phasesDir, true);
 
     for (const dir of dirs) {
       phaseCount++;
-      const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
+      const phaseFiles = await fsp.readdir(path.join(phasesDir, dir));
       const plans = phaseFiles.filter(isPlanFile);
       const summaries = phaseFiles.filter(isSummaryFile);
       totalPlans += plans.length;
 
       for (const s of summaries) {
         try {
-          const content = fs.readFileSync(path.join(phasesDir, dir, s), 'utf-8');
+          const content = await fsp.readFile(path.join(phasesDir, dir, s), 'utf-8');
           const fm = extractFrontmatter(content);
           if (fm['one-liner']) {
             accomplishments.push(String(fm['one-liner']));
@@ -130,78 +131,111 @@ export function cmdMilestoneComplete(
           const taskMatches = content.match(/##\s*Task\s*\d+/gi) || [];
           totalTasks += taskMatches.length;
         } catch (e) {
-          /* optional op, ignore */
           debugLog(e);
         }
       }
     }
   } catch (e) {
-    /* optional op, ignore */
     debugLog(e);
   }
 
-  // Archive ROADMAP.md
-  if (fs.existsSync(roadmapPath)) {
-    const roadmapContent = fs.readFileSync(roadmapPath, 'utf-8');
-    fs.writeFileSync(path.join(archiveDir, `${version}-ROADMAP.md`), roadmapContent, 'utf-8');
+  // Snapshot STATE.md and ROADMAP.md to archive before any modifications
+  const stateExists = await pathExistsAsync(statePath);
+  if (stateExists) {
+    const stateContent = await fsp.readFile(statePath, 'utf-8');
+    await fsp.writeFile(path.join(archiveDir, 'STATE.md'), stateContent, 'utf-8');
+  }
+
+  const roadmapExists = await pathExistsAsync(roadmapPath);
+  if (roadmapExists) {
+    const roadmapContent = await fsp.readFile(roadmapPath, 'utf-8');
+    await fsp.writeFile(path.join(archiveDir, 'ROADMAP.md'), roadmapContent, 'utf-8');
+  }
+
+  // Archive ROADMAP.md (legacy format kept for compatibility)
+  if (roadmapExists) {
+    const roadmapContent = await fsp.readFile(roadmapPath, 'utf-8');
+    await fsp.writeFile(path.join(archiveDir, `${version}-ROADMAP.md`), roadmapContent, 'utf-8');
   }
 
   // Archive REQUIREMENTS.md
-  if (fs.existsSync(reqPath)) {
-    const reqContent = fs.readFileSync(reqPath, 'utf-8');
+  if (await pathExistsAsync(reqPath)) {
+    const reqContent = await fsp.readFile(reqPath, 'utf-8');
     const archiveHeader = `# Requirements Archive: ${version} ${milestoneName}\n\n**Archived:** ${today}\n**Status:** SHIPPED\n\nFor current requirements, see \`.planning/REQUIREMENTS.md\`.\n\n---\n\n`;
-    fs.writeFileSync(path.join(archiveDir, `${version}-REQUIREMENTS.md`), archiveHeader + reqContent, 'utf-8');
+    await fsp.writeFile(path.join(archiveDir, `${version}-REQUIREMENTS.md`), archiveHeader + reqContent, 'utf-8');
   }
 
   // Archive audit file if exists
   const auditFile = path.join(cwd, '.planning', `${version}-MILESTONE-AUDIT.md`);
-  if (fs.existsSync(auditFile)) {
-    fs.renameSync(auditFile, path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`));
+  if (await pathExistsAsync(auditFile)) {
+    await fsp.rename(auditFile, path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`));
   }
 
   // Create/append MILESTONES.md entry
   const accomplishmentsList = accomplishments.map(a => `- ${a}`).join('\n');
   const milestoneEntry = `## ${version} ${milestoneName} (Shipped: ${today})\n\n**Phases completed:** ${phaseCount} phases, ${totalPlans} plans, ${totalTasks} tasks\n\n**Key accomplishments:**\n${accomplishmentsList || '- (none recorded)'}\n\n---\n\n`;
 
-  if (fs.existsSync(milestonesPath)) {
-    const existing = fs.readFileSync(milestonesPath, 'utf-8');
-    fs.writeFileSync(milestonesPath, existing + '\n' + milestoneEntry, 'utf-8');
+  if (await pathExistsAsync(milestonesPath)) {
+    const existing = await fsp.readFile(milestonesPath, 'utf-8');
+    await fsp.writeFile(milestonesPath, existing + '\n' + milestoneEntry, 'utf-8');
   } else {
-    fs.writeFileSync(milestonesPath, `# Milestones\n\n${milestoneEntry}`, 'utf-8');
+    await fsp.writeFile(milestonesPath, `# Milestones\n\n${milestoneEntry}`, 'utf-8');
   }
 
-  // Update STATE.md
-  if (fs.existsSync(statePath)) {
-    let stateContent = fs.readFileSync(statePath, 'utf-8');
-    stateContent = stateContent.replace(
-      /(\*\*Status:\*\*\s*).*/,
-      `$1${version} milestone complete`
-    );
-    stateContent = stateContent.replace(
-      /(\*\*Last Activity:\*\*\s*).*/,
-      `$1${today}`
-    );
-    stateContent = stateContent.replace(
-      /(\*\*Last Activity Description:\*\*\s*).*/,
-      `$1${version} milestone completed and archived`
-    );
-    fs.writeFileSync(statePath, stateContent, 'utf-8');
+  // Reset STATE.md to clean template
+  if (stateExists) {
+    const newMilestoneName = options.name || 'Next milestone';
+    const cleanState = `# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated ${today})
+
+## Current Position
+
+Milestone: ${newMilestoneName}
+Phase: 0 of ? (not started)
+Status: planning
+Last activity: ${today}
+
+## Performance Metrics
+
+No plans executed yet in this milestone.
+
+## Accumulated Context
+
+### Decisions
+
+None.
+
+### Pending Todos
+
+None.
+
+### Blockers/Concerns
+
+None.
+
+## Session Continuity
+
+Last session: ${today}
+`;
+    await fsp.writeFile(statePath, cleanState, 'utf-8');
   }
 
   // Archive phase directories if requested
   let phasesArchived = false;
   if (options.archivePhases) {
     try {
-      const phaseArchiveDir = path.join(archiveDir, `${version}-phases`);
-      fs.mkdirSync(phaseArchiveDir, { recursive: true });
+      const phaseArchiveDir = path.join(archiveDir, 'phases');
+      await fsp.mkdir(phaseArchiveDir, { recursive: true });
 
-      const phaseDirNames = listSubDirs(phasesDir);
+      const phaseDirNames = await listSubDirsAsync(phasesDir);
       for (const dir of phaseDirNames) {
-        fs.renameSync(path.join(phasesDir, dir), path.join(phaseArchiveDir, dir));
+        await fsp.rename(path.join(phasesDir, dir), path.join(phaseArchiveDir, dir));
       }
       phasesArchived = phaseDirNames.length > 0;
     } catch (e) {
-      /* optional op, ignore */
       debugLog(e);
     }
   }
@@ -215,13 +249,16 @@ export function cmdMilestoneComplete(
     tasks: totalTasks,
     accomplishments,
     archived: {
-      roadmap: fs.existsSync(path.join(archiveDir, `${version}-ROADMAP.md`)),
-      requirements: fs.existsSync(path.join(archiveDir, `${version}-REQUIREMENTS.md`)),
-      audit: fs.existsSync(path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`)),
+      roadmap: await pathExistsAsync(path.join(archiveDir, `${version}-ROADMAP.md`)),
+      requirements: await pathExistsAsync(path.join(archiveDir, `${version}-REQUIREMENTS.md`)),
+      audit: await pathExistsAsync(path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`)),
       phases: phasesArchived,
+      state_snapshot: await pathExistsAsync(path.join(archiveDir, 'STATE.md')),
+      roadmap_snapshot: await pathExistsAsync(path.join(archiveDir, 'ROADMAP.md')),
     },
     milestones_updated: true,
-    state_updated: fs.existsSync(statePath),
+    state_updated: stateExists,
+    state_reset: stateExists,
   };
 
   return cmdOk(result);

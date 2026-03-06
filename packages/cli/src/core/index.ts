@@ -146,6 +146,7 @@ export {
   cmdStateResolveBlocker,
   cmdStateRecordSession,
   cmdStateSnapshot,
+  cmdDetectStaleContext,
 } from './state.js';
 
 // Roadmap exports

@@ -377,9 +377,12 @@ export interface MilestoneResult {
     requirements: boolean;
     audit: boolean;
     phases: boolean;
+    state_snapshot?: boolean;
+    roadmap_snapshot?: boolean;
   };
   milestones_updated: boolean;
   state_updated: boolean;
+  state_reset?: boolean;
 }
 
 export interface ArchiveResult {

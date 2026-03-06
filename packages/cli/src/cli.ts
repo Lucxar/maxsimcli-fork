@@ -96,6 +96,7 @@ import {
   archivePhasePreview,
   archivePhaseExecute,
   cmdGetArchivedPhase,
+  cmdDetectStaleContext,
 } from './core/index.js';
 
 // ─── Arg parsing utilities ───────────────────────────────────────────────────
@@ -274,7 +275,7 @@ const handlePhase: Handler = async (args, cwd, raw) => {
   error('Unknown phase subcommand. Available: next-decimal, add, insert, remove, complete, archive-preview, archive-execute');
 };
 
-const handleMilestone: Handler = (args, cwd, raw) => {
+const handleMilestone: Handler = async (args, cwd, raw) => {
   const sub = args[1];
   if (sub === 'complete') {
     const nameIndex = args.indexOf('--name');
@@ -287,7 +288,7 @@ const handleMilestone: Handler = (args, cwd, raw) => {
       }
       milestoneName = nameArgs.join(' ') || null;
     }
-    handleResult(cmdMilestoneComplete(cwd, args[2], {
+    handleResult(await cmdMilestoneComplete(cwd, args[2], {
       name: milestoneName ?? undefined,
       archivePhases: hasFlag(args, 'archive-phases'),
     }), raw);
@@ -376,6 +377,7 @@ const COMMANDS: Record<string, Handler> = {
     handleResult(cmdScaffold(cwd, args[1], { phase: f.phase, name: f.name ? args.slice(args.indexOf('--name') + 1).join(' ') : null }, raw), raw);
   },
   'init': handleInit,
+  'detect-stale-context': async (_args, cwd, raw) => handleResult(await cmdDetectStaleContext(cwd), raw),
   'get-archived-phase': async (args, cwd, raw) => handleResult(await cmdGetArchivedPhase(cwd, args[1]), raw),
   'phase-plan-index': async (args, cwd, raw) => handleResult(await cmdPhasePlanIndex(cwd, args[1]), raw),
   'state-snapshot': async (_args, cwd, raw) => handleResult(await cmdStateSnapshot(cwd, raw), raw),
