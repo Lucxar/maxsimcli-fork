@@ -33,8 +33,8 @@
 
 - [ ] **DRIFT-01**: `/maxsim:check-drift` command compares `.planning/` spec against actual codebase state
 - [ ] **DRIFT-02**: Drift detection identifies mismatches between planned requirements and implemented features
-- [ ] **DRIFT-03**: Realign-to-code path updates `.planning/` documents to reflect current codebase reality
-- [ ] **DRIFT-04**: Realign-to-spec path generates fix plans listing what code changes are needed to match the spec
+- [x] **DRIFT-03**: Realign-to-code path updates `.planning/` documents to reflect current codebase reality
+- [x] **DRIFT-04**: Realign-to-spec path generates fix plans listing what code changes are needed to match the spec
 
 ### Missing Workflow Coverage
 
@@ -83,8 +83,8 @@
 | AGENT-04 | Phase 3 | Complete |
 | DRIFT-01 | Phase 4 | Pending |
 | DRIFT-02 | Phase 4 | Pending |
-| DRIFT-03 | Phase 4 | Pending |
-| DRIFT-04 | Phase 4 | Pending |
+| DRIFT-03 | Phase 4 | Complete |
+| DRIFT-04 | Phase 4 | Complete |
 | FLOW-01 | Phase 5 | Pending |
 | FLOW-02 | Phase 5 | Pending |
 | GUARD-01 | All | Active |

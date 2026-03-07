@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 
 Milestone: v5.0 Context-Aware SDD
 Phase: 4 of 5 (Phase 4 - Spec Drift Management)
-Plan: 1 of 3 complete (Plan 01 - drift core module)
+Plan: 2 of 3 complete (Plan 03 - realign command and workflow)
 Status: executing
-Last activity: 2026-03-07 -- Completed 04-01-PLAN.md (drift core module, types, CLI wiring)
+Last activity: 2026-03-07 -- Completed 04-03-PLAN.md (realign command and workflow)
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -32,6 +32,7 @@ Progress: [████████░░] 83%
 | Phase 03 P04 | 7min | 2 tasks | 3 files |
 | Phase 03 P03 | 11min | 2 tasks | 5 files |
 | Phase 04 P01 | 10min | 2 tasks | 7 files |
+| Phase 04 P03 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -57,6 +58,7 @@ Progress: [████████░░] 83%
 - [Phase 03]: Agent-level init commands (executor, planner, researcher, verifier, debugger) are additions alongside existing workflow-level inits, with role-filtered context and codebase docs
 - [Phase 03]: Review frontmatter schema (status, critical_count, warning_count) added for machine-parseable reviewer output validation
 - [Phase 04]: Drift-checker agent uses verifier-tier model profile (sonnet/balanced, haiku/budget). drift.ts core module provides 6 synchronous cmd* functions for report CRUD and spec extraction.
+- [Phase 04]: Realign workflow is an interactive orchestrator (not agent spawn) because it requires per-item user decisions for to-code and user approval of phase groupings for to-spec
 
 ### Architecture
 
@@ -76,7 +78,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-07T13:13:59.137Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-07T13:19:51.158Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
 Next action: Execute Wave 2 plans (03-03, 03-04) for Phase 3
