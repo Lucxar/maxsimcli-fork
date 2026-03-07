@@ -79012,14 +79012,22 @@ function registerPhaseTools(server) {
 			return mcpError(e.message, "Operation failed");
 		}
 	});
-	server.tool("mcp_list_phases", "List all phase directories, sorted correctly. Optionally include archived phases from milestones.", { include_archived: booleanType().optional().default(false).describe("Include archived phases from completed milestones") }, async ({ include_archived }) => {
+	server.tool("mcp_list_phases", "List phase directories with pagination. Returns sorted phases with offset/limit support.", {
+		include_archived: booleanType().optional().default(false).describe("Include archived phases from completed milestones"),
+		offset: numberType().optional().default(0).describe("Number of phases to skip (for pagination)"),
+		limit: numberType().optional().default(20).describe("Maximum number of phases to return")
+	}, async ({ include_archived, offset, limit }) => {
 		try {
 			const cwd = detectProjectRoot();
 			if (!cwd) return mcpError("No .planning/ directory found", "Project not detected");
 			const phasesDir = phasesPath(cwd);
 			if (!node_fs.default.existsSync(phasesDir)) return mcpSuccess({
 				directories: [],
-				count: 0
+				count: 0,
+				total_count: 0,
+				offset,
+				limit,
+				has_more: false
 			}, "No phases directory found");
 			let dirs = listSubDirs(phasesDir);
 			if (include_archived) {
@@ -79027,10 +79035,17 @@ function registerPhaseTools(server) {
 				for (const a of archived) dirs.push(`${a.name} [${a.milestone}]`);
 			}
 			dirs.sort((a, b) => comparePhaseNum(a, b));
+			const total_count = dirs.length;
+			const paginated = dirs.slice(offset, offset + limit);
+			const has_more = offset + limit < total_count;
 			return mcpSuccess({
-				directories: dirs,
-				count: dirs.length
-			}, `Found ${dirs.length} phase(s)`);
+				directories: paginated,
+				count: paginated.length,
+				total_count,
+				offset,
+				limit,
+				has_more
+			}, `Showing ${paginated.length} of ${total_count} phase(s)`);
 		} catch (e) {
 			return mcpError(e.message, "Operation failed");
 		}

@@ -17387,7 +17387,7 @@ const COMMANDS = {
 		(0, node_child_process.spawn)(process.execPath, [serverPath], { stdio: "inherit" }).on("exit", (code) => process.exit(code ?? 0));
 	},
 	"backend-start": async (args, cwd, raw) => {
-		const { startBackend } = await Promise.resolve().then(() => require("./lifecycle-0M4VqOMm.cjs"));
+		const { startBackend } = await Promise.resolve().then(() => require("./lifecycle-DxCru7rk.cjs"));
 		const portFlag = args.find((a) => a.startsWith("--port="))?.split("=")[1];
 		const background = !args.includes("--foreground");
 		output(await startBackend(cwd, {
@@ -17396,11 +17396,11 @@ const COMMANDS = {
 		}), raw);
 	},
 	"backend-stop": async (_args, cwd, raw) => {
-		const { stopBackend } = await Promise.resolve().then(() => require("./lifecycle-0M4VqOMm.cjs"));
+		const { stopBackend } = await Promise.resolve().then(() => require("./lifecycle-DxCru7rk.cjs"));
 		output({ stopped: await stopBackend(cwd) }, raw);
 	},
 	"backend-status": async (_args, cwd, raw) => {
-		const { getBackendStatus } = await Promise.resolve().then(() => require("./lifecycle-0M4VqOMm.cjs"));
+		const { getBackendStatus } = await Promise.resolve().then(() => require("./lifecycle-DxCru7rk.cjs"));
 		output(await getBackendStatus(cwd) || { running: false }, raw);
 	}
 };

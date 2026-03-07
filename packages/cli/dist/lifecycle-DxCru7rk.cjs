@@ -84,7 +84,7 @@ async function startBackend(projectCwd, opts) {
 		writeLockFile(projectCwd, lockData);
 		return lockData;
 	} else {
-		const { createBackendServer } = await Promise.resolve().then(() => require("./server-G1MIg_Oe.cjs"));
+		const { createBackendServer } = await Promise.resolve().then(() => require("./server-By0TN-nC.cjs"));
 		const server = createBackendServer({
 			port,
 			host: "127.0.0.1",
@@ -133,4 +133,4 @@ async function getBackendStatus(projectCwd) {
 exports.getBackendStatus = getBackendStatus;
 exports.startBackend = startBackend;
 exports.stopBackend = stopBackend;
-//# sourceMappingURL=lifecycle-0M4VqOMm.cjs.map
+//# sourceMappingURL=lifecycle-DxCru7rk.cjs.map

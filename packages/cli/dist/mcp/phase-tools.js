@@ -53,13 +53,23 @@ function registerPhaseTools(server) {
         }
     });
     // ── mcp_list_phases ─────────────────────────────────────────────────────────
-    server.tool('mcp_list_phases', 'List all phase directories, sorted correctly. Optionally include archived phases from milestones.', {
+    server.tool('mcp_list_phases', 'List phase directories with pagination. Returns sorted phases with offset/limit support.', {
         include_archived: zod_1.z
             .boolean()
             .optional()
             .default(false)
             .describe('Include archived phases from completed milestones'),
-    }, async ({ include_archived }) => {
+        offset: zod_1.z
+            .number()
+            .optional()
+            .default(0)
+            .describe('Number of phases to skip (for pagination)'),
+        limit: zod_1.z
+            .number()
+            .optional()
+            .default(20)
+            .describe('Maximum number of phases to return'),
+    }, async ({ include_archived, offset, limit }) => {
         try {
             const cwd = (0, utils_js_1.detectProjectRoot)();
             if (!cwd) {
@@ -67,7 +77,7 @@ function registerPhaseTools(server) {
             }
             const phasesDir = (0, core_js_1.phasesPath)(cwd);
             if (!node_fs_1.default.existsSync(phasesDir)) {
-                return (0, utils_js_1.mcpSuccess)({ directories: [], count: 0 }, 'No phases directory found');
+                return (0, utils_js_1.mcpSuccess)({ directories: [], count: 0, total_count: 0, offset, limit, has_more: false }, 'No phases directory found');
             }
             let dirs = (0, core_js_1.listSubDirs)(phasesDir);
             if (include_archived) {
@@ -77,7 +87,10 @@ function registerPhaseTools(server) {
                 }
             }
             dirs.sort((a, b) => (0, core_js_1.comparePhaseNum)(a, b));
-            return (0, utils_js_1.mcpSuccess)({ directories: dirs, count: dirs.length }, `Found ${dirs.length} phase(s)`);
+            const total_count = dirs.length;
+            const paginated = dirs.slice(offset, offset + limit);
+            const has_more = offset + limit < total_count;
+            return (0, utils_js_1.mcpSuccess)({ directories: paginated, count: paginated.length, total_count, offset, limit, has_more }, `Showing ${paginated.length} of ${total_count} phase(s)`);
         }
         catch (e) {
             return (0, utils_js_1.mcpError)(e.message, 'Operation failed');
