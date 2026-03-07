@@ -1,3 +1,22 @@
+# [4.4.0](https://github.com/maystudios/maxsimcli/compare/v4.3.1...v4.4.0) (2026-03-07)
+
+
+### Bug Fixes
+
+* **03-04:** add extractFrontmatter reference to executor review parsing ([f2dbeb2](https://github.com/maystudios/maxsimcli/commit/f2dbeb22fc35517e8cad76e709fee2266bab2140))
+
+
+### Features
+
+* **03-01:** add coherence sections to executor, planner, plan-checker, phase-researcher ([8d182e6](https://github.com/maystudios/maxsimcli/commit/8d182e6207a303bee7bddab64744264b23d4b70e))
+* **03-01:** add coherence sections to project-researcher, research-synthesizer, roadmapper ([e67a691](https://github.com/maystudios/maxsimcli/commit/e67a691b0e479abb4028a2573e22fbcfd7e65304))
+* **03-02:** add coherence sections to debugger, mapper, checker + AGENTS.md conventions ([1409a84](https://github.com/maystudios/maxsimcli/commit/1409a842c758a85eeb3b5086ecccc58704a757db))
+* **03-02:** add coherence sections to verifier, spec-reviewer, code-reviewer ([b01b37b](https://github.com/maystudios/maxsimcli/commit/b01b37b6b3ae818c47f66ec2fabeb103039cd7c1))
+* **03-03:** add agent context interfaces and 5 agent-level init commands ([af3b10f](https://github.com/maystudios/maxsimcli/commit/af3b10f55f9849c5a174d921f29653394aa602a0))
+* **03-03:** register agent init commands in CLI router and add review schema ([2060e42](https://github.com/maystudios/maxsimcli/commit/2060e426f52028e474647f31b09f4c296771db8e))
+* **03-04:** add review step to quick workflow and update execute-phase review checking ([edff2d1](https://github.com/maystudios/maxsimcli/commit/edff2d17348acb7849ba1896329ea47858610393))
+* **03-04:** add universal wave review protocol to executor agent ([fedf8bf](https://github.com/maystudios/maxsimcli/commit/fedf8bf1721a4e170665c276ff1b67e60bf463ec))
+
 ## [4.3.1](https://github.com/maystudios/maxsimcli/compare/v4.3.0...v4.3.1) (2026-03-07)
 
 
