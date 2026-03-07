@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Every AI-assisted coding task runs with the right amount of context -- no more, no less -- producing consistent, correct output from phase 1 to phase 50.
-**Current focus:** v5.0 milestone shipped -- planning next milestone
+**Current focus:** v5.1 Surgical Cleanup -- error handling, test coverage, dedup, dead code removal
 
 ## Current Position
 
-Milestone: v5.0 Context-Aware SDD (SHIPPED 2026-03-08)
-Phase: All phases complete
-Plan: 14/14 plans complete across 5 phases
-Status: shipped
-Last activity: 2026-03-08 -- Milestone v5.0 archived
+Milestone: v5.1 Surgical Cleanup
+Phase: Not started (defining requirements)
+Plan: --
+Status: Defining requirements
+Last activity: 2026-03-08 -- Milestone v5.1 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
 ### Decisions
 
-None (cleared at milestone completion -- see milestones/v5.0-ROADMAP.md for v5.0 decisions).
+None.
 
 ### Architecture
 
@@ -42,6 +42,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: v5.0 milestone archived
+Stopped at: Milestone v5.1 requirements definition
 Resume file: None
-Next action: Run `/maxsim:new-milestone` to start next milestone
+Next action: Define requirements and create roadmap

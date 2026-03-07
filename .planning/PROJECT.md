@@ -8,6 +8,16 @@ MAXSIM is a spec-driven development (SDD) system for Claude Code. It prevents co
 
 Every AI-assisted coding task runs with the right amount of context -- no more, no less -- producing consistent, correct output from phase 1 to phase 50.
 
+## Current Milestone: v5.1 Surgical Cleanup
+
+**Goal:** Eliminate critical internal tech debt — unify error handling, add test coverage for untested core modules, extract duplicated patterns, and remove dead code.
+
+**Target fixes:**
+- Unify error handling to CmdResult pattern; remove CliOutput/CliError exceptions and process.exit() from 15+ modules
+- Add unit tests for phase.ts (1193 lines, 0 tests), init.ts (1060 lines, 0 tests), verify.ts (965 lines, 0 tests)
+- Extract shared helpers: loadJsonFile() (10+ duplication sites), phase dir resolution (8 places), logging
+- Remove 4 unused workflow files; resolve research-phase command/workflow duality
+
 ## Current State
 
 MAXSIM is a working product at v5.0 with real users. Shipped v5.0 Context-Aware SDD on 2026-03-08. The following is implemented and shipped:
@@ -99,4 +109,4 @@ MAXSIM is a working product at v5.0 with real users. Shipped v5.0 Context-Aware 
 - Sync/async file I/O inconsistency in CLI tool functions
 
 ---
-*Last updated: 2026-03-08 after v5.0 milestone*
+*Last updated: 2026-03-08 after v5.1 milestone start*
