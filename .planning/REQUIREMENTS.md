@@ -10,9 +10,9 @@
 
 ### Context Rot Prevention
 
-- [ ] **ROT-01**: Planning documents auto-prune completed phases -- old phase data does not accumulate indefinitely in ROADMAP.md or STATE.md
+- [x] **ROT-01**: Planning documents auto-prune completed phases -- old phase data does not accumulate indefinitely in ROADMAP.md or STATE.md
 - [x] **ROT-02**: A reprocess command or lifecycle hook detects and removes stale context from `.planning/` documents
-- [ ] **ROT-03**: Phase archival moves completed phase directories to `.planning/archive/` and strips them from active roadmap
+- [x] **ROT-03**: Phase archival moves completed phase directories to `.planning/archive/` and strips them from active roadmap
 - [x] **ROT-04**: STATE.md retains only current milestone context -- previous milestone decisions/blockers are archived, not accumulated
 
 ### Deep Init Questioning
@@ -24,10 +24,10 @@
 
 ### Agent Coherence
 
-- [ ] **AGENT-01**: Agent prompts reference and complement each other as a coordinated system -- no agent operates as an isolated prompt island
+- [x] **AGENT-01**: Agent prompts reference and complement each other as a coordinated system -- no agent operates as an isolated prompt island
 - [ ] **AGENT-02**: Context assembly is role-aware -- each agent type receives exactly the context it needs, defined per role
 - [ ] **AGENT-03**: Two-stage review (spec compliance + code quality) is the standard post-task workflow, not optional
-- [ ] **AGENT-04**: Agent handoff protocol ensures no context is lost between agent transitions
+- [x] **AGENT-04**: Agent handoff protocol ensures no context is lost between agent transitions
 
 ### Spec Drift Management
 
@@ -69,18 +69,18 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROT-01 | Phase 1 | Pending |
+| ROT-01 | Phase 1 | Complete |
 | ROT-02 | Phase 1 | Complete |
-| ROT-03 | Phase 1 | Pending |
+| ROT-03 | Phase 1 | Complete |
 | ROT-04 | Phase 1 | Complete |
 | INIT-01 | Phase 2 | Complete |
 | INIT-02 | Phase 2 | Complete |
 | INIT-03 | Phase 2 | Complete |
 | INIT-04 | Phase 2 | Complete |
-| AGENT-01 | Phase 3 | Pending |
+| AGENT-01 | Phase 3 | Complete |
 | AGENT-02 | Phase 3 | Pending |
 | AGENT-03 | Phase 3 | Pending |
-| AGENT-04 | Phase 3 | Pending |
+| AGENT-04 | Phase 3 | Complete |
 | DRIFT-01 | Phase 4 | Pending |
 | DRIFT-02 | Phase 4 | Pending |
 | DRIFT-03 | Phase 4 | Pending |
@@ -93,7 +93,7 @@
 | GUARD-04 | All | Active |
 
 **Coverage:**
-- Active requirements: 18 total (0 complete, 18 pending)
+- Active requirements: 18 total (8 complete, 10 pending)
 - Guards: 4 total (active)
 - Mapped to phases: 18
 - Unmapped: 0

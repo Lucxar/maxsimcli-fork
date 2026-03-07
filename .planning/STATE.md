@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Every AI-assisted coding task runs with the right amount of context -- no more, no less -- producing consistent, correct output from phase 1 to phase 50.
-**Current focus:** Phases 1 & 2 complete -- ready for Phase 3 (Agent Coherence)
+**Current focus:** Phase 3 (Agent Coherence) in progress -- Wave 1 plans (01, 02) complete
 
 ## Current Position
 
 Milestone: v5.0 Context-Aware SDD
-Phase: 2 of 5 (Phases 1-2 complete)
-Plan: All plans complete for Phases 1 & 2
-Status: between-phases
-Last activity: 2026-03-07 -- Fixed roadmap/requirements drift for Phases 1-2
+Phase: 3 of 5 (Phase 3 - Agent Coherence)
+Plan: 1 of 4 complete (Plan 01 - core agent coherence)
+Status: executing
+Last activity: 2026-03-07 -- Completed 03-01-PLAN.md (core agent coherence sections)
 
-Progress: [████░░░░░░] 40%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -26,6 +26,8 @@ Progress: [████░░░░░░] 40%
 | Phase 02 P02 | 2min | 2 tasks | 2 files |
 | Phase 02 P01 | 5min | 2 tasks | 4 files |
 | Phase 02 P03 | 6min | 2 tasks | 3 files |
+| Phase 03 P01 | 7min | 2 tasks | 7 files |
+| Phase 03 P02 | 7min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -42,6 +44,10 @@ Progress: [████░░░░░░] 40%
 - [Phase 02-03]: Both init workflows now have agent dry-run validation as final quality gate
 - [Phase 02-03]: init.ts conventions_path added to PlanPhaseContext and PhaseOpContext (existence-checked)
 - [Phase 02-03]: Stack preference questions filter to framework-level only, capped at 8-10 items
+- [Phase 03]: Support agents (verifier, spec-reviewer, code-reviewer, debugger, codebase-mapper, integration-checker) all have system map, contracts, validation, deferred items, needs frontmatter
+- [Phase 03]: AGENTS.md documents Agent Coherence Conventions: system map maintenance, required sections, needs vocabulary (9 keys), handoff contract
+- [Phase 03]: Reviewer agents output YAML frontmatter (status, critical_count, warning_count) for machine-parseable PASS/FAIL detection
+- [Phase 03-01]: 7 core agents (executor, planner, plan-checker, phase-researcher, project-researcher, research-synthesizer, roadmapper) have system map, upstream/downstream contracts, input validation, deferred items protocol, needs frontmatter, minimum handoff contract
 
 ### Architecture
 
@@ -61,7 +67,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-07T00:15:34.899Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-03-07T02:28:09.682Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
 Next action: Start Phase 3 or Phase 5 (per roadmap -- Phase 3 depends on Phase 2, Phase 5 is independent)
