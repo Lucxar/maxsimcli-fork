@@ -10,8 +10,8 @@ MAXSIM is a working product with 35+ commands, 13 agents, 11 skills, and a dashb
 
 ## Phases
 
-- [ ] **Phase 1: Context Rot Prevention** - Auto-prune completed phases, archive stale context, keep planning docs focused on current work
-- [ ] **Phase 2: Deep Init Questioning** - Comprehensive onboarding with tech stack research, constraints, and no-go gathering
+- [x] **Phase 1: Context Rot Prevention** - Auto-prune completed phases, archive stale context, keep planning docs focused on current work
+- [x] **Phase 2: Deep Init Questioning** - Comprehensive onboarding with tech stack research, constraints, and no-go gathering
 - [ ] **Phase 3: Agent Coherence** - Coordinated agent prompt system with role-aware context and standard two-stage review
 - [ ] **Phase 4: Spec Drift Management** - `/maxsim:check-drift` command that compares spec to codebase and generates realignment plans
 - [ ] **Phase 5: Workflow Coverage** - Todo/bug discussion flow and phase listing pagination
@@ -29,7 +29,7 @@ MAXSIM is a working product with 35+ commands, 13 agents, 11 skills, and a dashb
   4. ROADMAP.md for a 50-phase project contains only the active milestone's phases, not all historical phases
 **Plans**: 2 plans in 2 waves
   - [x] 01-01: Phase archive sweep (ROT-01, ROT-03) — Wave 1
-  - [ ] 01-02: Stale detection + milestone reset (ROT-02, ROT-04) — Wave 2
+  - [x] 01-02: Stale detection + milestone reset (ROT-02, ROT-04) — Wave 2
 
 ### Phase 2: Deep Init Questioning
 **Goal**: New-project and init-existing produce context documents thorough enough that any agent can start work without asking follow-up questions
@@ -41,9 +41,9 @@ MAXSIM is a working product with 35+ commands, 13 agents, 11 skills, and a dashb
   3. An agentic research step investigates tech stack choices and surfaces trade-offs the user may not have considered
   4. A fresh agent subcontext receiving only PROJECT.md + REQUIREMENTS.md + NO-GOS.md can begin a task without requesting clarification
 **Plans**: 3 plans in 2 waves
-  - [ ] 02-01: Questioning depth + no-gos + research agents (INIT-01, INIT-02, INIT-03) — Wave 1
-  - [ ] 02-02: CONVENTIONS.md + PROJECT.md templates (INIT-04) — Wave 1
-  - [ ] 02-03: Workflow integration + CLI wiring (INIT-01, INIT-02, INIT-03, INIT-04) — Wave 2
+  - [x] 02-01: Questioning depth + no-gos + research agents (INIT-01, INIT-02, INIT-03) — Wave 1
+  - [x] 02-02: CONVENTIONS.md + PROJECT.md templates (INIT-04) — Wave 1
+  - [x] 02-03: Workflow integration + CLI wiring (INIT-01, INIT-02, INIT-03, INIT-04) — Wave 2
 
 ### Phase 3: Agent Coherence
 **Goal**: Agents operate as a coordinated system -- prompts complement each other, context is role-targeted, and two-stage review is the default post-task workflow
@@ -54,7 +54,11 @@ MAXSIM is a working product with 35+ commands, 13 agents, 11 skills, and a dashb
   2. Context assembly per agent role is defined: executor gets task + relevant code; reviewer gets spec + diff; planner gets roadmap + requirements
   3. Two-stage review (spec compliance then code quality) runs automatically after every task completion
   4. Agent handoff points are documented and implemented -- context loss between agent transitions is eliminated
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
+  - [ ] 03-01: Agent coherence - core agents (AGENT-01, AGENT-04) — Wave 1
+  - [ ] 03-02: Agent coherence - support agents + registry (AGENT-01, AGENT-04) — Wave 1
+  - [ ] 03-03: CLI init commands + frontmatter schema (AGENT-02) — Wave 2
+  - [ ] 03-04: Two-stage review enforcement (AGENT-03) — Wave 2
 
 ### Phase 4: Spec Drift Management
 **Goal**: Users can detect and correct divergence between `.planning/` spec and actual codebase state using a single command
@@ -83,8 +87,8 @@ Phase 1 -> Phase 2 || Phase 5 -> Phase 3 -> Phase 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Context Rot Prevention | 1/2 | Executing | - |
-| 2. Deep Init Questioning | 0/3 | Planned | - |
-| 3. Agent Coherence | 0/? | Not started | - |
+| 1. Context Rot Prevention | 2/2 | Complete | 2026-03-06 |
+| 2. Deep Init Questioning | 3/3 | Complete | 2026-03-07 |
+| 3. Agent Coherence | 0/4 | Planned | - |
 | 4. Spec Drift Management | 0/? | Not started | - |
 | 5. Workflow Coverage | 0/? | Not started | - |
