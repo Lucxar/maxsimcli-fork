@@ -70,6 +70,13 @@ export type {
   ResearcherAgentContext,
   VerifierAgentContext,
   DebuggerAgentContext,
+  CheckDriftContext,
+  RealignContext,
+  DriftReportFrontmatter,
+  DriftStatus,
+  DriftSeverity,
+  DriftDirection,
+  DriftItemStatus,
 } from './types.js';
 
 // Runtime value exports from types
@@ -213,6 +220,16 @@ export {
   cmdValidateHealth,
 } from './verify.js';
 
+// Drift exports
+export {
+  cmdDriftReadReport,
+  cmdDriftWriteReport,
+  cmdDriftExtractRequirements,
+  cmdDriftExtractNoGos,
+  cmdDriftExtractConventions,
+  cmdDriftPreviousHash,
+} from './drift.js';
+
 // Phase exports
 export {
   cmdPhasesList,
@@ -328,5 +345,7 @@ export {
   cmdInitResearcher,
   cmdInitVerifier,
   cmdInitDebugger,
+  cmdInitCheckDrift,
+  cmdInitRealign,
   listCodebaseDocs,
 } from './init.js';

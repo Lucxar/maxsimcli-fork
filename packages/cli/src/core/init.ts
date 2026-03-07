@@ -16,6 +16,7 @@ import {
   pathExistsInternal,
   generateSlugInternal,
   getMilestoneInfo,
+  getArchivedPhaseDirs,
   debugLog,
   planningPath,
   phasesPath,
@@ -39,6 +40,8 @@ import type {
   ResearcherAgentContext,
   VerifierAgentContext,
   DebuggerAgentContext,
+  CheckDriftContext,
+  RealignContext,
 } from './types.js';
 
 // ─── Init result types ──────────────────────────────────────────────────────
@@ -56,7 +59,9 @@ export type WorkflowType =
   | 'milestone-op'
   | 'map-codebase'
   | 'init-existing'
-  | 'progress';
+  | 'progress'
+  | 'check-drift'
+  | 'realign';
 
 export interface ExecutePhaseContext {
   executor_model: ModelResolution;
@@ -331,7 +336,9 @@ export type InitContext =
   | MilestoneOpContext
   | MapCodebaseContext
   | InitExistingContext
-  | ProgressContext;
+  | ProgressContext
+  | CheckDriftContext
+  | RealignContext;
 
 // ─── Helper: extract requirement IDs from roadmap phase section ─────────────
 
@@ -956,5 +963,98 @@ export function cmdInitDebugger(cwd: string, phase: string | undefined): CmdResu
   if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
+  return cmdOk(result);
+}
+
+// ─── Drift-related init commands ─────────────────────────────────────────────
+
+export function cmdInitCheckDrift(cwd: string): CmdResult {
+  const config = loadConfig(cwd);
+  const driftModel = resolveModelInternal(cwd, 'maxsim-drift-checker');
+
+  const hasPlanning = pathExistsInternal(cwd, '.planning');
+  const hasRequirements = pathExistsInternal(cwd, '.planning/REQUIREMENTS.md');
+  const hasRoadmap = pathExistsInternal(cwd, '.planning/ROADMAP.md');
+  const hasNogos = pathExistsInternal(cwd, '.planning/NO-GOS.md');
+  const hasConventions = pathExistsInternal(cwd, '.planning/CONVENTIONS.md');
+  const hasPreviousReport = pathExistsInternal(cwd, '.planning/DRIFT-REPORT.md');
+
+  // Collect spec files that exist
+  const specFiles: string[] = [];
+  if (hasRequirements) specFiles.push('.planning/REQUIREMENTS.md');
+  if (hasRoadmap) specFiles.push('.planning/ROADMAP.md');
+  if (pathExistsInternal(cwd, '.planning/STATE.md')) specFiles.push('.planning/STATE.md');
+  if (hasNogos) specFiles.push('.planning/NO-GOS.md');
+  if (hasConventions) specFiles.push('.planning/CONVENTIONS.md');
+
+  // Collect active phase directories
+  let phaseDirs: string[] = [];
+  try {
+    const dirs = listSubDirs(phasesPath(cwd), true);
+    phaseDirs = dirs.map(d => `.planning/phases/${d}`);
+  } catch { /* no phases dir */ }
+
+  // Collect archived milestone directories
+  let archivedMilestoneDirs: string[] = [];
+  try {
+    const archived = getArchivedPhaseDirs(cwd);
+    archivedMilestoneDirs = archived.map(a => a.basePath);
+    // De-duplicate
+    archivedMilestoneDirs = [...new Set(archivedMilestoneDirs)];
+  } catch { /* no archived dirs */ }
+
+  const codebaseDocs = listCodebaseDocs(cwd);
+
+  const result: CheckDriftContext = {
+    drift_model: driftModel,
+    commit_docs: config.commit_docs,
+    has_planning: hasPlanning,
+    has_requirements: hasRequirements,
+    has_roadmap: hasRoadmap,
+    has_nogos: hasNogos,
+    has_conventions: hasConventions,
+    has_previous_report: hasPreviousReport,
+    previous_report_path: hasPreviousReport ? '.planning/DRIFT-REPORT.md' : null,
+    spec_files: specFiles,
+    phase_dirs: phaseDirs,
+    archived_milestone_dirs: archivedMilestoneDirs,
+    state_path: '.planning/STATE.md',
+    requirements_path: '.planning/REQUIREMENTS.md',
+    roadmap_path: '.planning/ROADMAP.md',
+    nogos_path: hasNogos ? '.planning/NO-GOS.md' : null,
+    conventions_path: hasConventions ? '.planning/CONVENTIONS.md' : null,
+    codebase_docs: codebaseDocs,
+  };
+
+  return cmdOk(result);
+}
+
+export function cmdInitRealign(cwd: string, direction: string | undefined): CmdResult {
+  const config = loadConfig(cwd);
+  const hasReport = pathExistsInternal(cwd, '.planning/DRIFT-REPORT.md');
+  const hasPlanning = pathExistsInternal(cwd, '.planning');
+
+  // Collect active phase directories
+  let phaseDirs: string[] = [];
+  try {
+    const dirs = listSubDirs(phasesPath(cwd), true);
+    phaseDirs = dirs.map(d => `.planning/phases/${d}`);
+  } catch { /* no phases dir */ }
+
+  const codebaseDocs = listCodebaseDocs(cwd);
+
+  const result: RealignContext = {
+    commit_docs: config.commit_docs,
+    direction: direction ?? null,
+    has_report: hasReport,
+    report_path: '.planning/DRIFT-REPORT.md',
+    has_planning: hasPlanning,
+    state_path: '.planning/STATE.md',
+    roadmap_path: '.planning/ROADMAP.md',
+    requirements_path: '.planning/REQUIREMENTS.md',
+    phase_dirs: phaseDirs,
+    codebase_docs: codebaseDocs,
+  };
+
   return cmdOk(result);
 }

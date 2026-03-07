@@ -102,6 +102,14 @@ import {
   archivePhaseExecute,
   cmdGetArchivedPhase,
   cmdDetectStaleContext,
+  cmdDriftReadReport,
+  cmdDriftWriteReport,
+  cmdDriftExtractRequirements,
+  cmdDriftExtractNoGos,
+  cmdDriftExtractConventions,
+  cmdDriftPreviousHash,
+  cmdInitCheckDrift,
+  cmdInitRealign,
 } from './core/index.js';
 
 // ─── Arg parsing utilities ───────────────────────────────────────────────────
@@ -313,6 +321,21 @@ const handleValidate: Handler = (args, cwd, raw) => {
   error('Unknown validate subcommand. Available: consistency, health');
 };
 
+const handleDrift: Handler = (args, cwd, raw) => {
+  const sub = args[1];
+  const handlers: Record<string, () => CmdResult> = {
+    'read-report': () => cmdDriftReadReport(cwd),
+    'extract-requirements': () => cmdDriftExtractRequirements(cwd),
+    'extract-nogos': () => cmdDriftExtractNoGos(cwd),
+    'extract-conventions': () => cmdDriftExtractConventions(cwd),
+    'write-report': () => cmdDriftWriteReport(cwd, getFlag(args, '--content'), getFlag(args, '--content-file')),
+    'previous-hash': () => cmdDriftPreviousHash(cwd),
+  };
+  const handler = sub ? handlers[sub] : undefined;
+  if (handler) return handleResult(handler(), raw);
+  error('Unknown drift subcommand. Available: read-report, extract-requirements, extract-nogos, extract-conventions, write-report, previous-hash');
+};
+
 const handleInit: Handler = (args, cwd, raw) => {
   const workflow = args[1];
   const handlers: Record<string, () => CmdResult> = {
@@ -335,10 +358,13 @@ const handleInit: Handler = (args, cwd, raw) => {
     'researcher': () => cmdInitResearcher(cwd, args[2]),
     'verifier': () => cmdInitVerifier(cwd, args[2]),
     'debugger': () => cmdInitDebugger(cwd, args[2]),
+    // Drift-related inits
+    'check-drift': () => cmdInitCheckDrift(cwd),
+    'realign': () => cmdInitRealign(cwd, args[2]),
   };
   const handler = workflow ? handlers[workflow] : undefined;
   if (handler) return handleResult(handler(), raw);
-  error(`Unknown init workflow: ${workflow}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, init-existing, progress, executor, planner, researcher, verifier, debugger`);
+  error(`Unknown init workflow: ${workflow}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, init-existing, progress, executor, planner, researcher, verifier, debugger, check-drift, realign`);
 };
 
 // ─── Command registry ────────────────────────────────────────────────────────
@@ -378,6 +404,7 @@ const COMMANDS: Record<string, Handler> = {
   'phase': handlePhase,
   'milestone': handleMilestone,
   'validate': handleValidate,
+  'drift': handleDrift,
   'progress': (args, cwd, raw) => handleResult(cmdProgressRender(cwd, args[1] || 'json', raw), raw),
   'todo': (args, cwd, raw) => {
     if (args[1] === 'complete') handleResult(cmdTodoComplete(cwd, args[2], raw), raw);
