@@ -31,8 +31,8 @@
 
 ### Spec Drift Management
 
-- [ ] **DRIFT-01**: `/maxsim:check-drift` command compares `.planning/` spec against actual codebase state
-- [ ] **DRIFT-02**: Drift detection identifies mismatches between planned requirements and implemented features
+- [x] **DRIFT-01**: `/maxsim:check-drift` command compares `.planning/` spec against actual codebase state
+- [x] **DRIFT-02**: Drift detection identifies mismatches between planned requirements and implemented features
 - [x] **DRIFT-03**: Realign-to-code path updates `.planning/` documents to reflect current codebase reality
 - [x] **DRIFT-04**: Realign-to-spec path generates fix plans listing what code changes are needed to match the spec
 
@@ -81,8 +81,8 @@
 | AGENT-02 | Phase 3 | Complete |
 | AGENT-03 | Phase 3 | Complete |
 | AGENT-04 | Phase 3 | Complete |
-| DRIFT-01 | Phase 4 | Pending |
-| DRIFT-02 | Phase 4 | Pending |
+| DRIFT-01 | Phase 4 | Complete |
+| DRIFT-02 | Phase 4 | Complete |
 | DRIFT-03 | Phase 4 | Complete |
 | DRIFT-04 | Phase 4 | Complete |
 | FLOW-01 | Phase 5 | Pending |
