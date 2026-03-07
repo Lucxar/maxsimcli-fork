@@ -63,7 +63,11 @@ function generateManifest(dir, baseDir) {
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
-        if (entry.isDirectory()) {
+        if (entry.isSymbolicLink()) {
+            // Skip symlinks — they point to user-managed external directories
+            continue;
+        }
+        else if (entry.isDirectory()) {
             Object.assign(manifest, generateManifest(fullPath, baseDir));
         }
         else {

@@ -8043,7 +8043,8 @@ function generateManifest(dir, baseDir) {
 	for (const entry of entries) {
 		const fullPath = node_path.join(dir, entry.name);
 		const relPath = node_path.relative(baseDir, fullPath).replace(/\\/g, "/");
-		if (entry.isDirectory()) Object.assign(manifest, generateManifest(fullPath, baseDir));
+		if (entry.isSymbolicLink()) continue;
+		else if (entry.isDirectory()) Object.assign(manifest, generateManifest(fullPath, baseDir));
 		else manifest[relPath] = fileHash(fullPath);
 	}
 	return manifest;
