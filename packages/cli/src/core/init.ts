@@ -108,6 +108,7 @@ export interface PlanPhaseContext {
   state_path: string;
   roadmap_path: string;
   requirements_path: string;
+  conventions_path?: string;
   context_path?: string;
   research_path?: string;
   verification_path?: string;
@@ -207,6 +208,7 @@ export interface PhaseOpContext {
   state_path: string;
   roadmap_path: string;
   requirements_path: string;
+  conventions_path?: string;
   context_path?: string;
   research_path?: string;
   verification_path?: string;
@@ -454,6 +456,9 @@ export function cmdInitPlanPhase(cwd: string, phase: string | undefined): CmdRes
     roadmap_path: '.planning/ROADMAP.md',
     requirements_path: '.planning/REQUIREMENTS.md',
   };
+  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+    result.conventions_path = '.planning/CONVENTIONS.md';
+  }
   if (phaseInfo?.directory) {
     const artifacts = scanPhaseArtifacts(cwd, phaseInfo.directory);
     if (artifacts.context_path) result.context_path = artifacts.context_path;
@@ -606,6 +611,9 @@ export function cmdInitPhaseOp(cwd: string, phase: string | undefined): CmdResul
     roadmap_path: '.planning/ROADMAP.md',
     requirements_path: '.planning/REQUIREMENTS.md',
   };
+  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+    result.conventions_path = '.planning/CONVENTIONS.md';
+  }
   if (phaseInfo?.directory) {
     const artifacts = scanPhaseArtifacts(cwd, phaseInfo.directory);
     if (artifacts.context_path) result.context_path = artifacts.context_path;
