@@ -25,7 +25,7 @@
 ### Agent Coherence
 
 - [x] **AGENT-01**: Agent prompts reference and complement each other as a coordinated system -- no agent operates as an isolated prompt island
-- [ ] **AGENT-02**: Context assembly is role-aware -- each agent type receives exactly the context it needs, defined per role
+- [x] **AGENT-02**: Context assembly is role-aware -- each agent type receives exactly the context it needs, defined per role
 - [x] **AGENT-03**: Two-stage review (spec compliance + code quality) is the standard post-task workflow, not optional
 - [x] **AGENT-04**: Agent handoff protocol ensures no context is lost between agent transitions
 
@@ -78,7 +78,7 @@
 | INIT-03 | Phase 2 | Complete |
 | INIT-04 | Phase 2 | Complete |
 | AGENT-01 | Phase 3 | Complete |
-| AGENT-02 | Phase 3 | Pending |
+| AGENT-02 | Phase 3 | Complete |
 | AGENT-03 | Phase 3 | Complete |
 | AGENT-04 | Phase 3 | Complete |
 | DRIFT-01 | Phase 4 | Pending |
