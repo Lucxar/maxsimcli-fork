@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Every AI-assisted coding task runs with the right amount of context -- no more, no less -- producing consistent, correct output from phase 1 to phase 50.
-**Current focus:** Phase 1 -- Context Rot Prevention
+**Current focus:** Phase 2 -- Deep Init Questioning (executing Wave 1: Plans 01 + 02)
 
 ## Current Position
 
 Milestone: v5.0 Context-Aware SDD
-Phase: 1 of 5 (executing)
-Plan: 01-01, 01-02 complete
+Phase: 2 of 5 (executing)
+Plan: 02-02 complete (02-01 + 02-02 done, 02-03 remaining)
 Status: executing
-Last activity: 2026-03-06 -- Completed 01-02 Stale detection + milestone reset
+Last activity: 2026-03-07 -- Completed 02-02 Template creation (CONVENTIONS.md + PROJECT.md Tech Stack Decisions)
 
-Progress: [██░░░░░░░░░░░░░░░░░░] 0/5 phases
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -23,6 +23,7 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 0/5 pha
 |-------|------|----------|-------|-------|
 | 01 | 01 | ~15min | 2 | 6 |
 | Phase 01 P02 | ~10min | 2 tasks | 6 files |
+| Phase 02 P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -31,6 +32,8 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 0/5 pha
 - **Clean slate**: All v4.x planning documents rewritten. Completed phases archived to `.planning/archive/v4/`. Roadmap renumbered from Phase 1. Previous milestone context removed from active docs to prevent context rot.
 - **Context rot as first priority**: Phase 1 addresses MAXSIM's own planning document accumulation before tackling other features. Practice what we preach.
 - **Phase order**: Phase 1 (rot prevention) first. Phase 2 (init) and Phase 5 (workflow gaps) can run in parallel. Phase 3 (agents) depends on Phase 2. Phase 4 (drift) depends on Phase 3.
+- [Phase 02]: CONVENTIONS.md template created with 4 must-have sections: Tech Stack, File Layout, Error Handling, Testing
+- [Phase 02]: PROJECT.md template expanded with Tech Stack Decisions table for research-locked choices
 
 ### Architecture
 
@@ -50,7 +53,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-06T22:24:45.099Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-03-07T00:03:37.904Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
-Next action: Execute 01-02 plan (Stale detection + milestone reset)
+Next action: Execute 02-03 plan (Wire templates into init workflows)
