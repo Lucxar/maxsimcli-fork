@@ -1,4 +1,4 @@
-import { Github, Package, ArrowUp } from "lucide-react";
+import { Github, Package, ArrowUp, BookOpen, MessageCircle, Twitter } from "lucide-react";
 import { motion, useAnimationFrame, useMotionValue, useTransform } from "motion/react";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ function MovingBorderButton({
       </svg>
 
       <motion.span
-        className="absolute h-20 w-20 rounded-full blur-[18px] bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        className="absolute h-20 w-20 rounded-full blur-[24px] bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         style={{ x: px, y: py, translateX: "-50%", translateY: "-50%" }}
       />
 
@@ -91,7 +91,7 @@ function FooterLink({
       onClick={handleClick}
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
-      className="group relative inline-flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors duration-200 w-fit cursor-pointer"
+      className="group relative inline-flex items-center gap-2 text-sm text-muted hover:text-accent transition-colors duration-200 w-fit cursor-pointer"
     >
       {children}
       <span className="absolute -bottom-px left-0 h-px w-0 bg-accent group-hover:w-full transition-all duration-300 ease-out" />
@@ -99,23 +99,48 @@ function FooterLink({
   );
 }
 
-const NAV_LINKS = [
+const GITHUB_RELEASES_URL = "https://github.com/maystudios/maxsimcli/releases";
+
+const PRODUCT_LINKS: { label: string; href: string; pushState?: boolean }[] = [
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Docs", href: "#docs" },
   { label: "Documentation", href: "/docs", pushState: true },
 ];
 
-const EXTERNAL_LINKS = [
+const RESOURCE_LINKS = [
   {
     label: "GitHub",
     href: "https://github.com/maystudios/maxsimcli",
     icon: <Github size={13} strokeWidth={1.5} />,
+    external: true,
   },
   {
-    label: "npm",
+    label: "npm Registry",
     href: "https://www.npmjs.com/package/maxsimcli",
     icon: <Package size={13} strokeWidth={1.5} />,
+    external: true,
+  },
+  {
+    label: "Changelog",
+    href: GITHUB_RELEASES_URL,
+    icon: <BookOpen size={13} strokeWidth={1.5} />,
+    external: true,
+  },
+];
+
+const CONNECT_LINKS = [
+  {
+    label: "Twitter / X",
+    href: "https://x.com/maystudios",
+    icon: <Twitter size={13} strokeWidth={1.5} />,
+    external: true,
+  },
+  {
+    label: "Discussions",
+    href: "https://github.com/maystudios/maxsimcli/discussions",
+    icon: <MessageCircle size={13} strokeWidth={1.5} />,
+    external: true,
   },
 ];
 
@@ -126,45 +151,80 @@ export function Footer() {
     <footer className="bg-background border-t border-border">
       <div className="max-w-6xl mx-auto px-6 pt-14 pb-8">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+        {/* 4-column grid: brand takes 2 cols */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
 
-          <div className="md:col-span-1 flex flex-col gap-4">
-            <span className="font-mono font-bold tracking-tight text-foreground">
+          {/* Brand column — col-span-2 */}
+          <div className="md:col-span-2 flex flex-col gap-5">
+            <span className="font-mono font-bold tracking-tight text-foreground text-lg">
               MAXSIM
             </span>
 
-            <p className="text-sm text-muted leading-relaxed max-w-xs">
+            <p className="text-sm text-muted leading-relaxed max-w-sm">
               Meta-prompting, context engineering, and spec-driven development
               for AI coding agents — by MayStudios.
             </p>
 
+            {/* Mini terminal install block */}
+            <div className="rounded-lg border border-border/60 bg-surface/30 px-4 py-3 max-w-xs font-mono text-xs">
+              <span className="text-muted/60 select-none">$ </span>
+              <span className="text-accent">npx</span>{" "}
+              <span className="text-foreground">maxsimcli@latest</span>
+            </div>
+
             <div className="flex items-center gap-3">
-              <span className="text-xs font-mono text-muted">v{__MAXSIM_VERSION__}</span>
+              <a
+                href={GITHUB_RELEASES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-muted hover:text-accent transition-colors duration-200 cursor-pointer"
+              >
+                v{__MAXSIM_VERSION__}
+              </a>
               <span className="h-3 w-px bg-border" />
               <span className="text-xs font-mono text-muted uppercase tracking-widest">MIT</span>
             </div>
           </div>
 
+          {/* Product column */}
           <div className="flex flex-col gap-4">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted/40">
-              Navigate
+            <span className="text-xs font-mono uppercase tracking-widest text-muted/60">
+              Product
             </span>
             <nav className="flex flex-col gap-3.5">
-              {NAV_LINKS.map((link) => (
-                <FooterLink key={link.href} href={link.href} pushState={"pushState" in link ? link.pushState : false}>
+              {PRODUCT_LINKS.map((link) => (
+                <FooterLink
+                  key={link.href}
+                  href={link.href}
+                  pushState={link.pushState}
+                >
                   {link.label}
                 </FooterLink>
               ))}
             </nav>
           </div>
 
+          {/* Resources column */}
           <div className="flex flex-col gap-4">
-            <span className="text-xs font-mono uppercase tracking-widest text-muted/40">
+            <span className="text-xs font-mono uppercase tracking-widest text-muted/60">
+              Resources
+            </span>
+            <nav className="flex flex-col gap-3.5">
+              {RESOURCE_LINKS.map((link) => (
+                <FooterLink key={link.href} href={link.href} external={link.external}>
+                  {link.icon}
+                  {link.label}
+                </FooterLink>
+              ))}
+            </nav>
+
+            {/* Connect sub-section within the last column */}
+            <span className="text-xs font-mono uppercase tracking-widest text-muted/60 mt-4">
               Connect
             </span>
             <nav className="flex flex-col gap-3.5">
-              {EXTERNAL_LINKS.map((link) => (
-                <FooterLink key={link.href} href={link.href} external>
+              {CONNECT_LINKS.map((link) => (
+                <FooterLink key={link.href} href={link.href} external={link.external}>
                   {link.icon}
                   {link.label}
                 </FooterLink>
@@ -173,18 +233,33 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border/40 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Animated gradient line above copyright */}
+        <div className="relative h-px mb-6 overflow-hidden">
+          <motion.div
+            className="absolute inset-0 h-full"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, var(--color-accent) 30%, var(--color-accent-light) 50%, var(--color-accent) 70%, transparent 100%)",
+              backgroundSize: "200% 100%",
+            }}
+            animate={{ backgroundPosition: ["0% 0%", "200% 0%"] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          />
+        </div>
+
+        {/* Copyright row */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-mono text-muted/40">
+            <p className="text-xs font-mono text-muted/60">
               &copy; {new Date().getFullYear()} May Studios — Build with MAXSIM.
             </p>
-            <p className="text-xs font-mono text-muted/30">
+            <p className="text-xs font-mono text-muted/40">
               by{" "}
               <a
                 href="https://sven-maibaum.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted/50 hover:text-muted transition-colors underline underline-offset-2"
+                className="text-muted/60 hover:text-accent transition-colors underline underline-offset-2"
               >
                 Sven Maibaum
               </a>
