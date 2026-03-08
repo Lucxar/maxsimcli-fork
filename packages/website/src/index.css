@@ -49,19 +49,64 @@ body {
   border-radius: 3px;
 }
 
+/* ─── Marquee animations ──────────────────────────────────────────────────── */
+
 @keyframes marquee {
   from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  to   { transform: translateX(-33.333%); }
 }
 @keyframes marquee-reverse {
-  from { transform: translateX(-50%); }
+  from { transform: translateX(-33.333%); }
   to   { transform: translateX(0); }
 }
 
-.marquee        { animation: marquee         20s linear infinite; }
-.marquee-reverse { animation: marquee-reverse 25s linear infinite; }
+.marquee         { animation: marquee         30s linear infinite; }
+.marquee-reverse { animation: marquee-reverse 35s linear infinite; }
 
 @media (max-width: 640px) {
-  .marquee         { animation-duration: 12s; }
-  .marquee-reverse { animation-duration: 15s; }
+  .marquee         { animation-duration: 18s; }
+  .marquee-reverse { animation-duration: 22s; }
+}
+
+/* Pause marquee on hover */
+.marquee-wrapper:hover .marquee,
+.marquee-wrapper:hover .marquee-reverse {
+  animation-play-state: paused;
+}
+
+/* ─── TechStack diagonal stripes ──────────────────────────────────────────── */
+
+.techstack-stripes {
+  position: relative;
+}
+
+.techstack-stripes::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 40px,
+    rgba(255, 255, 255, 0.015) 40px,
+    rgba(255, 255, 255, 0.015) 41px
+  );
+  pointer-events: none;
+}
+
+/* ─── Syntax highlighting (minimal) ──────────────────────────────────────── */
+
+.syntax-comment { color: #4ade80; } /* green-400 */
+.syntax-string  { color: #fbbf24; } /* amber-400 */
+.syntax-keyword { color: #60a5fa; } /* blue-400 */
+
+/* ─── Docs CTA arrow bounce ──────────────────────────────────────────────── */
+
+@keyframes arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(4px); }
+}
+
+.docs-cta-link:hover .docs-cta-arrow {
+  animation: arrow-nudge 0.8s ease-in-out infinite;
 }
