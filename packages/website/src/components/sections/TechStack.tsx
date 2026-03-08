@@ -1,35 +1,71 @@
+import {
+  FileText,
+  Hash,
+  Terminal,
+  Workflow,
+  Bot,
+  Hexagon,
+  Code,
+  Hammer,
+  Box,
+  FolderGit2,
+  Wrench,
+} from "lucide-react";
+import type { ElementType, ReactNode } from "react";
+
 const commandLayer = [
-  { name: "Markdown Prompts" },
-  { name: "YAML Frontmatter" },
-  { name: "Slash Commands" },
-  { name: "Workflow Specs" },
-  { name: "Agent Definitions" },
+  { name: "Markdown Prompts", Icon: FileText },
+  { name: "YAML Frontmatter", Icon: Hash },
+  { name: "Slash Commands", Icon: Terminal },
+  { name: "Workflow Specs", Icon: Workflow },
+  { name: "Agent Definitions", Icon: Bot },
 ];
 
 const toolchainStack = [
-  { name: "Node.js" },
-  { name: "TypeScript" },
-  { name: "esbuild" },
-  { name: "CJS Modules" },
-  { name: "npm workspaces" },
-  { name: "tsdown" },
+  { name: "Node.js", Icon: Hexagon },
+  { name: "TypeScript", Icon: Code },
+  { name: "esbuild", Icon: Hammer },
+  { name: "CJS Modules", Icon: Box },
+  { name: "npm workspaces", Icon: FolderGit2 },
+  { name: "tsdown", Icon: Wrench },
 ];
 
-const allItems = [...commandLayer, ...toolchainStack];
-const marqueeItems = [...allItems, ...allItems];
+const commandMarquee = [...commandLayer, ...commandLayer, ...commandLayer];
+const toolchainMarquee = [...toolchainStack, ...toolchainStack, ...toolchainStack];
 
-function Badge({ name }: { name: string }) {
+function Badge({ name, Icon }: { name: string; Icon: ElementType }) {
   return (
     <div className="shrink-0 inline-flex items-center gap-2 px-4 py-2 border border-border bg-surface rounded-sm mx-3">
-      <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+      <Icon size={14} className="text-accent shrink-0" />
       <span className="font-mono text-sm text-foreground/80 whitespace-nowrap">{name}</span>
+    </div>
+  );
+}
+
+function CategoryLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-3">
+      <span className="text-xs font-mono uppercase tracking-widest text-muted">
+        {label}
+      </span>
+      <span className="h-px flex-1 max-w-16 bg-border" />
+    </div>
+  );
+}
+
+function MarqueeRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="marquee-wrapper relative">
+      <div className="absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      {children}
     </div>
   );
 }
 
 export function TechStack() {
   return (
-    <section className="bg-background py-24 border-t border-border overflow-hidden">
+    <section className="techstack-stripes bg-background py-24 border-t border-border overflow-hidden">
       <div className="max-w-6xl mx-auto px-6 mb-12">
         <p className="text-xs uppercase tracking-widest text-muted font-medium mb-4">
           Technology
@@ -42,42 +78,29 @@ export function TechStack() {
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 mb-6 flex flex-wrap gap-6">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono uppercase tracking-widest text-muted">
-            Command Layer
-          </span>
-          <span className="h-px w-8 bg-border" />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono uppercase tracking-widest text-muted">
-            Toolchain
-          </span>
-          <span className="h-px w-8 bg-border" />
-        </div>
+      {/* Row 1 — Command Layer */}
+      <div className="max-w-6xl mx-auto px-6">
+        <CategoryLabel label="Command Layer" />
       </div>
-
-      {/* Row 1 */}
-      <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-background to-transparent pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      <MarqueeRow>
         <div className="marquee flex will-change-transform">
-          {marqueeItems.map((item, i) => (
-            <Badge key={`${item.name}-${i}`} name={item.name} />
+          {commandMarquee.map((item, i) => (
+            <Badge key={`cmd-${item.name}-${i}`} name={item.name} Icon={item.Icon} />
           ))}
         </div>
-      </div>
+      </MarqueeRow>
 
-      {/* Row 2 */}
-      <div className="relative mt-4">
-        <div className="absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-background to-transparent pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      {/* Row 2 — Toolchain */}
+      <div className="max-w-6xl mx-auto px-6 mt-6">
+        <CategoryLabel label="Toolchain" />
+      </div>
+      <MarqueeRow>
         <div className="marquee-reverse flex will-change-transform">
-          {[...marqueeItems].reverse().map((item, i) => (
-            <Badge key={`rev-${item.name}-${i}`} name={item.name} />
+          {toolchainMarquee.map((item, i) => (
+            <Badge key={`tc-${item.name}-${i}`} name={item.name} Icon={item.Icon} />
           ))}
         </div>
-      </div>
+      </MarqueeRow>
     </section>
   );
 }
