@@ -9,13 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@markdoc/markdoc": "^0.5.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-helmet-async": "^2.0.5",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
