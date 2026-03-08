@@ -192,7 +192,7 @@ export function Heading({
     );
   }
   // Fallback for other heading levels
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
   return <Tag className="text-zinc-100 font-semibold mt-6 mb-3">{children}</Tag>;
 }
 

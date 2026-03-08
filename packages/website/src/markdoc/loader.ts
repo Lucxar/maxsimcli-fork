@@ -1,4 +1,4 @@
-import Markdoc from "@markdoc/markdoc";
+import Markdoc, { type RenderableTreeNode } from "@markdoc/markdoc";
 import yaml from "yaml";
 import { markdocConfig } from "./schema.ts";
 
@@ -10,7 +10,7 @@ export interface DocFrontmatter {
 
 export interface ParsedDoc {
   frontmatter: DocFrontmatter;
-  content: ReturnType<typeof Markdoc.transform>;
+  content: RenderableTreeNode;
 }
 
 /**
