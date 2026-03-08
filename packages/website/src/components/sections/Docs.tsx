@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Copy, Check, Terminal, Layers, Settings, Users, FolderTree, LayoutDashboard } from "lucide-react";
+import { Copy, Check, Terminal, Settings, Users, FolderTree, LayoutDashboard, ArrowRight } from "lucide-react";
 
 type TabId = "getting-started" | "commands" | "architecture" | "configuration" | "agents" | "dashboard";
 
@@ -47,6 +47,98 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/** Minimal syntax highlighter for code blocks */
+function highlightCode(code: string, language: string): ReactNode[] {
+  if (language === "text") {
+    return [code];
+  }
+
+  const lines = code.split("\n");
+  const result: ReactNode[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) result.push("\n");
+    const line = lines[i];
+
+    // Full-line comment
+    if (/^\s*#/.test(line) || /^\s*\/\//.test(line)) {
+      result.push(<span key={`comment-${i}`} className="syntax-comment">{line}</span>);
+      continue;
+    }
+
+    // Tokenize the line
+    const tokens = tokenizeLine(line, language);
+    tokens.forEach((tok, j) => {
+      const key = `${i}-${j}`;
+      if (tok.type === "comment") {
+        result.push(<span key={key} className="syntax-comment">{tok.text}</span>);
+      } else if (tok.type === "string") {
+        result.push(<span key={key} className="syntax-string">{tok.text}</span>);
+      } else if (tok.type === "keyword") {
+        result.push(<span key={key} className="syntax-keyword">{tok.text}</span>);
+      } else {
+        result.push(tok.text);
+      }
+    });
+  }
+  return result;
+}
+
+type Token = { type: "plain" | "comment" | "string" | "keyword"; text: string };
+
+const JSON_KEYWORDS = /^(true|false|null)$/;
+const BASH_KEYWORDS = /^(npx|npm|cd|node|git)$/;
+
+function tokenizeLine(line: string, language: string): Token[] {
+  const tokens: Token[] = [];
+  let remaining = line;
+
+  while (remaining.length > 0) {
+    // Inline comment (# ...)
+    const commentMatch = remaining.match(/^(#.*)$/);
+    if (commentMatch) {
+      tokens.push({ type: "comment", text: commentMatch[1] });
+      remaining = "";
+      continue;
+    }
+
+    // Double-quoted string
+    const dqMatch = remaining.match(/^"([^"\\]|\\.)*"/);
+    if (dqMatch) {
+      tokens.push({ type: "string", text: dqMatch[0] });
+      remaining = remaining.slice(dqMatch[0].length);
+      continue;
+    }
+
+    // Single-quoted string
+    const sqMatch = remaining.match(/^'([^'\\]|\\.)*'/);
+    if (sqMatch) {
+      tokens.push({ type: "string", text: sqMatch[0] });
+      remaining = remaining.slice(sqMatch[0].length);
+      continue;
+    }
+
+    // Word boundary — check for keywords
+    const wordMatch = remaining.match(/^[a-zA-Z_]\w*/);
+    if (wordMatch) {
+      const word = wordMatch[0];
+      const isKeyword =
+        (language === "json" && JSON_KEYWORDS.test(word)) ||
+        (language === "bash" && BASH_KEYWORDS.test(word));
+      tokens.push({ type: isKeyword ? "keyword" : "plain", text: word });
+      remaining = remaining.slice(word.length);
+      continue;
+    }
+
+    // Default: consume run of non-special characters
+    const plainMatch = remaining.match(/^[^#"'a-zA-Z_]+/);
+    const len = plainMatch ? plainMatch[0].length : 1;
+    tokens.push({ type: "plain", text: remaining.slice(0, len) });
+    remaining = remaining.slice(len);
+  }
+  return tokens;
+}
+
 function CodeBlock({ code, language = "bash" }: { code: string; language?: string }) {
   return (
     <div className="relative group">
@@ -55,25 +147,25 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
         <CopyButton text={code.trim()} />
       </div>
       <pre className="bg-surface rounded-b border border-border overflow-x-auto p-4 text-sm font-mono leading-relaxed">
-        <code className="text-zinc-300 whitespace-pre">{code.trim()}</code>
+        <code className="text-zinc-300 whitespace-pre">{highlightCode(code.trim(), language)}</code>
       </pre>
     </div>
   );
 }
 
-function DocHeading({ children }: { children: React.ReactNode }) {
+function DocHeading({ children }: { children: ReactNode }) {
   return (
     <h3 className="text-foreground font-bold text-xl tracking-tight mb-4">{children}</h3>
   );
 }
 
-function DocSubheading({ children }: { children: React.ReactNode }) {
+function DocSubheading({ children }: { children: ReactNode }) {
   return (
     <h4 className="text-foreground font-semibold text-base tracking-tight mb-3 mt-6">{children}</h4>
   );
 }
 
-function DocText({ children }: { children: React.ReactNode }) {
+function DocText({ children }: { children: ReactNode }) {
   return <p className="text-muted text-sm leading-relaxed mb-4">{children}</p>;
 }
 
@@ -617,30 +709,27 @@ export function Docs() {
           </p>
         </motion.div>
 
-        <div className="relative mb-0 overflow-x-auto">
-          <div className="flex min-w-max border-b border-border">
+        {/* Pill-style tab bar: vertical on mobile, horizontal on md+ */}
+        <div className="relative mb-0">
+          <div className="flex flex-col md:flex-row md:flex-wrap gap-2 p-1.5 bg-surface rounded-t border border-border border-b-0">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
+              const Icon = tab.Icon;
               return (
                 <button
                   key={tab.id}
                   ref={(el) => { if (el) tabRefs.current.set(tab.id, el); }}
                   onClick={() => setActiveTab(tab.id)}
                   className={[
-                    "relative px-5 py-3 text-sm font-medium transition-colors whitespace-nowrap",
-                    isActive ? "text-foreground" : "text-muted hover:text-foreground",
+                    "relative px-4 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap rounded-sm",
+                    "flex items-center gap-2",
+                    isActive
+                      ? "bg-accent/15 text-accent border border-accent/30"
+                      : "text-muted hover:text-foreground hover:bg-surface-light border border-transparent",
                   ].join(" ")}
                 >
-                  <span className="flex items-center gap-2">
-                    {tab.label}
-                  </span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="tab-indicator"
-                      className="absolute bottom-0 left-0 right-0 h-px bg-accent"
-                      transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                    />
-                  )}
+                  <Icon size={14} className={isActive ? "text-accent" : "text-muted"} />
+                  {tab.label}
                 </button>
               );
             })}
@@ -684,10 +773,10 @@ export function Docs() {
               window.history.pushState({}, "", "/docs");
               window.dispatchEvent(new PopStateEvent("popstate"));
             }}
-            className="flex-shrink-0 inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-light border border-accent/30 hover:border-accent/60 px-4 py-2 rounded transition-colors duration-200 cursor-pointer"
+            className="docs-cta-link group flex-shrink-0 inline-flex items-center gap-2.5 text-sm font-semibold bg-accent text-white hover:bg-accent-light px-5 py-2.5 rounded transition-colors duration-200 cursor-pointer"
           >
             Full Documentation
-            <span className="text-xs">→</span>
+            <ArrowRight size={16} className="docs-cta-arrow transition-transform duration-200 group-hover:translate-x-1" />
           </a>
         </motion.div>
 

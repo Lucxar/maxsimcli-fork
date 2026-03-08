@@ -68,14 +68,19 @@ const containerVariants = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.08,
     },
   },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
+  hidden: { opacity: 0, y: 24, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: "easeOut" as const },
+  },
 };
 
 export function Features() {
@@ -86,9 +91,12 @@ export function Features() {
           <p className="text-xs uppercase tracking-widest text-muted font-medium mb-4">
             What's included
           </p>
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
-            Features
-          </h2>
+          <div className="flex items-center gap-6">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground leading-tight shrink-0">
+              Features
+            </h2>
+            <div className="hidden md:block h-px flex-1 bg-gradient-to-r from-accent/40 to-transparent" />
+          </div>
           <p className="mt-4 text-muted text-lg max-w-xl">
             Everything you need for structured, agent-driven development — without the context collapse.
           </p>
@@ -105,9 +113,13 @@ export function Features() {
             <motion.div
               key={title}
               variants={cardVariants}
-              whileHover="hover"
-              className="relative bg-background p-8 group"
+              className="relative bg-background p-8 group overflow-hidden"
+              whileHover={{ y: -2, transition: { duration: 0.2 } }}
             >
+              {/* Top-edge gradient line */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              {/* Hover border highlight */}
               <motion.div
                 className="absolute inset-0 pointer-events-none"
                 initial={{ opacity: 0 }}
@@ -118,7 +130,8 @@ export function Features() {
                 }}
               />
 
-              <div className="mb-5 inline-flex items-center justify-center w-10 h-10 rounded-none bg-surface text-accent">
+              {/* Circular icon container with gradient background */}
+              <div className="mb-5 inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 text-accent group-hover:rotate-6 transition-transform duration-300">
                 <Icon size={20} strokeWidth={1.5} />
               </div>
 
