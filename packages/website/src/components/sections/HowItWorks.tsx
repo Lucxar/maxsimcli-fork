@@ -53,8 +53,12 @@ export function HowItWorks() {
         </div>
 
         <div className="relative">
+          {/* Animated gradient timeline line */}
           <motion.div
-            className="absolute left-[19px] top-10 bottom-10 w-px bg-border"
+            className="absolute left-[19px] top-10 bottom-10 w-px"
+            style={{
+              background: "linear-gradient(to bottom, var(--color-accent), var(--color-border))",
+            }}
             initial={{ scaleY: 0, originY: 0 }}
             whileInView={{ scaleY: 1 }}
             viewport={{ once: true, margin: "-60px" }}
@@ -72,6 +76,7 @@ export function HowItWorks() {
                 viewport={{ once: true, margin: "-60px" }}
                 className="relative flex gap-8 pb-12 last:pb-0"
               >
+                {/* Timeline node */}
                 <div className="relative z-10 shrink-0 flex items-start pt-1">
                   <div className="w-10 h-10 rounded-full border border-border bg-background flex items-center justify-center group-hover:border-accent transition-colors">
                     <span className="text-xs font-mono text-accent font-bold">
@@ -80,18 +85,32 @@ export function HowItWorks() {
                   </div>
                 </div>
 
-                <div className="flex-1 pt-1">
-                  <h3 className="text-foreground font-bold text-xl tracking-tight mb-2">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted text-sm leading-relaxed mb-4 max-w-lg">
-                    {step.description}
-                  </p>
-                  <div className="inline-flex items-center gap-3 bg-surface border border-border px-4 py-2.5 rounded-sm">
-                    <span className="text-accent font-mono text-xs select-none">$</span>
-                    <code className="font-mono text-xs text-foreground/90 whitespace-nowrap">
-                      {step.code}
-                    </code>
+                {/* Horizontal connector line from timeline to card */}
+                <div className="absolute left-[39px] top-[20px] w-[17px] h-px bg-gradient-to-r from-border to-accent/30 hidden md:block" />
+
+                {/* Step card */}
+                <div className="relative flex-1">
+                  <div className="relative bg-surface border border-border rounded-lg p-6 overflow-hidden">
+                    {/* Large watermark step number */}
+                    <span className="absolute -right-2 -top-4 text-7xl font-bold font-mono text-accent/10 select-none pointer-events-none leading-none">
+                      {step.number}
+                    </span>
+
+                    <h3 className="relative text-foreground font-bold text-xl tracking-tight mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="relative text-muted text-sm leading-relaxed mb-4 max-w-lg">
+                      {step.description}
+                    </p>
+
+                    {/* Terminal-style code block */}
+                    <div className="relative inline-flex items-center gap-3 bg-background border border-border px-4 py-2.5 rounded-md">
+                      <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                      <span className="text-accent font-mono text-xs select-none">$</span>
+                      <code className="font-mono text-xs text-foreground/90 whitespace-nowrap">
+                        {step.code}
+                      </code>
+                    </div>
                   </div>
                 </div>
               </motion.div>
