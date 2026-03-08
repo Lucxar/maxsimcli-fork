@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Github } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navLinks = [
   { label: "Home", href: "#home", section: "home" },
@@ -59,6 +60,18 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
   useEffect(() => {
     const sectionIds = navLinks.map((l) => l.section);
     const sections = sectionIds
@@ -103,19 +116,39 @@ export default function Navbar() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-background/80 backdrop-blur-lg border-border"
-          : "bg-transparent border-transparent"
-      }`}
+          ? "bg-background/80 backdrop-blur-lg"
+          : "bg-transparent"
+      )}
     >
-      <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      {/* Gradient bottom border */}
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 right-0 h-px transition-opacity duration-300",
+          scrolled ? "opacity-100" : "opacity-0"
+        )}
+        style={{
+          background:
+            "linear-gradient(to right, transparent, rgba(59,130,246,0.4), transparent)",
+        }}
+      />
+
+      <nav
+        className={cn(
+          "max-w-6xl mx-auto px-6 flex items-center justify-between transition-all duration-300",
+          scrolled ? "h-14" : "h-16"
+        )}
+      >
+        {/* Stylized logo with accent bracket prefix */}
         <a
           href="#home"
           onClick={(e) => handleNavClick(e, "home")}
-          className="text-lg font-bold tracking-tight text-foreground"
+          className="text-lg font-bold tracking-tight text-foreground flex items-center"
         >
-          MAXSIM
+          <span className="text-accent font-mono">/</span>
+          <span>MAXSIM</span>
         </a>
 
         {/* Desktop Nav */}
@@ -127,15 +160,16 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.section)}
-                className={`relative text-sm pb-1 transition-colors duration-200 cursor-pointer ${
+                className={cn(
+                  "relative text-sm py-1 transition-colors duration-200 cursor-pointer",
                   active ? "text-foreground" : "text-muted hover:text-foreground"
-                }`}
+                )}
               >
                 {link.label}
                 {active && (
                   <motion.span
-                    layoutId="nav-active-dot"
-                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 block w-1 h-1 rounded-full bg-accent"
+                    layoutId="nav-active-pill"
+                    className="absolute -bottom-1 left-0 right-0 block h-0.5 rounded-full bg-accent"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -145,34 +179,38 @@ export default function Navbar() {
           <a
             href="/docs"
             onClick={navigateToDocsPage}
-            className={`relative text-sm pb-1 transition-colors duration-200 cursor-pointer ${
+            className={cn(
+              "relative text-sm py-1 transition-colors duration-200 cursor-pointer",
               window.location.pathname.startsWith("/docs")
                 ? "text-foreground"
                 : "text-muted hover:text-foreground"
-            }`}
+            )}
           >
             Full Docs
             {window.location.pathname.startsWith("/docs") && (
               <motion.span
-                layoutId="nav-active-dot"
-                className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 block w-1 h-1 rounded-full bg-accent"
+                layoutId="nav-active-pill"
+                className="absolute -bottom-1 left-0 right-0 block h-0.5 rounded-full bg-accent"
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
             )}
           </a>
+
+          {/* GitHub icon button */}
           <a
             href="https://github.com/maystudios/maxsimcli"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm px-4 py-2 rounded-md border border-border text-foreground hover:bg-surface transition-colors"
+            className="flex items-center justify-center w-9 h-9 rounded-md border border-border text-muted hover:text-foreground hover:border-accent/50 transition-colors duration-200"
+            aria-label="GitHub repository"
           >
-            GitHub
+            <Github size={16} />
           </a>
         </div>
 
         {/* Mobile Toggle */}
         <button
-          className="md:hidden text-foreground"
+          className="md:hidden text-foreground relative z-50"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
@@ -180,45 +218,63 @@ export default function Navbar() {
         </button>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Full-screen Mobile Overlay Menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-background/95 backdrop-blur-lg border-b border-border"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-40 md:hidden bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center"
           >
-            <div className="px-6 py-4 flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <a
+            <div className="flex flex-col items-center gap-8">
+              {navLinks.map((link, i) => (
+                <motion.a
                   key={link.href}
                   href={link.href}
                   onClick={(e) => handleNavClick(e, link.section, true)}
-                  className={`text-sm transition-colors cursor-pointer ${
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.3, delay: i * 0.06 }}
+                  className={cn(
+                    "text-2xl font-semibold transition-colors cursor-pointer",
                     activeSection === link.section
-                      ? "text-foreground"
+                      ? "text-accent"
                       : "text-muted hover:text-foreground"
-                  }`}
+                  )}
                 >
                   {link.label}
-                </a>
+                </motion.a>
               ))}
-              <a
+              <motion.a
                 href="/docs"
-                onClick={(e) => { navigateToDocsPage(e); setMobileOpen(false); }}
-                className="text-sm text-muted hover:text-foreground transition-colors cursor-pointer"
+                onClick={(e) => {
+                  navigateToDocsPage(e);
+                  setMobileOpen(false);
+                }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3, delay: navLinks.length * 0.06 }}
+                className="text-2xl font-semibold text-muted hover:text-foreground transition-colors cursor-pointer"
               >
                 Full Docs
-              </a>
-              <a
+              </motion.a>
+              <motion.a
                 href="https://github.com/maystudios/maxsimcli"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted hover:text-foreground transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3, delay: (navLinks.length + 1) * 0.06 }}
+                className="flex items-center gap-3 text-xl font-semibold text-muted hover:text-foreground transition-colors"
               >
+                <Github size={20} />
                 GitHub
-              </a>
+              </motion.a>
             </div>
           </motion.div>
         )}
