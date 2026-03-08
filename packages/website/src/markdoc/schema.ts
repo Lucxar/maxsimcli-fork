@@ -1,4 +1,12 @@
-import { type Config, type Schema, Tag } from "@markdoc/markdoc";
+import Markdoc, { type Config, type Node, type Schema, Tag } from "@markdoc/markdoc";
+
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
+
+/** Recursively extract raw text from a Markdoc AST node tree. */
+function extractText(node: Node): string {
+  if (node.attributes?.content != null) return String(node.attributes.content);
+  return node.children.map(extractText).join("");
+}
 
 /* ── Custom tag schemas ───────────────────────────────────────────────────── */
 
@@ -23,15 +31,8 @@ const codeblock: Schema = {
       default: "bash",
     },
   },
-  transform(node, config) {
-    // Collect raw text children, trimming outer whitespace
-    const raw = node.children
-      .map((c) => {
-        if (typeof c === "string") return c;
-        if (c.type === "text" && c.attributes?.content) return c.attributes.content as string;
-        return "";
-      })
-      .join("");
+  transform(node, _config) {
+    const raw = extractText(node);
     const trimmed = raw.replace(/^\n/, "").replace(/\n$/, "");
     return new Tag("CodeBlock", { code: trimmed, language: node.attributes.language ?? "bash" }, []);
   },
