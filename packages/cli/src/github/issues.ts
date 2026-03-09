@@ -16,7 +16,7 @@
 
 import type { GhResult } from './types.js';
 import { ghExec } from './gh.js';
-import { loadMapping, saveMapping, updateTaskMapping } from './mapping.js';
+import { loadMapping, saveMapping } from './mapping.js';
 
 // ---- Helpers ---------------------------------------------------------------
 
