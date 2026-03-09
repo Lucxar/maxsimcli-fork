@@ -1,3 +1,26 @@
+# [4.7.0](https://github.com/maystudios/maxsimcli/compare/v4.6.0...v4.7.0) (2026-03-09)
+
+
+### Bug Fixes
+
+* **01-03:** remove unused updateTaskMapping import ([9f5ffbc](https://github.com/maystudios/maxsimcli/commit/9f5ffbc3a872092760dfbd5fc776b59557930b9d))
+* **01-06:** disable DTS generation to fix OOM build failure ([00551f7](https://github.com/maystudios/maxsimcli/commit/00551f7a1c74db082f0f16b4aa9c85526e86b412))
+
+
+### Features
+
+* **01-01:** add gh CLI wrapper with graceful degradation ([4bbec2a](https://github.com/maystudios/maxsimcli/commit/4bbec2af30ea93ab6025989685ba1758282188ec))
+* **01-01:** add GitHub integration type definitions ([3a5be34](https://github.com/maystudios/maxsimcli/commit/3a5be34d0a6efa2e7edc8dd0bca8016bcedf08a6))
+* **01-01:** add github-issues.json mapping persistence layer ([3b94ddf](https://github.com/maystudios/maxsimcli/commit/3b94ddf8bf2ccc9d7fb977ed7b9c2f612173c9e9))
+* **01-02:** add milestone CRUD and issue template installation modules ([c2870a0](https://github.com/maystudios/maxsimcli/commit/c2870a02939f05496b9e50bc82b1b949d0ddf5a0))
+* **01-02:** add project board setup and label management modules ([3dba3c4](https://github.com/maystudios/maxsimcli/commit/3dba3c4c593ec0507998bc8d9f4fb53f27bbea4e))
+* **01-03:** add issue creation functions and utilities ([27204c8](https://github.com/maystudios/maxsimcli/commit/27204c88cb04c0f21b87fefcb79a8e166c79c79d))
+* **01-03:** add lifecycle, import, batch, and supersession functions ([69b450b](https://github.com/maystudios/maxsimcli/commit/69b450b3d2b76b334ec95d1fa303c40e0bf277ca))
+* **01-04:** add MCP tools for GitHub issue lifecycle, board queries, and PR creation ([f65c5e5](https://github.com/maystudios/maxsimcli/commit/f65c5e50006134977a1f03d2a85fd7fee531ecb2)), closes [#N](https://github.com/maystudios/maxsimcli/issues/N)
+* **01-04:** add sync check module and barrel export for github integration ([fc21755](https://github.com/maystudios/maxsimcli/commit/fc21755eeac43146285d854a0a4cca01e78078b4))
+* **01-05:** integrate GitHub operations into phase MCP tools ([218712a](https://github.com/maystudios/maxsimcli/commit/218712a6cd691cf83435600f14c4b302c2b36cde))
+* **01-05:** integrate GitHub operations into todo and state MCP tools ([dba2fd3](https://github.com/maystudios/maxsimcli/commit/dba2fd38fd974628d967d5908e0a7179914f438e))
+
 # [4.6.0](https://github.com/maystudios/maxsimcli/compare/v4.5.0...v4.6.0) (2026-03-08)
 
 
