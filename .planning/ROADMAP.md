@@ -40,6 +40,6 @@ Plans:
 - [x] 01-01: GitHub foundation modules (gh wrapper, types, mapping)
 - [x] 01-02: Setup infrastructure (project board, labels, milestones, templates)
 - [x] 01-03: Issue CRUD (create, close, comment, import, supersede, branch naming)
-- [ ] 01-04: MCP tools + sync (github-tools, board-tools, sync check)
+- [x] 01-04: MCP tools + sync (github-tools, board-tools, sync check)
 - [ ] 01-05: Existing tool integration (phase, todo, state tools gain GitHub hooks)
 - [ ] 01-06: Build verification and end-to-end smoke test

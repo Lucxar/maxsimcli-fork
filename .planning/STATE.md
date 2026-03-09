@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 Milestone: v5.1 Surgical Cleanup
 Phase: 01 -- GitHub Issues Integration for MCP Task Management
-Plan: 03 of 6 (complete)
+Plan: 04 of 6 (complete)
 Status: Executing
-Last activity: 2026-03-09 -- Plan 01-03 complete (issue CRUD module)
+Last activity: 2026-03-09 -- Plan 01-04 complete (MCP tools + sync)
 
-Progress: [███░░░░░░░] 30%
+Progress: [██████░░░░] 60%
 
 ## Accumulated Context
 
@@ -28,6 +28,9 @@ Progress: [███░░░░░░░] 30%
 - [01-02] REST API for milestones (simpler than GraphQL for CRUD ops)
 - [01-03] Explicit GhResult error construction for cross-generic propagation (avoids TS narrowing issues)
 - [01-03] Batch size 5 with Promise.all per batch for GitHub rate limit safety
+- [01-04] Batched GraphQL queries in syncCheck (up to 100 issues/query) with sequential fallback
+- [01-04] handleExternalClose returns data for AI decision (does not auto-decide)
+- [01-04] findIssueInMapping duplicated in github-tools.ts and board-tools.ts to avoid circular deps
 
 ### Architecture
 
@@ -51,7 +54,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T15:59:00Z
-Stopped at: Completed 01-03-PLAN.md (issue CRUD module)
-Resume file: .planning/phases/01-github-issues-integration-for-mcp-task-management/01-03-SUMMARY.md
-Next action: Execute plan 01-04 (wave 3)
+Last session: 2026-03-09T16:12:00Z
+Stopped at: Completed 01-04-PLAN.md (MCP tools + sync check)
+Resume file: .planning/phases/01-github-issues-integration-for-mcp-task-management/01-04-SUMMARY.md
+Next action: Execute plan 01-05 (wave 4)
