@@ -1,3 +1,10 @@
+## [4.7.1](https://github.com/maystudios/maxsimcli/compare/v4.7.0...v4.7.1) (2026-03-09)
+
+
+### Bug Fixes
+
+* **infra:** remove dashboard package and backend server [INFRA-01, INFRA-02, INFRA-03] ([eb25801](https://github.com/maystudios/maxsimcli/commit/eb25801a251d9b346e0fa3e38d4566efbff1c701))
+
 # [4.7.0](https://github.com/maystudios/maxsimcli/compare/v4.6.0...v4.7.0) (2026-03-09)
 
 
