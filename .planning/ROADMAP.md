@@ -27,7 +27,10 @@
   3. `git log --oneline --diff-filter=D` shows dist/ removed from tracking; `.gitignore` excludes it
   4. Every function in `core.ts` exists in exactly one form (async) with zero sync duplicates
   5. MCP server starts and exposes tools focused on GitHub Issues operations (not dashboard/backend endpoints)
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+  - [ ] Plan 01 (Wave 1): Remove dashboard package and backend server [INFRA-01, INFRA-02, INFRA-03]
+  - [ ] Plan 02 (Wave 1): Remove dist/ from git tracking [INFRA-05]
+  - [ ] Plan 03 (Wave 2): Eliminate sync/async duplication [INFRA-04, INFRA-06]
 
 ### Phase 2: GitHub Issues Foundation
 **Goal**: All work tracking (phases, tasks, progress) flows through GitHub Issues, not local markdown files
@@ -123,7 +126,7 @@ Unmapped: 0
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure Cleanup | 0/? | Not started | - |
+| 1. Infrastructure Cleanup | 0/3 | Planned | - |
 | 2. GitHub Issues Foundation | 0/? | Not started | - |
 | 3. Command Surface Simplification | 0/? | Not started | - |
 | 4. Prompt & Skill Architecture | 0/? | Not started | - |
