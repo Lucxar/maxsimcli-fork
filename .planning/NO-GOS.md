@@ -20,6 +20,13 @@
 - Monorepo-only features -- everything must ship in the npm tarball
 - Accumulating completed phase data in active planning docs -- archive or delete, never keep
 
+## Phase 1: GitHub Issues Integration
+
+- Do NOT make GitHub auth truly mandatory -- must be skippable with graceful degradation
+- Do NOT use a separate Blocked column on the project board -- use GitHub's native "blocked by" linking
+- Do NOT create issues lazily (just-in-time) -- all issues created eagerly on plan finalization
+- Do NOT simplify the MAXSIM command surface in this phase -- command removal is a deferred future phase
+
 ## Scope Boundaries
 
 - This milestone is NOT refactoring large modules (server.ts, verify.ts, phase.ts) -- that is tech debt, not feature work
