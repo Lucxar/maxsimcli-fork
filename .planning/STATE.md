@@ -9,8 +9,8 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 1 (Infrastructure Cleanup)
-**Plan:** 01-01 (Dashboard & Backend Removal)
-**Status:** Executing Phase 1 — Wave 1 (Plans 01, 02)
+**Plan:** 01-03 (Sync/Async Deduplication)
+**Status:** Milestone complete
 
 ## Progress
 
