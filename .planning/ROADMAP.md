@@ -41,5 +41,5 @@ Plans:
 - [x] 01-02: Setup infrastructure (project board, labels, milestones, templates)
 - [x] 01-03: Issue CRUD (create, close, comment, import, supersede, branch naming)
 - [x] 01-04: MCP tools + sync (github-tools, board-tools, sync check)
-- [ ] 01-05: Existing tool integration (phase, todo, state tools gain GitHub hooks)
-- [ ] 01-06: Build verification and end-to-end smoke test
+- [x] 01-05: Existing tool integration (phase, todo, state tools gain GitHub hooks)
+- [x] 01-06: Build verification and end-to-end smoke test
