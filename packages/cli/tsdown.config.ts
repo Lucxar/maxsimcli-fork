@@ -5,7 +5,7 @@ const shared = {
   platform: 'node' as const,
   target: 'es2022' as const,
   banner: { js: '#!/usr/bin/env node' },
-  dts: { build: true },
+  dts: false,
   sourcemap: true,
   tsconfig: 'tsconfig.json',
   external: [/^node:/],
@@ -48,16 +48,16 @@ export default defineConfig([
   {
     ...hookShared,
     entry: { 'maxsim-check-update': 'src/hooks/maxsim-check-update.ts' },
-    dts: { build: true },
+    dts: false,
   },
   {
     ...hookShared,
     entry: { 'maxsim-context-monitor': 'src/hooks/maxsim-context-monitor.ts' },
-    dts: { build: true },
+    dts: false,
   },
   {
     ...hookShared,
     entry: { 'maxsim-statusline': 'src/hooks/maxsim-statusline.ts' },
-    dts: { build: true },
+    dts: false,
   },
 ]);
