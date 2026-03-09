@@ -11,6 +11,8 @@ import { registerStateTools } from './state-tools.js';
 import { registerContextTools } from './context-tools.js';
 import { registerRoadmapTools } from './roadmap-tools.js';
 import { registerConfigTools } from './config-tools.js';
+import { registerGitHubTools } from './github-tools.js';
+import { registerBoardTools } from './board-tools.js';
 
 /**
  * Register all MCP tools on the given server instance.
@@ -22,4 +24,6 @@ export function registerAllTools(server: McpServer): void {
   registerContextTools(server);
   registerRoadmapTools(server);
   registerConfigTools(server);
+  registerGitHubTools(server);
+  registerBoardTools(server);
 }
