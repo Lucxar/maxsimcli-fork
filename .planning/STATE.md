@@ -9,8 +9,8 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 1 (Infrastructure Cleanup)
-**Plan:** None (phase not yet planned)
-**Status:** Roadmap created, ready to begin Phase 1
+**Plan:** 01-01 (Dashboard & Backend Removal)
+**Status:** Executing Phase 1 — Wave 1 (Plans 01, 02)
 
 ## Progress
 

@@ -46,7 +46,6 @@ let node_readline = require("node:readline");
 node_readline = __toESM(node_readline);
 let node_crypto = require("node:crypto");
 node_crypto = __toESM(node_crypto);
-let node_child_process = require("node:child_process");
 
 //#region ../../node_modules/universalify/index.js
 var require_universalify = /* @__PURE__ */ __commonJSMin(((exports) => {
@@ -1974,7 +1973,6 @@ var require_lib$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 
 //#endregion
 //#region ../../node_modules/chalk/source/vendor/ansi-styles/index.js
-var import_lib = /* @__PURE__ */ __toESM(require_lib$1());
 const ANSI_BACKGROUND_OFFSET = 10;
 const wrapAnsi16 = (offset = 0) => (code) => `\u001B[${code + offset}m`;
 const wrapAnsi256 = (offset = 0) => (code) => `\u001B[${38 + offset};5;${code}m`;
@@ -7595,19 +7593,6 @@ function getDirName() {
 	return ".claude";
 }
 /**
-* Recursively remove a directory, handling Windows read-only file attributes.
-* fs-extra handles cross-platform edge cases (EPERM on Windows, symlinks, etc.)
-*/
-function safeRmDir(dirPath) {
-	import_lib.default.removeSync(dirPath);
-}
-/**
-* Recursively copy a directory (dereferences symlinks)
-*/
-function copyDirRecursive(src, dest) {
-	import_lib.default.copySync(src, dest, { dereference: true });
-}
-/**
 * Verify a directory exists and contains files.
 * If expectedFiles is provided, also checks that those specific files exist inside the directory.
 */
@@ -7707,154 +7692,6 @@ function getCommitAttribution(explicitConfigDir) {
 	else attributionValue = attr.commit;
 	attributionCached = true;
 	return attributionValue;
-}
-
-//#endregion
-//#region src/install/dashboard.ts
-/** Check whether the current process is running with admin/root privileges. */
-function isElevated() {
-	if (process.platform === "win32") try {
-		(0, node_child_process.execSync)("net session", { stdio: "pipe" });
-		return true;
-	} catch {
-		return false;
-	}
-	return process.getuid?.() === 0;
-}
-/**
-* Add a firewall rule to allow inbound traffic on the given port.
-* Handles Windows (netsh), Linux (ufw / iptables), and macOS (no rule needed).
-*/
-function applyFirewallRule(port) {
-	const platform = process.platform;
-	try {
-		if (platform === "win32") {
-			const cmd = `netsh advfirewall firewall add rule name="MAXSIM Dashboard" dir=in action=allow protocol=TCP localport=${port}`;
-			if (isElevated()) {
-				(0, node_child_process.execSync)(cmd, { stdio: "pipe" });
-				console.log(chalk.green("  ✓ Windows Firewall rule added for port " + port));
-			} else {
-				console.log(chalk.gray("  Requesting administrator privileges for firewall rule..."));
-				(0, node_child_process.execSync)(`powershell -NoProfile -Command "${`Start-Process cmd -ArgumentList '/c ${cmd}' -Verb RunAs -Wait`}"`, { stdio: "pipe" });
-				console.log(chalk.green("  ✓ Windows Firewall rule added for port " + port));
-			}
-		} else if (platform === "linux") {
-			const sudoPrefix = isElevated() ? "" : "sudo ";
-			try {
-				(0, node_child_process.execSync)(`${sudoPrefix}ufw allow ${port}/tcp`, { stdio: "pipe" });
-				console.log(chalk.green("  ✓ UFW rule added for port " + port));
-			} catch {
-				try {
-					(0, node_child_process.execSync)(`${sudoPrefix}iptables -A INPUT -p tcp --dport ${port} -j ACCEPT`, { stdio: "pipe" });
-					console.log(chalk.green("  ✓ iptables rule added for port " + port));
-				} catch {
-					console.log(chalk.yellow(`  \u26a0 Could not add firewall rule automatically. Run: sudo ufw allow ${port}/tcp`));
-				}
-			}
-		} else if (platform === "darwin") console.log(chalk.gray("  macOS: No firewall rule needed (inbound connections are allowed by default)"));
-	} catch (err) {
-		console.warn(chalk.yellow(`  \u26a0 Firewall rule failed: ${err.message}`));
-		console.warn(chalk.gray(`  You may need to manually allow port ${port} through your firewall.`));
-	}
-}
-/**
-* Handle the `dashboard` subcommand — refresh assets, install node-pty, launch server
-*/
-async function runDashboardSubcommand(argv) {
-	const { spawn: spawnDash, execSync: execSyncDash } = await import("node:child_process");
-	const dashboardAssetSrc = node_path.resolve(__dirname, "assets", "dashboard");
-	const installDir = node_path.join(process.cwd(), ".claude");
-	const installDashDir = node_path.join(installDir, "dashboard");
-	if (node_fs.existsSync(dashboardAssetSrc)) {
-		const nodeModulesDir = node_path.join(installDashDir, "node_modules");
-		const nodeModulesTmp = node_path.join(installDir, "_dashboard_node_modules_tmp");
-		const hadNodeModules = node_fs.existsSync(nodeModulesDir);
-		if (hadNodeModules) node_fs.renameSync(nodeModulesDir, nodeModulesTmp);
-		safeRmDir(installDashDir);
-		node_fs.mkdirSync(installDashDir, { recursive: true });
-		copyDirRecursive(dashboardAssetSrc, installDashDir);
-		if (hadNodeModules && node_fs.existsSync(nodeModulesTmp)) node_fs.renameSync(nodeModulesTmp, nodeModulesDir);
-		const dashConfigPath = node_path.join(installDir, "dashboard.json");
-		if (!node_fs.existsSync(dashConfigPath)) node_fs.writeFileSync(dashConfigPath, JSON.stringify({ projectCwd: process.cwd() }, null, 2) + "\n");
-	}
-	const localDashboard = node_path.join(process.cwd(), ".claude", "dashboard", "server.js");
-	const globalDashboard = node_path.join(node_os.homedir(), ".claude", "dashboard", "server.js");
-	let serverPath = null;
-	if (node_fs.existsSync(localDashboard)) serverPath = localDashboard;
-	else if (node_fs.existsSync(globalDashboard)) serverPath = globalDashboard;
-	if (!serverPath) {
-		console.log(chalk.yellow("\n  Dashboard not available.\n"));
-		console.log("  Install MAXSIM first: " + chalk.cyan("npx maxsimcli@latest") + "\n");
-		process.exit(0);
-	}
-	const forceNetwork = !!argv["network"];
-	const dashboardDir = node_path.dirname(serverPath);
-	const dashboardConfigPath = node_path.join(node_path.dirname(dashboardDir), "dashboard.json");
-	let projectCwd = process.cwd();
-	let networkMode = forceNetwork;
-	if (node_fs.existsSync(dashboardConfigPath)) try {
-		const config = JSON.parse(node_fs.readFileSync(dashboardConfigPath, "utf8"));
-		if (config.projectCwd) projectCwd = config.projectCwd;
-		if (!forceNetwork) networkMode = config.networkMode ?? false;
-	} catch {}
-	const dashDirForPty = node_path.dirname(serverPath);
-	const ptyModulePath = node_path.join(dashDirForPty, "node_modules", "node-pty");
-	if (!node_fs.existsSync(ptyModulePath)) {
-		console.log(chalk.gray("  Installing node-pty for terminal support..."));
-		try {
-			const dashPkgPath = node_path.join(dashDirForPty, "package.json");
-			if (!node_fs.existsSync(dashPkgPath)) node_fs.writeFileSync(dashPkgPath, "{\"private\":true}\n");
-			execSyncDash("npm install node-pty --save-optional --no-audit --no-fund --loglevel=error", {
-				cwd: dashDirForPty,
-				stdio: "inherit",
-				timeout: 12e4
-			});
-		} catch {
-			console.warn(chalk.yellow("  node-pty installation failed — terminal will be unavailable."));
-		}
-	}
-	console.log(chalk.blue("Starting dashboard..."));
-	console.log(chalk.gray(`  Project: ${projectCwd}`));
-	console.log(chalk.gray(`  Server:  ${serverPath}`));
-	if (networkMode) console.log(chalk.gray("  Network: enabled (local network access + QR code)"));
-	console.log("");
-	spawnDash(process.execPath, [serverPath], {
-		cwd: dashboardDir,
-		detached: true,
-		stdio: "ignore",
-		env: {
-			...process.env,
-			MAXSIM_PROJECT_CWD: projectCwd,
-			MAXSIM_NETWORK_MODE: networkMode ? "1" : "0",
-			NODE_ENV: "production"
-		}
-	}).unref();
-	const POLL_INTERVAL_MS = 500;
-	const POLL_TIMEOUT_MS = 2e4;
-	const HEALTH_TIMEOUT_MS = 1e3;
-	const DEFAULT_PORT = 3333;
-	const PORT_RANGE_END = 3343;
-	let foundUrl = null;
-	const deadline = Date.now() + POLL_TIMEOUT_MS;
-	while (Date.now() < deadline) {
-		await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-		for (let p = DEFAULT_PORT; p <= PORT_RANGE_END; p++) try {
-			const controller = new AbortController();
-			const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
-			const res = await fetch(`http://localhost:${p}/api/health`, { signal: controller.signal });
-			clearTimeout(timer);
-			if (res.ok) {
-				if ((await res.json()).status === "ok") {
-					foundUrl = `http://localhost:${p}`;
-					break;
-				}
-			}
-		} catch {}
-		if (foundUrl) break;
-	}
-	if (foundUrl) console.log(chalk.green(`  Dashboard ready at ${foundUrl}`));
-	else console.log(chalk.yellow("\n  Dashboard did not respond after 20s. The server may still be starting — check http://localhost:3333"));
-	process.exit(0);
 }
 
 //#endregion
@@ -8318,6 +8155,7 @@ function uninstall(isGlobal, explicitConfigDir = null) {
 
 //#endregion
 //#region src/install/index.ts
+var import_lib = /* @__PURE__ */ __toESM(require_lib$1());
 const argv = (0, import_minimist.default)(process.argv.slice(2), {
 	boolean: [
 		"global",
@@ -8529,32 +8367,6 @@ async function install(isGlobal) {
 		console.log(`  ${chalk.green("✓")} Installed mcp-server.cjs`);
 	} else console.warn(`  ${chalk.yellow("!")} mcp-server.cjs not found — MCP server not installed`);
 	installHookFiles(targetDir, isGlobal, failures);
-	const dashboardSrc = node_path.resolve(__dirname, "assets", "dashboard");
-	if (node_fs.existsSync(dashboardSrc)) {
-		let networkMode = false;
-		try {
-			networkMode = await dist_default$1({
-				message: "Allow dashboard to be accessible on your local network? (adds firewall rule, enables QR code)",
-				default: false
-			});
-		} catch {}
-		spinner = ora({
-			text: "Installing dashboard...",
-			color: "cyan"
-		}).start();
-		const dashboardDest = node_path.join(targetDir, "dashboard");
-		safeRmDir(dashboardDest);
-		copyDirRecursive(dashboardSrc, dashboardDest);
-		const dashboardConfigDest = node_path.join(targetDir, "dashboard.json");
-		const projectCwd = isGlobal ? targetDir : process.cwd();
-		node_fs.writeFileSync(dashboardConfigDest, JSON.stringify({
-			projectCwd,
-			networkMode
-		}, null, 2) + "\n");
-		if (node_fs.existsSync(node_path.join(dashboardDest, "server.js"))) spinner.succeed(chalk.green("✓") + " Installed dashboard");
-		else spinner.succeed(chalk.green("✓") + " Installed dashboard (server.js not found in bundle)");
-		if (networkMode) applyFirewallRule(3333);
-	}
 	const mcpJsonPath = isGlobal ? node_path.join(targetDir, "..", ".mcp.json") : node_path.join(process.cwd(), ".mcp.json");
 	let mcpConfig = {};
 	let skipMcpConfig = false;
@@ -8654,10 +8466,6 @@ async function installForClaude(isGlobal, isInteractive) {
 }
 const subcommand = argv._[0];
 (async () => {
-	if (subcommand === "dashboard") {
-		await runDashboardSubcommand(argv);
-		return;
-	}
 	if (subcommand === "skill-list" || subcommand === "skill-install" || subcommand === "skill-update") {
 		const { cmdSkillList, cmdSkillInstall, cmdSkillUpdate } = await Promise.resolve().then(() => require("./skills-MYlMkYNt.cjs"));
 		const { CliOutput, writeOutput, CliError } = await Promise.resolve().then(() => require("./core-RRjCSt0G.cjs"));

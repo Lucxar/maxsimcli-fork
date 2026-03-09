@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp$1 = Object.defineProperty;
@@ -42,7 +41,6 @@ let node_process = require("node:process");
 node_process = __toESM(node_process);
 let node_tty = require("node:tty");
 node_tty = __toESM(node_tty);
-let node_module = require("node:module");
 
 //#region src/core/types.ts
 function cmdOk(result, rawValue) {
@@ -607,7 +605,7 @@ var require_has_flag = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region ../../node_modules/supports-color/index.js
 var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const os$6 = require("os");
+	const os$5 = require("os");
 	const tty$2 = require("tty");
 	const hasFlag = require_has_flag();
 	const { env } = process;
@@ -634,7 +632,7 @@ var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 		const min = forceColor || 0;
 		if (env.TERM === "dumb") return min;
 		if (process.platform === "win32") {
-			const osRelease = os$6.release().split(".");
+			const osRelease = os$5.release().split(".");
 			if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) return Number(osRelease[2]) >= 14931 ? 3 : 2;
 			return 1;
 		}
@@ -16105,268 +16103,6 @@ function listAvailableTemplates() {
 }
 
 //#endregion
-//#region src/core/dashboard-launcher.ts
-/**
-* Dashboard Launcher — Shared dashboard lifecycle utilities
-*
-* Used by both cli.ts (tool-router) and install.ts (npx entry point).
-*/
-const DEFAULT_PORT = 3333;
-const PORT_RANGE_END = 3343;
-const HEALTH_TIMEOUT_MS = 1e4;
-/**
-* Check if a dashboard health endpoint is responding on the given port.
-*/
-async function checkHealth(port, timeoutMs = HEALTH_TIMEOUT_MS) {
-	try {
-		const controller = new AbortController();
-		const timer = setTimeout(() => controller.abort(), timeoutMs);
-		const res = await fetch(`http://localhost:${port}/api/health`, { signal: controller.signal });
-		clearTimeout(timer);
-		if (res.ok) return (await res.json()).status === "ok";
-		return false;
-	} catch (e) {
-		debugLog("health-check-failed", {
-			port,
-			error: errorMsg(e)
-		});
-		return false;
-	}
-}
-/**
-* Scan the port range for a running dashboard instance.
-* Returns the port number if found, null otherwise.
-*/
-async function findRunningDashboard(timeoutMs = HEALTH_TIMEOUT_MS) {
-	for (let port = DEFAULT_PORT; port <= PORT_RANGE_END; port++) if (await checkHealth(port, timeoutMs)) return port;
-	return null;
-}
-/**
-* Kill processes listening on the given port. Cross-platform.
-*/
-function killProcessOnPort(port) {
-	if (process.platform === "win32") try {
-		const lines = (0, node_child_process.execSync)(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: "utf-8" }).trim().split("\n");
-		const pids = /* @__PURE__ */ new Set();
-		for (const line of lines) {
-			const parts = line.trim().split(/\s+/);
-			const pid = parts[parts.length - 1];
-			if (pid && pid !== "0") pids.add(pid);
-		}
-		for (const pid of pids) try {
-			(0, node_child_process.execSync)(`taskkill /PID ${pid} /F`, { stdio: "ignore" });
-		} catch (e) {
-			debugLog("kill-process-on-port-taskkill-failed", {
-				port,
-				pid,
-				error: errorMsg(e)
-			});
-		}
-	} catch (e) {
-		debugLog("kill-process-on-port-netstat-failed", {
-			port,
-			platform: "win32",
-			error: errorMsg(e)
-		});
-	}
-	else try {
-		(0, node_child_process.execSync)(`lsof -i :${port} -t | xargs kill -SIGTERM 2>/dev/null`, { stdio: "ignore" });
-	} catch (e) {
-		debugLog("kill-process-on-port-lsof-failed", {
-			port,
-			platform: process.platform,
-			error: errorMsg(e)
-		});
-	}
-}
-/**
-* Resolve the dashboard server entry point path.
-* Tries: local project install, global install, @maxsim/dashboard package, monorepo walk.
-*/
-function resolveDashboardServer() {
-	const localDashboard = node_path.default.join(process.cwd(), ".claude", "dashboard", "server.js");
-	if (node_fs.default.existsSync(localDashboard)) return localDashboard;
-	const globalDashboard = node_path.default.join(node_os.default.homedir(), ".claude", "dashboard", "server.js");
-	if (node_fs.default.existsSync(globalDashboard)) return globalDashboard;
-	try {
-		const pkgPath = (0, node_module.createRequire)(require("url").pathToFileURL(__filename).href).resolve("@maxsim/dashboard/package.json");
-		const pkgDir = node_path.default.dirname(pkgPath);
-		const serverJs = node_path.default.join(pkgDir, "server.js");
-		if (node_fs.default.existsSync(serverJs)) return serverJs;
-		const serverTs = node_path.default.join(pkgDir, "server.ts");
-		if (node_fs.default.existsSync(serverTs)) return serverTs;
-	} catch (e) {
-		debugLog("resolve-dashboard-strategy1-failed", {
-			strategy: "@maxsim/dashboard package",
-			error: errorMsg(e)
-		});
-	}
-	try {
-		let dir = node_path.default.dirname(new URL(require("url").pathToFileURL(__filename).href).pathname);
-		if (process.platform === "win32" && dir.startsWith("/")) dir = dir.slice(1);
-		for (let i = 0; i < 5; i++) {
-			const candidate = node_path.default.join(dir, "packages", "dashboard", "server.ts");
-			if (node_fs.default.existsSync(candidate)) return candidate;
-			const candidateJs = node_path.default.join(dir, "packages", "dashboard", "server.js");
-			if (node_fs.default.existsSync(candidateJs)) return candidateJs;
-			dir = node_path.default.dirname(dir);
-		}
-	} catch (e) {
-		debugLog("resolve-dashboard-strategy2-failed", {
-			strategy: "monorepo walk",
-			error: errorMsg(e)
-		});
-	}
-	return null;
-}
-/**
-* Ensure node-pty is installed in the dashboard directory.
-* Returns true if node-pty is available after this call.
-*/
-function ensureNodePty(serverDir) {
-	const ptyModulePath = node_path.default.join(serverDir, "node_modules", "node-pty");
-	if (node_fs.default.existsSync(ptyModulePath)) return true;
-	const dashPkgPath = node_path.default.join(serverDir, "package.json");
-	if (!node_fs.default.existsSync(dashPkgPath)) node_fs.default.writeFileSync(dashPkgPath, "{\"private\":true}\n");
-	try {
-		(0, node_child_process.execSync)("npm install node-pty --save-optional --no-audit --no-fund --loglevel=error", {
-			cwd: serverDir,
-			stdio: "inherit",
-			timeout: 12e4
-		});
-		return true;
-	} catch (e) {
-		debugLog("ensure-node-pty-install-failed", {
-			serverDir,
-			error: errorMsg(e)
-		});
-		return false;
-	}
-}
-/**
-* Read dashboard.json config from the parent directory of the dashboard dir.
-*/
-function readDashboardConfig(serverPath) {
-	const dashboardDir = node_path.default.dirname(serverPath);
-	const dashboardConfigPath = node_path.default.join(node_path.default.dirname(dashboardDir), "dashboard.json");
-	let projectCwd = process.cwd();
-	let networkMode = false;
-	if (node_fs.default.existsSync(dashboardConfigPath)) try {
-		const config = JSON.parse(node_fs.default.readFileSync(dashboardConfigPath, "utf8"));
-		if (config.projectCwd) projectCwd = config.projectCwd;
-		networkMode = config.networkMode ?? false;
-	} catch (e) {
-		debugLog("read-dashboard-config-failed", {
-			path: dashboardConfigPath,
-			error: errorMsg(e)
-		});
-	}
-	return {
-		projectCwd,
-		networkMode
-	};
-}
-/**
-* Spawn the dashboard server as a detached background process.
-* Returns the child process PID, or null if spawn failed.
-*/
-function spawnDashboard(options) {
-	const { serverPath, projectCwd, networkMode = false, nodeEnv = "production" } = options;
-	const serverDir = node_path.default.dirname(serverPath);
-	const isTsFile = serverPath.endsWith(".ts");
-	const child = (0, node_child_process.spawn)("node", isTsFile ? [
-		"--import",
-		"tsx",
-		serverPath
-	] : [serverPath], {
-		cwd: serverDir,
-		detached: true,
-		stdio: "ignore",
-		env: {
-			...process.env,
-			MAXSIM_PROJECT_CWD: projectCwd,
-			MAXSIM_NETWORK_MODE: networkMode ? "1" : "0",
-			NODE_ENV: isTsFile ? "development" : nodeEnv
-		},
-		...process.platform === "win32" ? { shell: true } : {}
-	});
-	child.unref();
-	return child.pid ?? null;
-}
-/**
-* Poll the port range until a dashboard health endpoint responds.
-* Returns the URL if found within the timeout, null otherwise.
-*/
-async function waitForDashboard(pollIntervalMs = 500, pollTimeoutMs = 2e4, healthTimeoutMs = 1e3) {
-	const deadline = Date.now() + pollTimeoutMs;
-	while (Date.now() < deadline) {
-		await new Promise((r) => setTimeout(r, pollIntervalMs));
-		for (let p = DEFAULT_PORT; p <= PORT_RANGE_END; p++) if (await checkHealth(p, healthTimeoutMs)) return `http://localhost:${p}`;
-	}
-	return null;
-}
-
-//#endregion
-//#region src/core/start.ts
-/**
-* Start — Orchestrates Dashboard launch + browser open
-*
-* Provides a unified `maxsimcli start` entry point that:
-* 1. Checks for a running dashboard
-* 2. Starts the dashboard if needed
-* 3. Opens the browser
-* 4. Reports status
-*/
-function openBrowser(url) {
-	(0, node_child_process.exec)(process.platform === "win32" ? `start "" "${url}"` : process.platform === "darwin" ? `open "${url}"` : `xdg-open "${url}"`, (err) => {
-		if (err) debugLog("open-browser-failed", err);
-	});
-}
-async function cmdStart(cwd, options) {
-	const existingPort = await findRunningDashboard();
-	if (existingPort) {
-		const url = `http://localhost:${existingPort}`;
-		if (!options.noBrowser) openBrowser(url);
-		return cmdOk({
-			started: true,
-			url,
-			already_running: true,
-			port: existingPort
-		}, url);
-	}
-	const serverPath = resolveDashboardServer();
-	if (!serverPath) return cmdErr("Dashboard server not found. Run `npx maxsimcli` to install first.");
-	const serverDir = node_path.default.dirname(serverPath);
-	const dashConfig = readDashboardConfig(serverPath);
-	ensureNodePty(serverDir);
-	const pid = spawnDashboard({
-		serverPath,
-		projectCwd: dashConfig.projectCwd,
-		networkMode: options.networkMode
-	});
-	if (!pid) return cmdErr("Failed to spawn dashboard process.");
-	const url = await waitForDashboard();
-	if (url) {
-		if (!options.noBrowser) openBrowser(url);
-		return cmdOk({
-			started: true,
-			url,
-			already_running: false,
-			pid
-		}, url);
-	} else {
-		const fallbackUrl = `http://localhost:${DEFAULT_PORT}`;
-		return cmdOk({
-			started: true,
-			url: fallbackUrl,
-			already_running: false,
-			pid,
-			warning: "Dashboard spawned but health check timed out. It may still be starting."
-		}, fallbackUrl);
-	}
-}
-
-//#endregion
 //#region src/core/init.ts
 /**
 * Init — Compound init commands for workflow bootstrapping
@@ -17377,31 +17113,9 @@ const COMMANDS = {
 	"skill-list": (_args, cwd, raw) => handleResult(cmdSkillList(cwd), raw),
 	"skill-install": (args, cwd, raw) => handleResult(cmdSkillInstall(cwd, args[1]), raw),
 	"skill-update": (args, cwd, raw) => handleResult(cmdSkillUpdate(cwd, args[1]), raw),
-	"start": async (args, cwd, raw) => handleResult(await cmdStart(cwd, {
-		noBrowser: hasFlag(args, "no-browser"),
-		networkMode: hasFlag(args, "network")
-	}), raw),
-	"dashboard": (args) => handleDashboard(args.slice(1)),
 	"start-server": async () => {
 		const serverPath = node_path.join(__dirname, "mcp-server.cjs");
 		(0, node_child_process.spawn)(process.execPath, [serverPath], { stdio: "inherit" }).on("exit", (code) => process.exit(code ?? 0));
-	},
-	"backend-start": async (args, cwd, raw) => {
-		const { startBackend } = await Promise.resolve().then(() => require("./lifecycle-D8mcsEjy.cjs"));
-		const portFlag = args.find((a) => a.startsWith("--port="))?.split("=")[1];
-		const background = !args.includes("--foreground");
-		output(await startBackend(cwd, {
-			port: portFlag ? parseInt(portFlag, 10) : void 0,
-			background
-		}), raw);
-	},
-	"backend-stop": async (_args, cwd, raw) => {
-		const { stopBackend } = await Promise.resolve().then(() => require("./lifecycle-D8mcsEjy.cjs"));
-		output({ stopped: await stopBackend(cwd) }, raw);
-	},
-	"backend-status": async (_args, cwd, raw) => {
-		const { getBackendStatus } = await Promise.resolve().then(() => require("./lifecycle-D8mcsEjy.cjs"));
-		output(await getBackendStatus(cwd) || { running: false }, raw);
 	}
 };
 async function main() {
@@ -17442,84 +17156,7 @@ async function main() {
 		throw thrown;
 	}
 }
-/**
-* Dashboard launch command.
-*
-* Spawns the dashboard as a detached subprocess with MAXSIM_PROJECT_CWD set.
-* If the dashboard is already running (detected via /api/health), prints the URL.
-* Supports --stop to kill a running instance.
-*/
-async function handleDashboard(args) {
-	const networkMode = args.includes("--network");
-	if (args.includes("--stop")) {
-		for (let port = DEFAULT_PORT; port <= PORT_RANGE_END; port++) if (await checkHealth(port)) {
-			console.log(`Dashboard found on port ${port} — stopping...`);
-			killProcessOnPort(port);
-			console.log("Dashboard stopped.");
-			return;
-		}
-		console.log("No running dashboard found.");
-		return;
-	}
-	const runningPort = await findRunningDashboard();
-	if (runningPort) {
-		console.log(`Dashboard already running at http://localhost:${runningPort}`);
-		return;
-	}
-	const serverPath = resolveDashboardServer();
-	if (!serverPath) {
-		console.error("Could not find @maxsim/dashboard server entry point.");
-		console.error("Ensure @maxsim/dashboard is installed and built.");
-		process.exit(1);
-	}
-	const serverDir = node_path.dirname(serverPath);
-	const dashConfig = readDashboardConfig(serverPath);
-	console.log("Installing node-pty for terminal support...");
-	if (!ensureNodePty(serverDir)) console.warn("node-pty installation failed — terminal will be unavailable.");
-	console.log("Dashboard starting...");
-	const pid = spawnDashboard({
-		serverPath,
-		projectCwd: dashConfig.projectCwd,
-		networkMode
-	});
-	await new Promise((resolve) => setTimeout(resolve, 3e3));
-	const readyPort = await findRunningDashboard();
-	if (readyPort) {
-		console.log(`Dashboard ready at http://localhost:${readyPort}`);
-		return;
-	}
-	console.log(`Dashboard spawned (PID ${pid}). It may take a moment to start.`);
-	console.log(`Check http://localhost:${DEFAULT_PORT} once ready.`);
-}
 main();
 
 //#endregion
-exports.__commonJSMin = __commonJSMin;
-exports.__toESM = __toESM;
-exports.appendToStateSection = appendToStateSection;
-exports.cmdConfigGet = cmdConfigGet;
-exports.cmdConfigSet = cmdConfigSet;
-exports.cmdContextLoad = cmdContextLoad;
-exports.cmdRoadmapAnalyze = cmdRoadmapAnalyze;
-exports.comparePhaseNum = comparePhaseNum;
-exports.escapeStringRegexp = escapeStringRegexp;
-exports.extractFrontmatter = extractFrontmatter;
-exports.findPhaseInternal = findPhaseInternal;
-exports.generateSlugInternal = generateSlugInternal;
-exports.getArchivedPhaseDirs = getArchivedPhaseDirs;
-exports.getPhasePattern = getPhasePattern;
-exports.listSubDirs = listSubDirs;
-exports.loadConfig = loadConfig;
-exports.normalizePhaseName = normalizePhaseName;
-exports.parseTodoFrontmatter = parseTodoFrontmatter;
-exports.phaseAddCore = phaseAddCore;
-exports.phaseCompleteCore = phaseCompleteCore;
-exports.phaseInsertCore = phaseInsertCore;
-exports.phasesPath = phasesPath;
-exports.planningPath = planningPath;
-exports.safeReadFile = safeReadFile;
-exports.stateExtractField = stateExtractField;
-exports.statePath = statePath;
-exports.stateReplaceField = stateReplaceField;
-exports.todayISO = todayISO;
 //# sourceMappingURL=cli.cjs.map

@@ -113,14 +113,4 @@ describe('install real-world verification (E2E-05)', () => {
     expect(settings).toHaveProperty('hooks');
   });
 
-  it('installs dashboard files', () => {
-    const installDir = inject('installDir');
-    const dashboardDir = join(installDir, '.claude', 'dashboard');
-    expect(existsSync(dashboardDir)).toBe(true);
-
-    // Dashboard should have server.js
-    expect(existsSync(join(dashboardDir, 'server.js'))).toBe(true);
-    // Dashboard should have client/index.html
-    expect(existsSync(join(dashboardDir, 'client', 'index.html'))).toBe(true);
-  });
 });

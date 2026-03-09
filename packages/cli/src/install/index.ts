@@ -17,8 +17,6 @@ import {
   templatesRoot,
   getGlobalDir,
   getDirName,
-  safeRmDir,
-  copyDirRecursive,
   verifyInstalled,
   verifyFileInstalled,
   builtInSkills,
@@ -26,7 +24,6 @@ import {
 } from './shared.js';
 import type { InstallResult } from './shared.js';
 import { getCommitAttribution } from './adapters.js';
-import { runDashboardSubcommand, applyFirewallRule } from './dashboard.js';
 import {
   cleanupOrphanedFiles,
   installHookFiles,
@@ -340,39 +337,6 @@ async function install(
   // Install hooks
   installHookFiles(targetDir, isGlobal, failures);
 
-  // Copy dashboard
-  const dashboardSrc = path.resolve(__dirname, 'assets', 'dashboard');
-  if (fs.existsSync(dashboardSrc)) {
-    let networkMode = false;
-    try {
-      networkMode = await confirm({
-        message: 'Allow dashboard to be accessible on your local network? (adds firewall rule, enables QR code)',
-        default: false,
-      });
-    } catch {
-      // Non-interactive terminal — default to false
-    }
-
-    spinner = ora({ text: 'Installing dashboard...', color: 'cyan' }).start();
-    const dashboardDest = path.join(targetDir, 'dashboard');
-    safeRmDir(dashboardDest);
-    copyDirRecursive(dashboardSrc, dashboardDest);
-
-    const dashboardConfigDest = path.join(targetDir, 'dashboard.json');
-    const projectCwd = isGlobal ? targetDir : process.cwd();
-    fs.writeFileSync(dashboardConfigDest, JSON.stringify({ projectCwd, networkMode }, null, 2) + '\n');
-
-    if (fs.existsSync(path.join(dashboardDest, 'server.js'))) {
-      spinner.succeed(chalk.green('\u2713') + ' Installed dashboard');
-    } else {
-      spinner.succeed(chalk.green('\u2713') + ' Installed dashboard (server.js not found in bundle)');
-    }
-
-    if (networkMode) {
-      applyFirewallRule(3333);
-    }
-  }
-
   // Write .mcp.json for Claude Code MCP server auto-discovery
   const mcpJsonPath = isGlobal
     ? path.join(targetDir, '..', '.mcp.json')
@@ -531,12 +495,6 @@ async function installForClaude(
 const subcommand = argv._[0];
 
 (async () => {
-  // Dashboard subcommand
-  if (subcommand === 'dashboard') {
-    await runDashboardSubcommand(argv);
-    return;
-  }
-
   // Skill management subcommands
   if (subcommand === 'skill-list' || subcommand === 'skill-install' || subcommand === 'skill-update') {
     const { cmdSkillList, cmdSkillInstall, cmdSkillUpdate } = await import('../core/skills.js');

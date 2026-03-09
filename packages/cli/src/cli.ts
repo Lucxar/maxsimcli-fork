@@ -94,7 +94,6 @@ import {
   cmdArtefakteAppend,
   cmdArtefakteList,
   cmdContextLoad,
-  cmdStart,
   cmdSkillList,
   cmdSkillInstall,
   cmdSkillUpdate,
@@ -439,32 +438,10 @@ const COMMANDS: Record<string, Handler> = {
   'skill-list': (_args, cwd, raw) => handleResult(cmdSkillList(cwd), raw),
   'skill-install': (args, cwd, raw) => handleResult(cmdSkillInstall(cwd, args[1]), raw),
   'skill-update': (args, cwd, raw) => handleResult(cmdSkillUpdate(cwd, args[1]), raw),
-  'start': async (args, cwd, raw) => handleResult(await cmdStart(cwd, { noBrowser: hasFlag(args, 'no-browser'), networkMode: hasFlag(args, 'network') }), raw),
-  'dashboard': (args) => handleDashboard(args.slice(1)),
   'start-server': async () => {
     const serverPath = path.join(__dirname, 'mcp-server.cjs');
     const child = spawn(process.execPath, [serverPath], { stdio: 'inherit' });
     child.on('exit', (code) => process.exit(code ?? 0));
-  },
-  'backend-start': async (args, cwd, raw) => {
-    const { startBackend } = await import('./backend/lifecycle.js');
-    const portFlag = args.find(a => a.startsWith('--port='))?.split('=')[1];
-    const background = !args.includes('--foreground');
-    const result = await startBackend(cwd, {
-      port: portFlag ? parseInt(portFlag, 10) : undefined,
-      background,
-    });
-    output(result, raw);
-  },
-  'backend-stop': async (_args, cwd, raw) => {
-    const { stopBackend } = await import('./backend/lifecycle.js');
-    const stopped = await stopBackend(cwd);
-    output({ stopped }, raw);
-  },
-  'backend-status': async (_args, cwd, raw) => {
-    const { getBackendStatus } = await import('./backend/lifecycle.js');
-    const status = await getBackendStatus(cwd);
-    output(status || { running: false }, raw);
   },
 };
 
@@ -522,90 +499,6 @@ async function main(): Promise<void> {
     // Re-throw unexpected errors
     throw thrown;
   }
-}
-
-// ─── Dashboard ───────────────────────────────────────────────────────────────
-
-import {
-  checkHealth,
-  findRunningDashboard,
-  killProcessOnPort,
-  resolveDashboardServer,
-  readDashboardConfig,
-  ensureNodePty,
-  spawnDashboard,
-  DEFAULT_PORT,
-  PORT_RANGE_END,
-} from './core/dashboard-launcher.js';
-
-/**
- * Dashboard launch command.
- *
- * Spawns the dashboard as a detached subprocess with MAXSIM_PROJECT_CWD set.
- * If the dashboard is already running (detected via /api/health), prints the URL.
- * Supports --stop to kill a running instance.
- */
-async function handleDashboard(args: string[]): Promise<void> {
-  const networkMode = args.includes('--network');
-
-  // Handle --stop flag
-  if (args.includes('--stop')) {
-    for (let port = DEFAULT_PORT; port <= PORT_RANGE_END; port++) {
-      const running = await checkHealth(port);
-      if (running) {
-        console.log(`Dashboard found on port ${port} — stopping...`);
-        killProcessOnPort(port);
-        console.log('Dashboard stopped.');
-        return;
-      }
-    }
-    console.log('No running dashboard found.');
-    return;
-  }
-
-  // Check if dashboard is already running
-  const runningPort = await findRunningDashboard();
-  if (runningPort) {
-    console.log(`Dashboard already running at http://localhost:${runningPort}`);
-    return;
-  }
-
-  // Resolve the dashboard server entry point
-  const serverPath = resolveDashboardServer();
-  if (!serverPath) {
-    console.error('Could not find @maxsim/dashboard server entry point.');
-    console.error('Ensure @maxsim/dashboard is installed and built.');
-    process.exit(1);
-  }
-
-  const serverDir = path.dirname(serverPath);
-  const dashConfig = readDashboardConfig(serverPath);
-
-  // Auto-install node-pty if missing
-  console.log('Installing node-pty for terminal support...');
-  if (!ensureNodePty(serverDir)) {
-    console.warn('node-pty installation failed — terminal will be unavailable.');
-  }
-
-  console.log('Dashboard starting...');
-
-  const pid = spawnDashboard({
-    serverPath,
-    projectCwd: dashConfig.projectCwd,
-    networkMode,
-  });
-
-  // Wait briefly for the server to start, then check health
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
-  const readyPort = await findRunningDashboard();
-  if (readyPort) {
-    console.log(`Dashboard ready at http://localhost:${readyPort}`);
-    return;
-  }
-
-  console.log(`Dashboard spawned (PID ${pid}). It may take a moment to start.`);
-  console.log(`Check http://localhost:${DEFAULT_PORT} once ready.`);
 }
 
 main();

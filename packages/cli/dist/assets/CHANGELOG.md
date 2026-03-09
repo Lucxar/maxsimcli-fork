@@ -1,3 +1,19 @@
+# [4.6.0](https://github.com/maystudios/maxsimcli/compare/v4.5.0...v4.6.0) (2026-03-08)
+
+
+### Bug Fixes
+
+* **website:** fix codeblock tag text extraction in markdoc schema ([2a465ca](https://github.com/maystudios/maxsimcli/commit/2a465ca1e5d58e0e3b791d296606108d0b0edb9a))
+* **website:** resolve TypeScript errors in markdoc components and loader ([d3a7fdd](https://github.com/maystudios/maxsimcli/commit/d3a7fdda5e67f2c7ca846788f6c6cfff931dd2b9))
+
+
+### Features
+
+* **website:** design refresh for Features and HowItWorks sections ([e39037c](https://github.com/maystudios/maxsimcli/commit/e39037c90d9dac699eb8899c62506ee95c821d5a))
+* **website:** migrate docs to Markdoc with content-first architecture ([23a5e9b](https://github.com/maystudios/maxsimcli/commit/23a5e9b60d07b2f80ba981643bf4dd0330f24287))
+* **website:** redesign footer with wider brand column, 3 nav sections, and animated gradient divider ([443ed66](https://github.com/maystudios/maxsimcli/commit/443ed662b5651f73917b97371046753c859df600))
+* **website:** redesign Hero and Navbar with terminal mockup and refined interactions ([85e7aa2](https://github.com/maystudios/maxsimcli/commit/85e7aa24194192269744ab39bfc96866eb77c5e0))
+
 # [4.5.0](https://github.com/maystudios/maxsimcli/compare/v4.4.0...v4.5.0) (2026-03-07)
 
 

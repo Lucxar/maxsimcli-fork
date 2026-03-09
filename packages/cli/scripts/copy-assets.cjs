@@ -10,7 +10,6 @@
  * dist/assets/templates/  <- templates/ (commands, agents, workflows, etc.)
  * dist/assets/hooks/      <- already built directly by tsdown into dist/assets/hooks/
  * dist/assets/CHANGELOG.md <- CHANGELOG.md from monorepo root (if present)
- * dist/assets/dashboard/  <- packages/dashboard/dist/ (Vite client + bundled server.js)
  */
 
 const fs = require('node:fs');
@@ -65,31 +64,7 @@ if (fs.existsSync(changelogSrc)) {
   console.log(`  [assets] Copied CHANGELOG.md -> dist/assets/`);
 }
 
-// 4. Copy dashboard Vite build into dist/assets/dashboard
-const dashboardDist = path.join(monorepoRoot, 'packages', 'dashboard', 'dist');
-const dashboardDest = path.join(distAssetsDir, 'dashboard');
-
-if (fs.existsSync(dashboardDist)) {
-  const serverJs = path.join(dashboardDist, 'server.js');
-  const clientDir = path.join(dashboardDist, 'client');
-
-  if (fs.existsSync(serverJs) && fs.existsSync(clientDir)) {
-    if (fs.existsSync(dashboardDest)) {
-      fs.rmSync(dashboardDest, { recursive: true, force: true });
-    }
-    fs.mkdirSync(dashboardDest, { recursive: true });
-
-    fs.copyFileSync(serverJs, path.join(dashboardDest, 'server.js'));
-    const clientCount = copyDir(clientDir, path.join(dashboardDest, 'client'));
-    console.log(`  [assets] Copied dashboard: server.js + ${clientCount} client files -> dist/assets/dashboard/`);
-  } else {
-    console.warn('  [warn] Dashboard dist/ incomplete (missing server.js or client/), skipping.');
-  }
-} else {
-  console.warn('  [warn] Dashboard dist/ not found, skipping.');
-}
-
-// 5. Copy root README.md into packages/cli/ for npm tarball
+// 4. Copy root README.md into packages/cli/ for npm tarball
 const readmeSrc = path.join(monorepoRoot, 'README.md');
 const readmeDest = path.join(pkgCliRoot, 'README.md');
 if (fs.existsSync(readmeSrc)) {
