@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 Milestone: v5.1 Surgical Cleanup
 Phase: 01 -- GitHub Issues Integration for MCP Task Management
-Plan: 01 of 6 (complete)
+Plan: 02 of 6 (complete)
 Status: Executing
-Last activity: 2026-03-09 -- Plan 01-01 complete (foundation modules)
+Last activity: 2026-03-09 -- Plan 01-02 complete (setup infrastructure)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 20%
 
 ## Accumulated Context
 
@@ -23,6 +23,9 @@ Progress: [█░░░░░░░░░] 10%
 
 - [01-01] Used GhResult<T> discriminated union consistent with project's existing CmdResult pattern
 - [01-01] Synchronous fs in mapping.ts to match existing core module patterns
+- [01-02] Used fail<T>() helper to re-wrap GhResult error branches across generic types
+- [01-02] GraphQL updateProjectV2Field mutation for adding single-select status options (no CLI equivalent)
+- [01-02] REST API for milestones (simpler than GraphQL for CRUD ops)
 
 ### Architecture
 
@@ -46,7 +49,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T15:47:05Z
-Stopped at: Completed 01-01-PLAN.md (foundation modules)
-Resume file: .planning/phases/01-github-issues-integration-for-mcp-task-management/01-01-SUMMARY.md
-Next action: Execute plan 01-02 (wave 2)
+Last session: 2026-03-09T15:59:23.494Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: None
+Next action: Execute plan 01-03 (wave 3)
