@@ -198,13 +198,13 @@ const handleState: Handler = async (args, cwd, raw) => {
   return handleResult(await cmdStateLoad(cwd, raw), raw);
 };
 
-const handleTemplate: Handler = (args, cwd, raw) => {
+const handleTemplate: Handler = async (args, cwd, raw) => {
   const sub = args[1];
   if (sub === 'select') {
     handleResult(cmdTemplateSelect(cwd, args[2]), raw);
   } else if (sub === 'fill') {
     const f = getFlags(args, 'phase', 'plan', 'name', 'type', 'wave', 'fields');
-    handleResult(cmdTemplateFill(cwd, args[2], {
+    handleResult(await cmdTemplateFill(cwd, args[2], {
       phase: f.phase ?? '', plan: f.plan ?? undefined, name: f.name ?? undefined,
       type: f.type ?? 'execute', wave: f.wave ?? '1',
       fields: f.fields ? JSON.parse(f.fields) : {},
@@ -214,14 +214,14 @@ const handleTemplate: Handler = (args, cwd, raw) => {
   }
 };
 
-const handleFrontmatter: Handler = (args, cwd, raw) => {
+const handleFrontmatter: Handler = async (args, cwd, raw) => {
   const sub = args[1];
   const file = args[2];
-  const handlers: Record<string, () => void> = {
-    'get': () => handleResult(cmdFrontmatterGet(cwd, file, getFlag(args, '--field')), raw),
+  const handlers: Record<string, () => void | Promise<void>> = {
+    'get': async () => handleResult(await cmdFrontmatterGet(cwd, file, getFlag(args, '--field')), raw),
     'set': () => handleResult(cmdFrontmatterSet(cwd, file, getFlag(args, '--field'), getFlag(args, '--value') ?? undefined), raw),
     'merge': () => handleResult(cmdFrontmatterMerge(cwd, file, getFlag(args, '--data')), raw),
-    'validate': () => handleResult(cmdFrontmatterValidate(cwd, file, getFlag(args, '--schema')), raw),
+    'validate': async () => handleResult(await cmdFrontmatterValidate(cwd, file, getFlag(args, '--schema')), raw),
   };
   const handler = sub ? handlers[sub] : undefined;
   if (handler) return handler();
@@ -231,12 +231,12 @@ const handleFrontmatter: Handler = (args, cwd, raw) => {
 const handleVerify: Handler = async (args, cwd, raw) => {
   const sub = args[1];
   const handlers: Record<string, () => void | Promise<void>> = {
-    'plan-structure': () => handleResult(cmdVerifyPlanStructure(cwd, args[2]), raw),
-    'phase-completeness': () => handleResult(cmdVerifyPhaseCompleteness(cwd, args[2]), raw),
-    'references': () => handleResult(cmdVerifyReferences(cwd, args[2]), raw),
+    'plan-structure': async () => handleResult(await cmdVerifyPlanStructure(cwd, args[2]), raw),
+    'phase-completeness': async () => handleResult(await cmdVerifyPhaseCompleteness(cwd, args[2]), raw),
+    'references': async () => handleResult(await cmdVerifyReferences(cwd, args[2]), raw),
     'commits': async () => handleResult(await cmdVerifyCommits(cwd, args.slice(2)), raw),
-    'artifacts': () => handleResult(cmdVerifyArtifacts(cwd, args[2]), raw),
-    'key-links': () => handleResult(cmdVerifyKeyLinks(cwd, args[2]), raw),
+    'artifacts': async () => handleResult(await cmdVerifyArtifacts(cwd, args[2]), raw),
+    'key-links': async () => handleResult(await cmdVerifyKeyLinks(cwd, args[2]), raw),
   };
   const handler = sub ? handlers[sub] : undefined;
   if (handler) return handler();
@@ -309,20 +309,20 @@ const handleMilestone: Handler = async (args, cwd, raw) => {
   }
 };
 
-const handleValidate: Handler = (args, cwd, raw) => {
+const handleValidate: Handler = async (args, cwd, raw) => {
   const sub = args[1];
-  const handlers: Record<string, () => void> = {
-    'consistency': () => handleResult(cmdValidateConsistency(cwd), raw),
-    'health': () => handleResult(cmdValidateHealth(cwd, { repair: hasFlag(args, 'repair') }), raw),
+  const handlers: Record<string, () => Promise<void>> = {
+    'consistency': async () => handleResult(await cmdValidateConsistency(cwd), raw),
+    'health': async () => handleResult(await cmdValidateHealth(cwd, { repair: hasFlag(args, 'repair') }), raw),
   };
   const handler = sub ? handlers[sub] : undefined;
   if (handler) return handler();
   error('Unknown validate subcommand. Available: consistency, health');
 };
 
-const handleDrift: Handler = (args, cwd, raw) => {
+const handleDrift: Handler = async (args, cwd, raw) => {
   const sub = args[1];
-  const handlers: Record<string, () => CmdResult> = {
+  const handlers: Record<string, () => Promise<CmdResult>> = {
     'read-report': () => cmdDriftReadReport(cwd),
     'extract-requirements': () => cmdDriftExtractRequirements(cwd),
     'extract-nogos': () => cmdDriftExtractNoGos(cwd),
@@ -331,13 +331,13 @@ const handleDrift: Handler = (args, cwd, raw) => {
     'previous-hash': () => cmdDriftPreviousHash(cwd),
   };
   const handler = sub ? handlers[sub] : undefined;
-  if (handler) return handleResult(handler(), raw);
+  if (handler) return handleResult(await handler(), raw);
   error('Unknown drift subcommand. Available: read-report, extract-requirements, extract-nogos, extract-conventions, write-report, previous-hash');
 };
 
-const handleInit: Handler = (args, cwd, raw) => {
+const handleInit: Handler = async (args, cwd, raw) => {
   const workflow = args[1];
-  const handlers: Record<string, () => CmdResult> = {
+  const handlers: Record<string, () => CmdResult | Promise<CmdResult>> = {
     'execute-phase': () => cmdInitExecutePhase(cwd, args[2]),
     'plan-phase': () => cmdInitPlanPhase(cwd, args[2]),
     'new-project': () => cmdInitNewProject(cwd),
@@ -362,7 +362,7 @@ const handleInit: Handler = (args, cwd, raw) => {
     'realign': () => cmdInitRealign(cwd, args[2]),
   };
   const handler = workflow ? handlers[workflow] : undefined;
-  if (handler) return handleResult(handler(), raw);
+  if (handler) return handleResult(await handler(), raw);
   error(`Unknown init workflow: ${workflow}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, init-existing, progress, executor, planner, researcher, verifier, debugger, check-drift, realign`);
 };
 
@@ -370,7 +370,7 @@ const handleInit: Handler = (args, cwd, raw) => {
 
 const COMMANDS: Record<string, Handler> = {
   'state': handleState,
-  'resolve-model': (args, cwd, raw) => handleResult(cmdResolveModel(cwd, args[1], raw), raw),
+  'resolve-model': async (args, cwd, raw) => handleResult(await cmdResolveModel(cwd, args[1], raw), raw),
   'find-phase': async (args, cwd, raw) => handleResult(await cmdFindPhase(cwd, args[1]), raw),
   'commit': async (args, cwd, raw) => {
     const files = args.indexOf('--files') !== -1
@@ -393,7 +393,7 @@ const COMMANDS: Record<string, Handler> = {
   'config-ensure-section': (_args, cwd, raw) => handleResult(cmdConfigEnsureSection(cwd, raw), raw),
   'config-set': (args, cwd, raw) => handleResult(cmdConfigSet(cwd, args[1], args[2], raw), raw),
   'config-get': (args, cwd, raw) => handleResult(cmdConfigGet(cwd, args[1], raw), raw),
-  'history-digest': (_args, cwd, raw) => handleResult(cmdHistoryDigest(cwd, raw), raw),
+  'history-digest': async (_args, cwd, raw) => handleResult(await cmdHistoryDigest(cwd, raw), raw),
   'phases': handlePhases,
   'roadmap': handleRoadmap,
   'requirements': (args, cwd, raw) => {
@@ -404,14 +404,14 @@ const COMMANDS: Record<string, Handler> = {
   'milestone': handleMilestone,
   'validate': handleValidate,
   'drift': handleDrift,
-  'progress': (args, cwd, raw) => handleResult(cmdProgressRender(cwd, args[1] || 'json', raw), raw),
+  'progress': async (args, cwd, raw) => handleResult(await cmdProgressRender(cwd, args[1] || 'json', raw), raw),
   'todo': (args, cwd, raw) => {
     if (args[1] === 'complete') handleResult(cmdTodoComplete(cwd, args[2], raw), raw);
     else error('Unknown todo subcommand. Available: complete');
   },
-  'scaffold': (args, cwd, raw) => {
+  'scaffold': async (args, cwd, raw) => {
     const f = getFlags(args, 'phase', 'name');
-    handleResult(cmdScaffold(cwd, args[1], { phase: f.phase, name: f.name ? args.slice(args.indexOf('--name') + 1).join(' ') : null }, raw), raw);
+    handleResult(await cmdScaffold(cwd, args[1], { phase: f.phase, name: f.name ? args.slice(args.indexOf('--name') + 1).join(' ') : null }, raw), raw);
   },
   'init': handleInit,
   'detect-stale-context': async (_args, cwd, raw) => handleResult(await cmdDetectStaleContext(cwd), raw),
@@ -430,12 +430,12 @@ const COMMANDS: Record<string, Handler> = {
       freshness: f.freshness ?? undefined,
     }, raw), raw);
   },
-  'artefakte-read': (args, cwd, raw) => handleResult(cmdArtefakteRead(cwd, args[1], getFlag(args, '--phase') ?? undefined, raw), raw),
-  'artefakte-write': (args, cwd, raw) => handleResult(cmdArtefakteWrite(cwd, args[1], getFlag(args, '--content') ?? undefined, getFlag(args, '--phase') ?? undefined, raw), raw),
-  'artefakte-append': (args, cwd, raw) => handleResult(cmdArtefakteAppend(cwd, args[1], getFlag(args, '--entry') ?? undefined, getFlag(args, '--phase') ?? undefined, raw), raw),
-  'artefakte-list': (args, cwd, raw) => handleResult(cmdArtefakteList(cwd, getFlag(args, '--phase') ?? undefined, raw), raw),
-  'context-load': (args, cwd, raw) => handleResult(cmdContextLoad(cwd, getFlag(args, '--phase') ?? undefined, getFlag(args, '--topic') ?? undefined, hasFlag(args, 'include-history')), raw),
-  'skill-list': (_args, cwd, raw) => handleResult(cmdSkillList(cwd), raw),
+  'artefakte-read': async (args, cwd, raw) => handleResult(await cmdArtefakteRead(cwd, args[1], getFlag(args, '--phase') ?? undefined, raw), raw),
+  'artefakte-write': async (args, cwd, raw) => handleResult(await cmdArtefakteWrite(cwd, args[1], getFlag(args, '--content') ?? undefined, getFlag(args, '--phase') ?? undefined, raw), raw),
+  'artefakte-append': async (args, cwd, raw) => handleResult(await cmdArtefakteAppend(cwd, args[1], getFlag(args, '--entry') ?? undefined, getFlag(args, '--phase') ?? undefined, raw), raw),
+  'artefakte-list': async (args, cwd, raw) => handleResult(await cmdArtefakteList(cwd, getFlag(args, '--phase') ?? undefined, raw), raw),
+  'context-load': async (args, cwd, raw) => handleResult(await cmdContextLoad(cwd, getFlag(args, '--phase') ?? undefined, getFlag(args, '--topic') ?? undefined, hasFlag(args, 'include-history')), raw),
+  'skill-list': async (_args, cwd, raw) => handleResult(await cmdSkillList(cwd), raw),
   'skill-install': (args, cwd, raw) => handleResult(cmdSkillInstall(cwd, args[1]), raw),
   'skill-update': (args, cwd, raw) => handleResult(cmdSkillUpdate(cwd, args[1]), raw),
   'start-server': async () => {

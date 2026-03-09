@@ -168,7 +168,7 @@ export function cmdVerifyPathExists(cwd: string, targetPath: string | undefined,
 
 // ─── History digest ─────────────────────────────────────────────────────────
 
-export function cmdHistoryDigest(cwd: string, raw: boolean): CmdResult {
+export async function cmdHistoryDigest(cwd: string, raw: boolean): Promise<CmdResult> {
   const phasesDir = phasesPath(cwd);
   const digest: {
     phases: Record<string, { name: string; provides: Set<string>; affects: Set<string>; patterns: Set<string> }>;
@@ -180,7 +180,7 @@ export function cmdHistoryDigest(cwd: string, raw: boolean): CmdResult {
   const allPhaseDirs: Array<{ name: string; fullPath: string; milestone: string | null }> = [];
 
   // Add archived phases first (oldest milestones first)
-  const archived = getArchivedPhaseDirs(cwd);
+  const archived = await getArchivedPhaseDirs(cwd);
   for (const a of archived) {
     allPhaseDirs.push({ name: a.name, fullPath: a.fullPath, milestone: a.milestone });
   }
@@ -188,7 +188,7 @@ export function cmdHistoryDigest(cwd: string, raw: boolean): CmdResult {
   // Add current phases
   if (fs.existsSync(phasesDir)) {
     try {
-      const currentDirs = listSubDirs(phasesDir, true);
+      const currentDirs = await listSubDirs(phasesDir, true);
       for (const dir of currentDirs) {
         allPhaseDirs.push({ name: dir, fullPath: path.join(phasesDir, dir), milestone: null });
       }
@@ -286,12 +286,12 @@ export function cmdHistoryDigest(cwd: string, raw: boolean): CmdResult {
 
 // ─── Model resolution ───────────────────────────────────────────────────────
 
-export function cmdResolveModel(cwd: string, agentType: string | undefined, raw: boolean): CmdResult {
+export async function cmdResolveModel(cwd: string, agentType: string | undefined, raw: boolean): Promise<CmdResult> {
   if (!agentType) {
     return cmdErr('agent-type required');
   }
 
-  const config = loadConfig(cwd);
+  const config = await loadConfig(cwd);
   const profile: ModelProfileName = config.model_profile || 'balanced';
 
   const agentModels = MODEL_PROFILES[agentType as AgentType];
@@ -319,7 +319,7 @@ export async function cmdCommit(
     return cmdErr('commit message required');
   }
 
-  const config = loadConfig(cwd);
+  const config = await loadConfig(cwd);
 
   // Check commit_docs config
   if (!config.commit_docs) {
@@ -491,9 +491,9 @@ export async function cmdWebsearch(
 
 // ─── Progress render ────────────────────────────────────────────────────────
 
-export function cmdProgressRender(cwd: string, format: string, raw: boolean): CmdResult {
+export async function cmdProgressRender(cwd: string, format: string, raw: boolean): Promise<CmdResult> {
   const phasesDir = phasesPath(cwd);
-  const milestone = getMilestoneInfo(cwd);
+  const milestone = await getMilestoneInfo(cwd);
 
   const phases: Array<{ number: string; name: string; plans: number; summaries: number; status: string }> = [];
   let totalPlans = 0;
@@ -630,18 +630,18 @@ export function cmdTodoComplete(cwd: string, filename: string | undefined, raw: 
 
 // ─── Scaffold ───────────────────────────────────────────────────────────────
 
-export function cmdScaffold(
+export async function cmdScaffold(
   cwd: string,
   type: string | undefined,
   options: ScaffoldOptions,
   raw: boolean,
-): CmdResult {
+): Promise<CmdResult> {
   const { phase, name } = options;
   const padded = phase ? normalizePhaseName(phase) : '00';
   const today = todayISO();
 
   // Find phase directory
-  const phaseInfo = phase ? findPhaseInternal(cwd, phase) : null;
+  const phaseInfo = phase ? await findPhaseInternal(cwd, phase) : null;
   const phaseDir = phaseInfo ? path.join(cwd, phaseInfo.directory) : null;
 
   if (phase && !phaseDir && type !== 'phase-dir') {

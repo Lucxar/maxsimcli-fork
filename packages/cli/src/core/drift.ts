@@ -9,11 +9,7 @@ import path from 'node:path';
 
 import {
   planningPath,
-  phasesPath,
   safeReadFile,
-  listSubDirs,
-  pathExistsInternal,
-  getArchivedPhaseDirs,
   debugLog,
 } from './core.js';
 import { extractFrontmatter } from './frontmatter.js';
@@ -30,9 +26,9 @@ const DRIFT_REPORT_NAME = 'DRIFT-REPORT.md';
  * Read the drift report from .planning/DRIFT-REPORT.md.
  * Returns parsed frontmatter and body content, or structured error if not found.
  */
-export function cmdDriftReadReport(cwd: string): CmdResult {
+export async function cmdDriftReadReport(cwd: string): Promise<CmdResult> {
   const reportPath = planningPath(cwd, DRIFT_REPORT_NAME);
-  const content = safeReadFile(reportPath);
+  const content = await safeReadFile(reportPath);
 
   if (!content) {
     return cmdOk({
@@ -59,17 +55,17 @@ export function cmdDriftReadReport(cwd: string): CmdResult {
  * Write content to .planning/DRIFT-REPORT.md.
  * Supports direct content or reading from a file (tmpfile pattern for large reports).
  */
-export function cmdDriftWriteReport(
+export async function cmdDriftWriteReport(
   cwd: string,
   content: string | null,
   contentFile: string | null,
-): CmdResult {
+): Promise<CmdResult> {
   let reportContent: string;
 
   if (contentFile) {
     // Read from file (supports tmpfile pattern)
     const filePath = path.isAbsolute(contentFile) ? contentFile : path.join(cwd, contentFile);
-    const fileContent = safeReadFile(filePath);
+    const fileContent = await safeReadFile(filePath);
     if (!fileContent) {
       return cmdErr(`Content file not found: ${contentFile}`);
     }
@@ -106,9 +102,9 @@ export function cmdDriftWriteReport(
  * Extract all requirements from .planning/REQUIREMENTS.md.
  * Parses requirement lines matching `- [ ] **ID**: description` or `- [x] **ID**: description`.
  */
-export function cmdDriftExtractRequirements(cwd: string): CmdResult {
+export async function cmdDriftExtractRequirements(cwd: string): Promise<CmdResult> {
   const reqPath = planningPath(cwd, 'REQUIREMENTS.md');
-  const content = safeReadFile(reqPath);
+  const content = await safeReadFile(reqPath);
 
   if (!content) {
     return cmdOk({
@@ -152,9 +148,9 @@ export function cmdDriftExtractRequirements(cwd: string): CmdResult {
  * Extract no-go rules from .planning/NO-GOS.md.
  * Returns array of no-go items with section context, or empty if file missing.
  */
-export function cmdDriftExtractNoGos(cwd: string): CmdResult {
+export async function cmdDriftExtractNoGos(cwd: string): Promise<CmdResult> {
   const nogosPath = planningPath(cwd, 'NO-GOS.md');
-  const content = safeReadFile(nogosPath);
+  const content = await safeReadFile(nogosPath);
 
   if (!content) {
     return cmdOk({
@@ -210,9 +206,9 @@ export function cmdDriftExtractNoGos(cwd: string): CmdResult {
  * Read .planning/CONVENTIONS.md and return its full content.
  * Returns the raw content for agent analysis, or null if missing.
  */
-export function cmdDriftExtractConventions(cwd: string): CmdResult {
+export async function cmdDriftExtractConventions(cwd: string): Promise<CmdResult> {
   const convPath = planningPath(cwd, 'CONVENTIONS.md');
-  const content = safeReadFile(convPath);
+  const content = await safeReadFile(convPath);
 
   if (!content) {
     return cmdOk({
@@ -233,9 +229,9 @@ export function cmdDriftExtractConventions(cwd: string): CmdResult {
  * Read existing DRIFT-REPORT.md frontmatter for diff tracking.
  * Returns previous_hash and checked date, or null if no report exists.
  */
-export function cmdDriftPreviousHash(cwd: string): CmdResult {
+export async function cmdDriftPreviousHash(cwd: string): Promise<CmdResult> {
   const reportPath = planningPath(cwd, DRIFT_REPORT_NAME);
-  const content = safeReadFile(reportPath);
+  const content = await safeReadFile(reportPath);
 
   if (!content) {
     return cmdOk({

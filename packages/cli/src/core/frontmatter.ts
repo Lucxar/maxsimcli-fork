@@ -106,16 +106,16 @@ export const FRONTMATTER_SCHEMAS: Record<string, FrontmatterSchema> = {
 
 // ─── Frontmatter CRUD commands ──────────────────────────────────────────────
 
-export function cmdFrontmatterGet(
+export async function cmdFrontmatterGet(
   cwd: string,
   filePath: string | null,
   field: string | null,
-): CmdResult {
+): Promise<CmdResult> {
   if (!filePath) {
     return cmdErr('file path required');
   }
   const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath);
-  const content = safeReadFile(fullPath);
+  const content = await safeReadFile(fullPath);
   if (!content) {
     return cmdOk({ error: 'File not found', path: filePath });
   }
@@ -184,11 +184,11 @@ export function cmdFrontmatterMerge(
   return cmdOk({ merged: true, fields: Object.keys(mergeData) }, 'true');
 }
 
-export function cmdFrontmatterValidate(
+export async function cmdFrontmatterValidate(
   cwd: string,
   filePath: string | null,
   schemaName: string | null,
-): CmdResult {
+): Promise<CmdResult> {
   if (!filePath || !schemaName) {
     return cmdErr('file and schema required');
   }
@@ -199,7 +199,7 @@ export function cmdFrontmatterValidate(
     );
   }
   const fullPath = path.isAbsolute(filePath!) ? filePath! : path.join(cwd, filePath!);
-  const content = safeReadFile(fullPath);
+  const content = await safeReadFile(fullPath);
   if (!content) {
     return cmdOk({ error: 'File not found', path: filePath });
   }

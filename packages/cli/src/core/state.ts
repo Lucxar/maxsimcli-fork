@@ -9,7 +9,7 @@ import path from 'node:path';
 
 import escapeStringRegexp from 'escape-string-regexp';
 
-import { loadConfig, rethrowCliSignals, safeReadFileAsync, pathExistsAsync, statePath as statePathUtil, configPath, roadmapPath as roadmapPathUtil, phasesPath, todayISO, isPlanFile, isSummaryFile, escapePhaseNum } from './core.js';
+import { loadConfig, rethrowCliSignals, safeReadFile, pathExistsInternal, statePath as statePathUtil, configPath, roadmapPath as roadmapPathUtil, phasesPath, todayISO, isPlanFile, isSummaryFile, escapePhaseNum } from './core.js';
 import type {
   AppConfig,
   StatePatchResult,
@@ -96,12 +96,12 @@ export function appendToStateSection(
 // ─── State commands ──────────────────────────────────────────────────────────
 
 export async function cmdStateLoad(cwd: string, raw: boolean): Promise<CmdResult> {
-  const config: AppConfig = loadConfig(cwd);
+  const config: AppConfig = await loadConfig(cwd);
 
   const [stateContent, configExists, roadmapExists] = await Promise.all([
-    safeReadFileAsync(statePathUtil(cwd)),
-    pathExistsAsync(configPath(cwd)),
-    pathExistsAsync(roadmapPathUtil(cwd)),
+    safeReadFile(statePathUtil(cwd)),
+    pathExistsInternal(configPath(cwd)),
+    pathExistsInternal(roadmapPathUtil(cwd)),
   ]);
 
   const stateRaw = stateContent ?? '';
@@ -219,7 +219,7 @@ export async function cmdStateUpdate(cwd: string, field: string | undefined, val
 
 export async function cmdStateAdvancePlan(cwd: string, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
 
   let content = await fsp.readFile(statePath, 'utf-8');
   const currentPlan = parseInt(stateExtractField(content, 'Current Plan') ?? '', 10);
@@ -247,7 +247,7 @@ export async function cmdStateAdvancePlan(cwd: string, raw: boolean): Promise<Cm
 
 export async function cmdStateRecordMetric(cwd: string, options: StateMetricOptions, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
 
   let content = await fsp.readFile(statePath, 'utf-8');
   const { phase, plan, duration, tasks, files } = options;
@@ -280,7 +280,7 @@ export async function cmdStateRecordMetric(cwd: string, options: StateMetricOpti
 
 export async function cmdStateUpdateProgress(cwd: string, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
 
   let content = await fsp.readFile(statePath, 'utf-8');
 
@@ -288,7 +288,7 @@ export async function cmdStateUpdateProgress(cwd: string, raw: boolean): Promise
   let totalPlans = 0;
   let totalSummaries = 0;
 
-  if (await pathExistsAsync(phasesDir)) {
+  if (await pathExistsInternal(phasesDir)) {
     const phaseDirs = (await fsp.readdir(phasesDir, { withFileTypes: true }))
       .filter(e => e.isDirectory()).map(e => e.name);
     const counts = await Promise.all(phaseDirs.map(async (dir) => {
@@ -321,7 +321,7 @@ export async function cmdStateUpdateProgress(cwd: string, raw: boolean): Promise
 
 export async function cmdStateAddDecision(cwd: string, options: StateDecisionOptions, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
 
   const { phase, summary, summary_file, rationale, rationale_file } = options;
   let summaryText: string | undefined;
@@ -353,7 +353,7 @@ export async function cmdStateAddDecision(cwd: string, options: StateDecisionOpt
 
 export async function cmdStateAddBlocker(cwd: string, text: string | StateBlockerOptions, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
   const blockerOptions: StateBlockerOptions = typeof text === 'object' && text !== null ? text : { text: text as string };
   let blockerText: string | undefined;
 
@@ -382,7 +382,7 @@ export async function cmdStateAddBlocker(cwd: string, text: string | StateBlocke
 
 export async function cmdStateResolveBlocker(cwd: string, text: string | null, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
   if (!text) { return cmdOk({ error: 'text required' }); }
 
   let content = await fsp.readFile(statePath, 'utf-8');
@@ -414,7 +414,7 @@ export async function cmdStateResolveBlocker(cwd: string, text: string | null, r
 
 export async function cmdStateRecordSession(cwd: string, options: StateSessionOptions, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
-  if (!(await pathExistsAsync(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
+  if (!(await pathExistsInternal(statePath))) { return cmdOk({ error: 'STATE.md not found' }); }
 
   let content = await fsp.readFile(statePath, 'utf-8');
   const now = new Date().toISOString();
@@ -447,7 +447,7 @@ export async function cmdStateRecordSession(cwd: string, options: StateSessionOp
 export async function cmdStateSnapshot(cwd: string, raw: boolean): Promise<CmdResult> {
   const statePath = statePathUtil(cwd);
 
-  if (!(await pathExistsAsync(statePath))) {
+  if (!(await pathExistsInternal(statePath))) {
     return cmdOk({ error: 'STATE.md not found' });
   }
 
@@ -548,8 +548,8 @@ export async function cmdDetectStaleContext(cwd: string): Promise<CmdResult> {
   const stPath = statePathUtil(cwd);
 
   const [roadmapContent, stateContent] = await Promise.all([
-    safeReadFileAsync(rmPath),
-    safeReadFileAsync(stPath),
+    safeReadFile(rmPath),
+    safeReadFile(stPath),
   ]);
 
   if (!roadmapContent) {

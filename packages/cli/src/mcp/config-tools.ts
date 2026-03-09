@@ -46,7 +46,7 @@ export function registerConfigTools(server: McpServer): void {
           );
         }
 
-        const config = loadConfig(cwd);
+        const config = await loadConfig(cwd);
         return mcpSuccess(
           { config },
           'Full configuration loaded',

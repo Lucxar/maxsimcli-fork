@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 
-import { planningPath, roadmapPath as roadmapPathUtil, statePath as statePathUtil, phasesPath, todayISO, listSubDirs, listSubDirsAsync, isPlanFile, isSummaryFile, debugLog, archivePath as archivePathHelper, pathExistsAsync, safeReadFileAsync } from './core.js';
+import { planningPath, roadmapPath as roadmapPathUtil, statePath as statePathUtil, phasesPath, todayISO, listSubDirs, isPlanFile, isSummaryFile, debugLog, archivePath as archivePathHelper, pathExistsInternal, safeReadFile } from './core.js';
 import { extractFrontmatter } from './frontmatter.js';
 import type {
   CmdResult,
@@ -99,7 +99,7 @@ export async function cmdMilestoneComplete(
   const reqPath = planningPath(cwd, 'REQUIREMENTS.md');
   const statePath = statePathUtil(cwd);
   const milestonesPath = planningPath(cwd, 'MILESTONES.md');
-  const archiveDir = archivePathHelper(cwd, version);
+  const archiveDir = await archivePathHelper(cwd, version);
   const phasesDir = phasesPath(cwd);
   const today = todayISO();
   const milestoneName = options.name || version;
@@ -112,7 +112,7 @@ export async function cmdMilestoneComplete(
   const accomplishments: string[] = [];
 
   try {
-    const dirs = await listSubDirsAsync(phasesDir, true);
+    const dirs = await listSubDirs(phasesDir, true);
 
     for (const dir of dirs) {
       phaseCount++;
@@ -140,13 +140,13 @@ export async function cmdMilestoneComplete(
   }
 
   // Snapshot STATE.md and ROADMAP.md to archive before any modifications
-  const stateExists = await pathExistsAsync(statePath);
+  const stateExists = await pathExistsInternal(statePath);
   if (stateExists) {
     const stateContent = await fsp.readFile(statePath, 'utf-8');
     await fsp.writeFile(path.join(archiveDir, 'STATE.md'), stateContent, 'utf-8');
   }
 
-  const roadmapExists = await pathExistsAsync(roadmapPath);
+  const roadmapExists = await pathExistsInternal(roadmapPath);
   if (roadmapExists) {
     const roadmapContent = await fsp.readFile(roadmapPath, 'utf-8');
     await fsp.writeFile(path.join(archiveDir, 'ROADMAP.md'), roadmapContent, 'utf-8');
@@ -159,7 +159,7 @@ export async function cmdMilestoneComplete(
   }
 
   // Archive REQUIREMENTS.md
-  if (await pathExistsAsync(reqPath)) {
+  if (await pathExistsInternal(reqPath)) {
     const reqContent = await fsp.readFile(reqPath, 'utf-8');
     const archiveHeader = `# Requirements Archive: ${version} ${milestoneName}\n\n**Archived:** ${today}\n**Status:** SHIPPED\n\nFor current requirements, see \`.planning/REQUIREMENTS.md\`.\n\n---\n\n`;
     await fsp.writeFile(path.join(archiveDir, `${version}-REQUIREMENTS.md`), archiveHeader + reqContent, 'utf-8');
@@ -167,7 +167,7 @@ export async function cmdMilestoneComplete(
 
   // Archive audit file if exists
   const auditFile = path.join(cwd, '.planning', `${version}-MILESTONE-AUDIT.md`);
-  if (await pathExistsAsync(auditFile)) {
+  if (await pathExistsInternal(auditFile)) {
     await fsp.rename(auditFile, path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`));
   }
 
@@ -175,7 +175,7 @@ export async function cmdMilestoneComplete(
   const accomplishmentsList = accomplishments.map(a => `- ${a}`).join('\n');
   const milestoneEntry = `## ${version} ${milestoneName} (Shipped: ${today})\n\n**Phases completed:** ${phaseCount} phases, ${totalPlans} plans, ${totalTasks} tasks\n\n**Key accomplishments:**\n${accomplishmentsList || '- (none recorded)'}\n\n---\n\n`;
 
-  if (await pathExistsAsync(milestonesPath)) {
+  if (await pathExistsInternal(milestonesPath)) {
     const existing = await fsp.readFile(milestonesPath, 'utf-8');
     await fsp.writeFile(milestonesPath, existing + '\n' + milestoneEntry, 'utf-8');
   } else {
@@ -230,7 +230,7 @@ Last session: ${today}
       const phaseArchiveDir = path.join(archiveDir, 'phases');
       await fsp.mkdir(phaseArchiveDir, { recursive: true });
 
-      const phaseDirNames = await listSubDirsAsync(phasesDir);
+      const phaseDirNames = await listSubDirs(phasesDir);
       for (const dir of phaseDirNames) {
         await fsp.rename(path.join(phasesDir, dir), path.join(phaseArchiveDir, dir));
       }
@@ -249,12 +249,12 @@ Last session: ${today}
     tasks: totalTasks,
     accomplishments,
     archived: {
-      roadmap: await pathExistsAsync(path.join(archiveDir, `${version}-ROADMAP.md`)),
-      requirements: await pathExistsAsync(path.join(archiveDir, `${version}-REQUIREMENTS.md`)),
-      audit: await pathExistsAsync(path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`)),
+      roadmap: await pathExistsInternal(path.join(archiveDir, `${version}-ROADMAP.md`)),
+      requirements: await pathExistsInternal(path.join(archiveDir, `${version}-REQUIREMENTS.md`)),
+      audit: await pathExistsInternal(path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`)),
       phases: phasesArchived,
-      state_snapshot: await pathExistsAsync(path.join(archiveDir, 'STATE.md')),
-      roadmap_snapshot: await pathExistsAsync(path.join(archiveDir, 'ROADMAP.md')),
+      state_snapshot: await pathExistsInternal(path.join(archiveDir, 'STATE.md')),
+      roadmap_snapshot: await pathExistsInternal(path.join(archiveDir, 'ROADMAP.md')),
     },
     milestones_updated: true,
     state_updated: stateExists,

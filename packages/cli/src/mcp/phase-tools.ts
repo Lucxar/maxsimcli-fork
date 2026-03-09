@@ -57,7 +57,7 @@ export function registerPhaseTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const result = findPhaseInternal(cwd, phase);
+        const result = await findPhaseInternal(cwd, phase);
         if (!result) {
           return mcpError(`Phase ${phase} not found`, 'Phase not found');
         }
@@ -159,10 +159,10 @@ export function registerPhaseTools(server: McpServer): void {
           );
         }
 
-        let dirs = listSubDirs(phasesDir);
+        let dirs = await listSubDirs(phasesDir);
 
         if (include_archived) {
-          const archived = getArchivedPhaseDirs(cwd);
+          const archived = await getArchivedPhaseDirs(cwd);
           for (const a of archived) {
             dirs.push(`${a.name} [${a.milestone}]`);
           }

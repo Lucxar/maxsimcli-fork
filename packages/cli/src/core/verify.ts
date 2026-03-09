@@ -258,12 +258,12 @@ export async function cmdVerifySummary(
 
 // ─── Verify Plan Structure ───────────────────────────────────────────────────
 
-export function cmdVerifyPlanStructure(cwd: string, filePath: string | null): CmdResult {
+export async function cmdVerifyPlanStructure(cwd: string, filePath: string | null): Promise<CmdResult> {
   if (!filePath) {
     return cmdErr('file path required');
   }
   const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath);
-  const content = safeReadFile(fullPath);
+  const content = await safeReadFile(fullPath);
   if (!content) {
     return cmdOk({ error: 'File not found', path: filePath });
   }
@@ -322,11 +322,11 @@ export function cmdVerifyPlanStructure(cwd: string, filePath: string | null): Cm
 
 // ─── Verify Phase Completeness ───────────────────────────────────────────────
 
-export function cmdVerifyPhaseCompleteness(cwd: string, phase: string | null): CmdResult {
+export async function cmdVerifyPhaseCompleteness(cwd: string, phase: string | null): Promise<CmdResult> {
   if (!phase) {
     return cmdErr('phase required');
   }
-  const phaseInfo = findPhaseInternal(cwd, phase);
+  const phaseInfo = await findPhaseInternal(cwd, phase);
   if (!phaseInfo) {
     return cmdOk({ error: 'Phase not found', phase });
   }
@@ -373,12 +373,12 @@ export function cmdVerifyPhaseCompleteness(cwd: string, phase: string | null): C
 
 // ─── Verify References ───────────────────────────────────────────────────────
 
-export function cmdVerifyReferences(cwd: string, filePath: string | null): CmdResult {
+export async function cmdVerifyReferences(cwd: string, filePath: string | null): Promise<CmdResult> {
   if (!filePath) {
     return cmdErr('file path required');
   }
   const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath);
-  const content = safeReadFile(fullPath);
+  const content = await safeReadFile(fullPath);
   if (!content) {
     return cmdOk({ error: 'File not found', path: filePath });
   }
@@ -458,12 +458,12 @@ interface MustHaveArtifact {
   [key: string]: string | number | string[] | undefined;
 }
 
-export function cmdVerifyArtifacts(cwd: string, planFilePath: string | null): CmdResult {
+export async function cmdVerifyArtifacts(cwd: string, planFilePath: string | null): Promise<CmdResult> {
   if (!planFilePath) {
     return cmdErr('plan file path required');
   }
   const fullPath = path.isAbsolute(planFilePath) ? planFilePath : path.join(cwd, planFilePath);
-  const content = safeReadFile(fullPath);
+  const content = await safeReadFile(fullPath);
   if (!content) {
     return cmdOk({ error: 'File not found', path: planFilePath });
   }
@@ -485,7 +485,7 @@ export function cmdVerifyArtifacts(cwd: string, planFilePath: string | null): Cm
     const check: ArtifactCheck = { path: artPath, exists, issues: [], passed: false };
 
     if (exists) {
-      const fileContent = safeReadFile(artFullPath) || '';
+      const fileContent = await safeReadFile(artFullPath) || '';
       const lineCount = fileContent.split('\n').length;
 
       if (artObj.min_lines && lineCount < artObj.min_lines) {
@@ -528,12 +528,12 @@ interface MustHaveKeyLink {
   [key: string]: string | number | string[] | undefined;
 }
 
-export function cmdVerifyKeyLinks(cwd: string, planFilePath: string | null): CmdResult {
+export async function cmdVerifyKeyLinks(cwd: string, planFilePath: string | null): Promise<CmdResult> {
   if (!planFilePath) {
     return cmdErr('plan file path required');
   }
   const fullPath = path.isAbsolute(planFilePath) ? planFilePath : path.join(cwd, planFilePath);
-  const content = safeReadFile(fullPath);
+  const content = await safeReadFile(fullPath);
   if (!content) {
     return cmdOk({ error: 'File not found', path: planFilePath });
   }
@@ -555,7 +555,7 @@ export function cmdVerifyKeyLinks(cwd: string, planFilePath: string | null): Cmd
       detail: '',
     };
 
-    const sourceContent = safeReadFile(path.join(cwd, linkObj.from || ''));
+    const sourceContent = await safeReadFile(path.join(cwd, linkObj.from || ''));
     if (!sourceContent) {
       check.detail = 'Source file not found';
     } else if (linkObj.pattern) {
@@ -565,7 +565,7 @@ export function cmdVerifyKeyLinks(cwd: string, planFilePath: string | null): Cmd
           check.verified = true;
           check.detail = 'Pattern found in source';
         } else {
-          const targetContent = safeReadFile(path.join(cwd, linkObj.to || ''));
+          const targetContent = await safeReadFile(path.join(cwd, linkObj.to || ''));
           if (targetContent && regex.test(targetContent)) {
             check.verified = true;
             check.detail = 'Pattern found in target';
@@ -600,7 +600,7 @@ export function cmdVerifyKeyLinks(cwd: string, planFilePath: string | null): Cmd
 
 // ─── Validate Consistency ────────────────────────────────────────────────────
 
-export function cmdValidateConsistency(cwd: string): CmdResult {
+export async function cmdValidateConsistency(cwd: string): Promise<CmdResult> {
   const rmPath = roadmapPathUtil(cwd);
   const phasesDir = phasesPath(cwd);
   const errors: string[] = [];
@@ -622,7 +622,7 @@ export function cmdValidateConsistency(cwd: string): CmdResult {
 
   const diskPhases = new Set<string>();
   try {
-    const dirs = listSubDirs(phasesDir);
+    const dirs = await listSubDirs(phasesDir);
     for (const dir of dirs) {
       const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
       if (dm) diskPhases.add(dm[1]);
@@ -657,7 +657,7 @@ export function cmdValidateConsistency(cwd: string): CmdResult {
   }
 
   try {
-    const dirs = listSubDirs(phasesDir, true);
+    const dirs = await listSubDirs(phasesDir, true);
 
     for (const dir of dirs) {
       const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
@@ -690,7 +690,7 @@ export function cmdValidateConsistency(cwd: string): CmdResult {
   }
 
   try {
-    const dirs = listSubDirs(phasesDir);
+    const dirs = await listSubDirs(phasesDir);
 
     for (const dir of dirs) {
       const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
@@ -717,7 +717,7 @@ export function cmdValidateConsistency(cwd: string): CmdResult {
 
 // ─── Validate Health ─────────────────────────────────────────────────────────
 
-export function cmdValidateHealth(cwd: string, options: HealthOptions): CmdResult {
+export async function cmdValidateHealth(cwd: string, options: HealthOptions): Promise<CmdResult> {
   const planningDir = planningPath(cwd);
   const projectPath = planningPath(cwd, 'PROJECT.md');
   const rmPath = roadmapPathUtil(cwd);
@@ -782,7 +782,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions): CmdResul
     const phaseRefs = [...stateContent.matchAll(/[Pp]hase\s+(\d+(?:\.\d+)?)/g)].map(m => m[1]);
     const diskPhases = new Set<string>();
     try {
-      for (const dir of listSubDirs(phasesDir)) {
+      for (const dir of await listSubDirs(phasesDir)) {
         const dm = dir.match(/^(\d+(?:\.\d+)?)/);
         if (dm) diskPhases.add(dm[1]);
       }
@@ -822,7 +822,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions): CmdResul
 
   // Check 6: Phase directory naming
   try {
-    for (const dirName of listSubDirs(phasesDir)) {
+    for (const dirName of await listSubDirs(phasesDir)) {
       if (!dirName.match(/^\d{2}(?:\.\d+)?-[\w-]+$/)) {
         addIssue('warning', 'W005', `Phase directory "${dirName}" doesn't follow NN-name format`, 'Rename to match pattern (e.g., 01-setup)');
       }
@@ -834,7 +834,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions): CmdResul
 
   // Check 7: Orphaned plans
   try {
-    const orphanDirs = listSubDirs(phasesDir);
+    const orphanDirs = await listSubDirs(phasesDir);
     for (const dirName of orphanDirs) {
       const phaseFiles = fs.readdirSync(path.join(phasesDir, dirName));
       const plans = phaseFiles.filter(f => isPlanFile(f));
@@ -865,7 +865,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions): CmdResul
 
     const diskPhases = new Set<string>();
     try {
-      for (const dir of listSubDirs(phasesDir)) {
+      for (const dir of await listSubDirs(phasesDir)) {
         const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
         if (dm) diskPhases.add(dm[1]);
       }
@@ -918,7 +918,7 @@ export function cmdValidateHealth(cwd: string, options: HealthOptions): CmdResul
               fs.copyFileSync(stPath, backupPath);
               repairActions.push({ action: 'backupState', success: true, path: backupPath });
             }
-            const milestone = getMilestoneInfo(cwd);
+            const milestone = await getMilestoneInfo(cwd);
             let stateContent = `# Session State\n\n`;
             stateContent += `## Project Reference\n\n`;
             stateContent += `See: .planning/PROJECT.md\n\n`;

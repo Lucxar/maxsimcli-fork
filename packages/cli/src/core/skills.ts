@@ -39,9 +39,9 @@ interface SkillInfo {
 /**
  * Read a single skill's metadata from its SKILL.md frontmatter.
  */
-function readSkillInfo(skillDir: string, dirName: string): SkillInfo | null {
+async function readSkillInfo(skillDir: string, dirName: string): Promise<SkillInfo | null> {
   const skillMd = path.join(skillDir, 'SKILL.md');
-  const content = safeReadFile(skillMd);
+  const content = await safeReadFile(skillMd);
   if (!content) return null;
 
   const fm = extractFrontmatter(content);
@@ -57,7 +57,7 @@ function readSkillInfo(skillDir: string, dirName: string): SkillInfo | null {
 /**
  * List all installed skills from `.claude/skills/`.
  */
-export function cmdSkillList(cwd: string): CmdResult {
+export async function cmdSkillList(cwd: string): Promise<CmdResult> {
   const dir = skillsDir(cwd);
 
   if (!fs.existsSync(dir)) {
@@ -69,7 +69,7 @@ export function cmdSkillList(cwd: string): CmdResult {
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    const info = readSkillInfo(path.join(dir, entry.name), entry.name);
+    const info = await readSkillInfo(path.join(dir, entry.name), entry.name);
     if (info) skills.push(info);
   }
 

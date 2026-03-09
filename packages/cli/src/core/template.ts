@@ -94,11 +94,11 @@ export function cmdTemplateSelect(cwd: string, planPath: string | null): CmdResu
 
 // ─── Template Fill ───────────────────────────────────────────────────────────
 
-export function cmdTemplateFill(
+export async function cmdTemplateFill(
   cwd: string,
   templateType: string | null,
   options: TemplateFillOptions,
-): CmdResult {
+): Promise<CmdResult> {
   if (!templateType) {
     return cmdErr('template type required: summary, plan, or verification');
   }
@@ -106,7 +106,7 @@ export function cmdTemplateFill(
     return cmdErr('--phase required');
   }
 
-  const phaseInfo = findPhaseInternal(cwd, options.phase);
+  const phaseInfo = await findPhaseInternal(cwd, options.phase);
   if (!phaseInfo) {
     return cmdOk({ error: 'Phase not found', phase: options.phase });
   }

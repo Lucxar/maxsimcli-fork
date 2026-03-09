@@ -25,9 +25,9 @@ describe('loadConfig error paths', () => {
   // loadConfig has an internal cache keyed by cwd. We use unique fake paths
   // per test to avoid cache interference.
 
-  it('returns defaults when config.json does not exist', () => {
+  it('returns defaults when config.json does not exist', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-no-config-${Date.now()}`);
-    const config = loadConfig(fakeCwd);
+    const config = await loadConfig(fakeCwd);
     expect(config.model_profile).toBe('balanced');
     expect(config.commit_docs).toBe(true);
     expect(config.branching_strategy).toBe('none');
@@ -38,13 +38,13 @@ describe('loadConfig error paths', () => {
     expect(config.brave_search).toBe(false);
   });
 
-  it('returns defaults when config.json contains corrupted JSON', () => {
+  it('returns defaults when config.json contains corrupted JSON', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-corrupt-${Date.now()}`);
     const cfgDir = path.join(fakeCwd, '.planning');
     fs.mkdirSync(cfgDir, { recursive: true });
     fs.writeFileSync(path.join(cfgDir, 'config.json'), '{invalid json!!!', 'utf-8');
 
-    const config = loadConfig(fakeCwd);
+    const config = await loadConfig(fakeCwd);
     expect(config.model_profile).toBe('balanced');
     expect(config.commit_docs).toBe(true);
     expect(config.branching_strategy).toBe('none');
@@ -53,20 +53,20 @@ describe('loadConfig error paths', () => {
     fs.rmSync(fakeCwd, { recursive: true, force: true });
   });
 
-  it('returns defaults when config.json is empty', () => {
+  it('returns defaults when config.json is empty', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-empty-cfg-${Date.now()}`);
     const cfgDir = path.join(fakeCwd, '.planning');
     fs.mkdirSync(cfgDir, { recursive: true });
     fs.writeFileSync(path.join(cfgDir, 'config.json'), '', 'utf-8');
 
-    const config = loadConfig(fakeCwd);
+    const config = await loadConfig(fakeCwd);
     // Empty string is invalid JSON, so catch block returns defaults
     expect(config.model_profile).toBe('balanced');
 
     fs.rmSync(fakeCwd, { recursive: true, force: true });
   });
 
-  it('merges partial config with defaults', () => {
+  it('merges partial config with defaults', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-partial-${Date.now()}`);
     const cfgDir = path.join(fakeCwd, '.planning');
     fs.mkdirSync(cfgDir, { recursive: true });
@@ -76,7 +76,7 @@ describe('loadConfig error paths', () => {
       'utf-8',
     );
 
-    const config = loadConfig(fakeCwd);
+    const config = await loadConfig(fakeCwd);
     expect(config.model_profile).toBe('quality');
     // Other fields should be defaults
     expect(config.commit_docs).toBe(true);
@@ -85,10 +85,10 @@ describe('loadConfig error paths', () => {
     fs.rmSync(fakeCwd, { recursive: true, force: true });
   });
 
-  it('returns cached config on second call with same cwd', () => {
+  it('returns cached config on second call with same cwd', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-cache-${Date.now()}`);
-    const config1 = loadConfig(fakeCwd);
-    const config2 = loadConfig(fakeCwd);
+    const config1 = await loadConfig(fakeCwd);
+    const config2 = await loadConfig(fakeCwd);
     // Should be the exact same object reference (cached)
     expect(config1).toBe(config2);
   });
@@ -97,29 +97,29 @@ describe('loadConfig error paths', () => {
 // ─── safeReadFile — error paths ──────────────────────────────────────────────
 
 describe('safeReadFile error paths', () => {
-  it('returns null for a nonexistent file path', () => {
-    const result = safeReadFile('/nonexistent/path/to/file.txt');
+  it('returns null for a nonexistent file path', async () => {
+    const result = await safeReadFile('/nonexistent/path/to/file.txt');
     expect(result).toBeNull();
   });
 
-  it('returns null for a path that is a directory, not a file', () => {
-    const result = safeReadFile(os.tmpdir());
+  it('returns null for a path that is a directory, not a file', async () => {
+    const result = await safeReadFile(os.tmpdir());
     // Reading a directory with readFileSync throws, so safeReadFile returns null
     expect(result).toBeNull();
   });
 
-  it('returns file content for a valid file', () => {
+  it('returns file content for a valid file', async () => {
     const tmpFile = path.join(os.tmpdir(), `maxsim-test-safe-read-${Date.now()}.txt`);
     fs.writeFileSync(tmpFile, 'hello world', 'utf-8');
-    const result = safeReadFile(tmpFile);
+    const result = await safeReadFile(tmpFile);
     expect(result).toBe('hello world');
     fs.unlinkSync(tmpFile);
   });
 
-  it('returns empty string for an empty file (not null)', () => {
+  it('returns empty string for an empty file (not null)', async () => {
     const tmpFile = path.join(os.tmpdir(), `maxsim-test-empty-${Date.now()}.txt`);
     fs.writeFileSync(tmpFile, '', 'utf-8');
-    const result = safeReadFile(tmpFile);
+    const result = await safeReadFile(tmpFile);
     expect(result).toBe('');
     fs.unlinkSync(tmpFile);
   });
@@ -250,37 +250,37 @@ describe('escapePhaseNum edge cases', () => {
 // ─── findPhaseInternal / searchPhaseInDir — nonexistent directory ─────────────
 
 describe('findPhaseInternal with nonexistent directory', () => {
-  it('returns null when phases directory does not exist', () => {
+  it('returns null when phases directory does not exist', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-no-phases-${Date.now()}`);
-    const result = findPhaseInternal(fakeCwd, '01');
+    const result = await findPhaseInternal(fakeCwd, '01');
     expect(result).toBeNull();
   });
 
-  it('returns null for empty phase string', () => {
+  it('returns null for empty phase string', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-empty-phase-${Date.now()}`);
-    const result = findPhaseInternal(fakeCwd, '');
+    const result = await findPhaseInternal(fakeCwd, '');
     expect(result).toBeNull();
   });
 
-  it('returns null when phases directory exists but is empty', () => {
+  it('returns null when phases directory exists but is empty', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-empty-dir-${Date.now()}`);
     const phasesDir = path.join(fakeCwd, '.planning', 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
 
-    const result = findPhaseInternal(fakeCwd, '01');
+    const result = await findPhaseInternal(fakeCwd, '01');
     expect(result).toBeNull();
 
     fs.rmSync(fakeCwd, { recursive: true, force: true });
   });
 
-  it('finds a phase when directory matches', () => {
+  it('finds a phase when directory matches', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-find-phase-${Date.now()}`);
     const phaseDir = path.join(fakeCwd, '.planning', 'phases', '01-Foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     // Create a plan file
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan', 'utf-8');
 
-    const result = findPhaseInternal(fakeCwd, '01');
+    const result = await findPhaseInternal(fakeCwd, '01');
     expect(result).not.toBeNull();
     expect(result!.found).toBe(true);
     expect(result!.phase_number).toBe('01');
@@ -294,24 +294,24 @@ describe('findPhaseInternal with nonexistent directory', () => {
 // ─── listSubDirs — error paths ───────────────────────────────────────────────
 
 describe('listSubDirs error paths', () => {
-  it('throws when directory does not exist', () => {
-    expect(() => listSubDirs('/nonexistent/directory/path')).toThrow();
+  it('throws when directory does not exist', async () => {
+    await expect(listSubDirs('/nonexistent/directory/path')).rejects.toThrow();
   });
 
-  it('returns empty array for an empty directory', () => {
+  it('returns empty array for an empty directory', async () => {
     const tmpDir = path.join(os.tmpdir(), `maxsim-test-empty-subdir-${Date.now()}`);
     fs.mkdirSync(tmpDir, { recursive: true });
-    expect(listSubDirs(tmpDir)).toEqual([]);
+    expect(await listSubDirs(tmpDir)).toEqual([]);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('ignores files, only returns directories', () => {
+  it('ignores files, only returns directories', async () => {
     const tmpDir = path.join(os.tmpdir(), `maxsim-test-files-subdir-${Date.now()}`);
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'file.txt'), 'content', 'utf-8');
     fs.mkdirSync(path.join(tmpDir, 'subdir'));
 
-    const result = listSubDirs(tmpDir);
+    const result = await listSubDirs(tmpDir);
     expect(result).toEqual(['subdir']);
 
     fs.rmSync(tmpDir, { recursive: true, force: true });

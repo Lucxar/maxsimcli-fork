@@ -34,10 +34,10 @@ function isValidType(type: string | undefined): type is ArtefaktType {
   return !!type && type in ARTEFAKT_FILES;
 }
 
-function resolveArtefaktPath(cwd: string, type: ArtefaktType, phase?: string): string | null {
+async function resolveArtefaktPath(cwd: string, type: ArtefaktType, phase?: string): Promise<string | null> {
   const filename = ARTEFAKT_FILES[type];
   if (phase) {
-    const phaseInfo = findPhaseInternal(cwd, phase);
+    const phaseInfo = await findPhaseInternal(cwd, phase);
     if (!phaseInfo?.directory) return null;
     return path.join(cwd, phaseInfo.directory, filename);
   }
@@ -50,10 +50,10 @@ const TEMPLATE_FILES: Record<ArtefaktType, string> = {
   'no-gos': 'no-gos.md',
 };
 
-function getTemplate(type: ArtefaktType): string {
+async function getTemplate(type: ArtefaktType): Promise<string> {
   // Try loading from installed template files first
   const templatePath = path.join(os.homedir(), '.claude', 'maxsim', 'templates', TEMPLATE_FILES[type]);
-  const content = safeReadFile(templatePath);
+  const content = await safeReadFile(templatePath);
   if (content) {
     return content.replace(/\{\{date\}\}/g, todayISO());
   }
@@ -76,20 +76,20 @@ function getHardcodedTemplate(type: ArtefaktType): string {
 
 // ─── Commands ────────────────────────────────────────────────────────────────
 
-export function cmdArtefakteRead(
+export async function cmdArtefakteRead(
   cwd: string,
   type: string | undefined,
   phase: string | undefined,
   raw: boolean,
-): CmdResult {
+): Promise<CmdResult> {
   if (!isValidType(type)) {
     return cmdErr(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
   }
 
-  const filePath = resolveArtefaktPath(cwd, type, phase);
+  const filePath = await resolveArtefaktPath(cwd, type, phase);
   if (!filePath) return cmdErr(`Phase ${phase} not found`);
 
-  const content = safeReadFile(filePath);
+  const content = await safeReadFile(filePath);
   if (content === null) {
     return cmdOk({ exists: false, type, phase: phase ?? null, content: null }, raw ? '' : undefined);
   }
@@ -97,19 +97,19 @@ export function cmdArtefakteRead(
   return cmdOk({ exists: true, type, phase: phase ?? null, content }, raw ? content : undefined);
 }
 
-export function cmdArtefakteWrite(
+export async function cmdArtefakteWrite(
   cwd: string,
   type: string | undefined,
   content: string | undefined,
   phase: string | undefined,
   raw: boolean,
-): CmdResult {
+): Promise<CmdResult> {
   if (!isValidType(type)) {
     return cmdErr(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
   }
 
-  const fileContent = content ?? getTemplate(type);
-  const filePath = resolveArtefaktPath(cwd, type, phase);
+  const fileContent = content ?? await getTemplate(type);
+  const filePath = await resolveArtefaktPath(cwd, type, phase);
   if (!filePath) return cmdErr(`Phase ${phase} not found`);
 
   // Ensure parent directory exists
@@ -120,13 +120,13 @@ export function cmdArtefakteWrite(
   return cmdOk({ written: true, type, phase: phase ?? null, path: relPath }, raw ? relPath : undefined);
 }
 
-export function cmdArtefakteAppend(
+export async function cmdArtefakteAppend(
   cwd: string,
   type: string | undefined,
   entry: string | undefined,
   phase: string | undefined,
   raw: boolean,
-): CmdResult {
+): Promise<CmdResult> {
   if (!entry) {
     return cmdErr('entry required for artefakte append');
   }
@@ -135,13 +135,13 @@ export function cmdArtefakteAppend(
     return cmdErr(`Invalid artefakt type: ${type}. Available: ${Object.keys(ARTEFAKT_FILES).join(', ')}`);
   }
 
-  const filePath = resolveArtefaktPath(cwd, type, phase);
+  const filePath = await resolveArtefaktPath(cwd, type, phase);
   if (!filePath) return cmdErr(`Phase ${phase} not found`);
 
-  let fileContent = safeReadFile(filePath);
+  let fileContent = await safeReadFile(filePath);
   if (fileContent === null) {
     // Auto-create from template
-    fileContent = getTemplate(type);
+    fileContent = await getTemplate(type);
   }
 
   // Remove placeholder lines like "- _No entries yet._"
@@ -168,17 +168,17 @@ export function cmdArtefakteAppend(
   return cmdOk({ appended: true, type, phase: phase ?? null, entry: appendLine, path: relPath }, raw ? 'true' : undefined);
 }
 
-export function cmdArtefakteList(
+export async function cmdArtefakteList(
   cwd: string,
   phase: string | undefined,
   raw: boolean,
-): CmdResult {
+): Promise<CmdResult> {
   const results: Array<{ type: ArtefaktType; exists: boolean; path: string }> = [];
 
   for (const [type, filename] of Object.entries(ARTEFAKT_FILES)) {
     let filePath: string;
     if (phase) {
-      const phaseInfo = findPhaseInternal(cwd, phase);
+      const phaseInfo = await findPhaseInternal(cwd, phase);
       if (!phaseInfo?.directory) {
         return cmdOk({ error: `Phase ${phase} not found` });
       }

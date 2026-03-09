@@ -9,13 +9,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  loadConfig,
   safeReadFile,
   planningPath,
   phasesPath,
   findPhaseInternal,
-  getRoadmapPhaseInternal,
-  pathExistsInternal,
   debugLog,
   listSubDirs,
   isSummaryFile,
@@ -115,9 +112,9 @@ function loadRoadmapContext(cwd: string): ContextFile[] {
   return files;
 }
 
-function loadPhaseContext(cwd: string, phase: string): ContextFile[] {
+async function loadPhaseContext(cwd: string, phase: string): Promise<ContextFile[]> {
   const files: ContextFile[] = [];
-  const phaseInfo = findPhaseInternal(cwd, phase);
+  const phaseInfo = await findPhaseInternal(cwd, phase);
   if (!phaseInfo?.directory) return files;
 
   const phaseDir = phaseInfo.directory;
@@ -146,13 +143,13 @@ function loadPhaseContext(cwd: string, phase: string): ContextFile[] {
   return files;
 }
 
-function loadArtefakteContext(cwd: string, phase?: string): ContextFile[] {
+async function loadArtefakteContext(cwd: string, phase?: string): Promise<ContextFile[]> {
   const files: ContextFile[] = [];
   const artefakte = ['DECISIONS.md', 'ACCEPTANCE-CRITERIA.md', 'NO-GOS.md'];
 
   for (const filename of artefakte) {
     if (phase) {
-      const phaseInfo = findPhaseInternal(cwd, phase);
+      const phaseInfo = await findPhaseInternal(cwd, phase);
       if (phaseInfo?.directory) {
         addIfExists(files, cwd, path.join(phaseInfo.directory, filename), `artefakt-${filename.toLowerCase()}`);
       }
@@ -184,12 +181,12 @@ function loadCodebaseContext(cwd: string, topic?: string): ContextFile[] {
   return files;
 }
 
-function loadHistoryContext(cwd: string, currentPhase?: string): ContextFile[] {
+async function loadHistoryContext(cwd: string, currentPhase?: string): Promise<ContextFile[]> {
   const files: ContextFile[] = [];
   const pd = phasesPath(cwd);
 
   try {
-    const dirs = listSubDirs(pd, true);
+    const dirs = await listSubDirs(pd, true);
     for (const dir of dirs) {
       // Skip current phase — it's loaded separately
       if (currentPhase) {
@@ -214,12 +211,12 @@ function loadHistoryContext(cwd: string, currentPhase?: string): ContextFile[] {
 
 // ─── Commands ────────────────────────────────────────────────────────────────
 
-export function cmdContextLoad(
+export async function cmdContextLoad(
   cwd: string,
   phase: string | undefined,
   topic: string | undefined,
   includeHistory: boolean,
-): CmdResult {
+): Promise<CmdResult> {
   const allFiles: ContextFile[] = [];
 
   // Always load core project context
@@ -227,7 +224,7 @@ export function cmdContextLoad(
   allFiles.push(...loadRoadmapContext(cwd));
 
   // Load artefakte
-  allFiles.push(...loadArtefakteContext(cwd, phase));
+  allFiles.push(...await loadArtefakteContext(cwd, phase));
 
   // Load relevant codebase docs based on topic
   const selectedDocs = selectCodebaseDocs(topic);
@@ -235,12 +232,12 @@ export function cmdContextLoad(
 
   // Phase-specific context
   if (phase) {
-    allFiles.push(...loadPhaseContext(cwd, phase));
+    allFiles.push(...await loadPhaseContext(cwd, phase));
   }
 
   // History from completed phases
   if (includeHistory) {
-    allFiles.push(...loadHistoryContext(cwd, phase));
+    allFiles.push(...await loadHistoryContext(cwd, phase));
   }
 
   // Deduplicate by path

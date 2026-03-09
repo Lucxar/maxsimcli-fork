@@ -14,9 +14,9 @@ import { cmdSkillList, cmdSkillInstall, cmdSkillUpdate } from '../../src/core/sk
 // ─── cmdSkillList ─────────────────────────────────────────────────────────────
 
 describe('cmdSkillList', () => {
-  it('returns ok with empty skills when .claude/skills/ does not exist', () => {
+  it('returns ok with empty skills when .claude/skills/ does not exist', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-skill-list-none-${Date.now()}`);
-    const result = cmdSkillList(fakeCwd);
+    const result = await cmdSkillList(fakeCwd);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -26,7 +26,7 @@ describe('cmdSkillList', () => {
     }
   });
 
-  it('returns ok with skill entries when directory has subdirs with SKILL.md files', () => {
+  it('returns ok with skill entries when directory has subdirs with SKILL.md files', async () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-skill-list-found-${Date.now()}`);
     const skillDir = path.join(fakeCwd, '.claude', 'skills', 'my-skill');
     fs.mkdirSync(skillDir, { recursive: true });
@@ -36,7 +36,7 @@ describe('cmdSkillList', () => {
       'utf-8',
     );
 
-    const result = cmdSkillList(fakeCwd);
+    const result = await cmdSkillList(fakeCwd);
 
     expect(result.ok).toBe(true);
     if (result.ok) {

@@ -53,7 +53,7 @@ export function registerContextTools(server: McpServer): void {
         }
 
         // Also read STATE.md for current phase field
-        const stateContent = safeReadFile(planningPath(cwd, 'STATE.md'));
+        const stateContent = await safeReadFile(planningPath(cwd, 'STATE.md'));
         if (stateContent) {
           const statePhase = stateExtractField(stateContent, 'Current Phase');
           if (statePhase) phase_name = statePhase;
@@ -89,18 +89,18 @@ export function registerContextTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const project_vision = safeReadFile(planningPath(cwd, 'PROJECT.md'));
-        const config = loadConfig(cwd);
+        const project_vision = await safeReadFile(planningPath(cwd, 'PROJECT.md'));
+        const config = await loadConfig(cwd);
 
         let phase_context: string | null = null;
         if (phase) {
-          const phaseInfo = findPhaseInternal(cwd, phase);
+          const phaseInfo = await findPhaseInternal(cwd, phase);
           if (phaseInfo) {
             const contextPath = path.join(
               phaseInfo.directory,
               `${phaseInfo.phase_number}-CONTEXT.md`,
             );
-            phase_context = safeReadFile(contextPath);
+            phase_context = await safeReadFile(contextPath);
           }
         }
 
@@ -140,7 +140,7 @@ export function registerContextTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const result = cmdContextLoad(cwd, phase, topic, true);
+        const result = await cmdContextLoad(cwd, phase, topic, true);
         if (!result.ok) {
           return mcpError(result.error, 'Context load failed');
         }
@@ -168,9 +168,9 @@ export function registerContextTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const project = safeReadFile(planningPath(cwd, 'PROJECT.md'));
-        const requirements = safeReadFile(planningPath(cwd, 'REQUIREMENTS.md'));
-        const state = safeReadFile(planningPath(cwd, 'STATE.md'));
+        const project = await safeReadFile(planningPath(cwd, 'PROJECT.md'));
+        const requirements = await safeReadFile(planningPath(cwd, 'REQUIREMENTS.md'));
+        const state = await safeReadFile(planningPath(cwd, 'STATE.md'));
 
         return mcpSuccess(
           { project, requirements, state },
@@ -197,7 +197,7 @@ export function registerContextTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const phaseInfo = findPhaseInternal(cwd, phase);
+        const phaseInfo = await findPhaseInternal(cwd, phase);
         if (!phaseInfo) {
           return mcpError(`Phase ${phase} not found`, 'Phase not found');
         }
@@ -212,7 +212,7 @@ export function registerContextTools(server: McpServer): void {
             if (stat.isFile()) {
               files.push({
                 name: entry,
-                content: safeReadFile(fullPath),
+                content: await safeReadFile(fullPath),
               });
             }
           }

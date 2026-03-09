@@ -108,18 +108,14 @@ export {
   comparePhaseNum,
   getPhasePattern,
   findPhaseInternal,
-  findPhaseInternalAsync,
   getArchivedPhaseDirs,
   getRoadmapPhaseInternal,
   resolveModelInternal,
   pathExistsInternal,
-  pathExistsAsync,
   generateSlugInternal,
   getMilestoneInfo,
-  listSubDirsAsync,
-  safeReadFileAsync,
+  listSubDirs,
   archivePath,
-  archivePathAsync,
 } from './core.js';
 
 // Frontmatter exports

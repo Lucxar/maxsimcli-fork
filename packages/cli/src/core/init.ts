@@ -342,8 +342,8 @@ export type InitContext =
 
 // ─── Helper: extract requirement IDs from roadmap phase section ─────────────
 
-function extractReqIds(cwd: string, phase: string): string | null {
-  const roadmapPhase = getRoadmapPhaseInternal(cwd, phase);
+async function extractReqIds(cwd: string, phase: string): Promise<string | null> {
+  const roadmapPhase = await getRoadmapPhaseInternal(cwd, phase);
   const reqMatch = roadmapPhase?.section?.match(/^\*\*Requirements\*\*:[^\S\n]*([^\n]*)$/m);
   const reqExtracted = reqMatch ? reqMatch[1].replace(/[\[\]]/g, '').split(',').map((s: string) => s.trim()).filter(Boolean).join(', ') : null;
   return (reqExtracted && reqExtracted !== 'TBD') ? reqExtracted : null;
@@ -395,15 +395,15 @@ function findCodeFiles(dir: string, maxDepth: number = 3, limit: number = 5): st
 
 // ─── Init commands ──────────────────────────────────────────────────────────
 
-export function cmdInitExecutePhase(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitExecutePhase(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init execute-phase');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase!);
-  const milestone = getMilestoneInfo(cwd);
-  const phase_req_ids = extractReqIds(cwd, phase!);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase!);
+  const milestone = await getMilestoneInfo(cwd);
+  const phase_req_ids = await extractReqIds(cwd, phase!);
   const result: ExecutePhaseContext = {
-    executor_model: resolveModelInternal(cwd, 'maxsim-executor'),
-    verifier_model: resolveModelInternal(cwd, 'maxsim-verifier'),
+    executor_model: await resolveModelInternal(cwd, 'maxsim-executor'),
+    verifier_model: await resolveModelInternal(cwd, 'maxsim-verifier'),
     commit_docs: config.commit_docs,
     parallelization: config.parallelization,
     branching_strategy: config.branching_strategy,
@@ -429,9 +429,9 @@ export function cmdInitExecutePhase(cwd: string, phase: string | undefined): Cmd
     milestone_version: milestone.version,
     milestone_name: milestone.name,
     milestone_slug: generateSlugInternal(milestone.name),
-    state_exists: pathExistsInternal(cwd, '.planning/STATE.md'),
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    config_exists: pathExistsInternal(cwd, '.planning/config.json'),
+    state_exists: await pathExistsInternal(planningPath(cwd, 'STATE.md')),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    config_exists: await pathExistsInternal(planningPath(cwd, 'config.json')),
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     config_path: '.planning/config.json',
@@ -439,15 +439,15 @@ export function cmdInitExecutePhase(cwd: string, phase: string | undefined): Cmd
   return cmdOk(result);
 }
 
-export function cmdInitPlanPhase(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitPlanPhase(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init plan-phase');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase!);
-  const phase_req_ids = extractReqIds(cwd, phase!);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase!);
+  const phase_req_ids = await extractReqIds(cwd, phase!);
   const result: PlanPhaseContext = {
-    researcher_model: resolveModelInternal(cwd, 'maxsim-phase-researcher'),
-    planner_model: resolveModelInternal(cwd, 'maxsim-planner'),
-    checker_model: resolveModelInternal(cwd, 'maxsim-plan-checker'),
+    researcher_model: await resolveModelInternal(cwd, 'maxsim-phase-researcher'),
+    planner_model: await resolveModelInternal(cwd, 'maxsim-planner'),
+    checker_model: await resolveModelInternal(cwd, 'maxsim-plan-checker'),
     research_enabled: config.research,
     plan_checker_enabled: config.plan_checker,
     commit_docs: config.commit_docs,
@@ -462,13 +462,13 @@ export function cmdInitPlanPhase(cwd: string, phase: string | undefined): CmdRes
     has_context: phaseInfo?.has_context ?? false,
     has_plans: (phaseInfo?.plans?.length ?? 0) > 0,
     plan_count: phaseInfo?.plans?.length ?? 0,
-    planning_exists: pathExistsInternal(cwd, '.planning'),
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     requirements_path: '.planning/REQUIREMENTS.md',
   };
-  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+  if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
   if (phaseInfo?.directory) {
@@ -481,46 +481,47 @@ export function cmdInitPlanPhase(cwd: string, phase: string | undefined): CmdRes
   return cmdOk(result);
 }
 
-export function cmdInitNewProject(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
+export async function cmdInitNewProject(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
   const homedir = os.homedir();
   const braveKeyFile = path.join(homedir, '.maxsim', 'brave_api_key');
   const hasBraveSearch = !!(process.env.BRAVE_API_KEY || fs.existsSync(braveKeyFile));
   const hasCode = findCodeFiles(cwd).length > 0;
-  const hasPackageFile = pathExistsInternal(cwd, 'package.json') || pathExistsInternal(cwd, 'requirements.txt') || pathExistsInternal(cwd, 'Cargo.toml') || pathExistsInternal(cwd, 'go.mod') || pathExistsInternal(cwd, 'Package.swift');
+  const hasPackageFile = await pathExistsInternal(path.join(cwd, 'package.json')) || await pathExistsInternal(path.join(cwd, 'requirements.txt')) || await pathExistsInternal(path.join(cwd, 'Cargo.toml')) || await pathExistsInternal(path.join(cwd, 'go.mod')) || await pathExistsInternal(path.join(cwd, 'Package.swift'));
+  const hasCodebaseMap = await pathExistsInternal(planningPath(cwd, 'codebase'));
   const result: NewProjectContext = {
-    researcher_model: resolveModelInternal(cwd, 'maxsim-project-researcher'),
-    synthesizer_model: resolveModelInternal(cwd, 'maxsim-research-synthesizer'),
-    roadmapper_model: resolveModelInternal(cwd, 'maxsim-roadmapper'),
+    researcher_model: await resolveModelInternal(cwd, 'maxsim-project-researcher'),
+    synthesizer_model: await resolveModelInternal(cwd, 'maxsim-research-synthesizer'),
+    roadmapper_model: await resolveModelInternal(cwd, 'maxsim-roadmapper'),
     commit_docs: config.commit_docs,
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
-    has_codebase_map: pathExistsInternal(cwd, '.planning/codebase'),
-    planning_exists: pathExistsInternal(cwd, '.planning'),
+    project_exists: await pathExistsInternal(planningPath(cwd, 'PROJECT.md')),
+    has_codebase_map: hasCodebaseMap,
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
     has_existing_code: hasCode,
     has_package_file: hasPackageFile,
     is_brownfield: hasCode || hasPackageFile,
-    needs_codebase_map: (hasCode || hasPackageFile) && !pathExistsInternal(cwd, '.planning/codebase'),
-    has_git: pathExistsInternal(cwd, '.git'),
+    needs_codebase_map: (hasCode || hasPackageFile) && !hasCodebaseMap,
+    has_git: await pathExistsInternal(path.join(cwd, '.git')),
     brave_search_available: hasBraveSearch,
     project_path: '.planning/PROJECT.md',
   };
   return cmdOk(result);
 }
 
-export function cmdInitNewMilestone(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
-  const milestone = getMilestoneInfo(cwd);
+export async function cmdInitNewMilestone(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  const milestone = await getMilestoneInfo(cwd);
   const result: NewMilestoneContext = {
-    researcher_model: resolveModelInternal(cwd, 'maxsim-project-researcher'),
-    synthesizer_model: resolveModelInternal(cwd, 'maxsim-research-synthesizer'),
-    roadmapper_model: resolveModelInternal(cwd, 'maxsim-roadmapper'),
+    researcher_model: await resolveModelInternal(cwd, 'maxsim-project-researcher'),
+    synthesizer_model: await resolveModelInternal(cwd, 'maxsim-research-synthesizer'),
+    roadmapper_model: await resolveModelInternal(cwd, 'maxsim-roadmapper'),
     commit_docs: config.commit_docs,
     research_enabled: config.research,
     current_milestone: milestone.version,
     current_milestone_name: milestone.name,
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    state_exists: pathExistsInternal(cwd, '.planning/STATE.md'),
+    project_exists: await pathExistsInternal(planningPath(cwd, 'PROJECT.md')),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    state_exists: await pathExistsInternal(planningPath(cwd, 'STATE.md')),
     project_path: '.planning/PROJECT.md',
     roadmap_path: '.planning/ROADMAP.md',
     state_path: '.planning/STATE.md',
@@ -528,8 +529,8 @@ export function cmdInitNewMilestone(cwd: string): CmdResult {
   return cmdOk(result);
 }
 
-export function cmdInitQuick(cwd: string, description: string | undefined): CmdResult {
-  const config = loadConfig(cwd);
+export async function cmdInitQuick(cwd: string, description: string | undefined): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
   const now = new Date();
   const slug = description ? generateSlugInternal(description)?.substring(0, 40) ?? null : null;
   const quickDir = planningPath(cwd, 'quick');
@@ -539,10 +540,10 @@ export function cmdInitQuick(cwd: string, description: string | undefined): CmdR
     if (existing.length > 0) nextNum = Math.max(...existing) + 1;
   } catch (e) { debugLog(e); }
   const result: QuickContext = {
-    planner_model: resolveModelInternal(cwd, 'maxsim-planner'),
-    executor_model: resolveModelInternal(cwd, 'maxsim-executor'),
-    checker_model: resolveModelInternal(cwd, 'maxsim-plan-checker'),
-    verifier_model: resolveModelInternal(cwd, 'maxsim-verifier'),
+    planner_model: await resolveModelInternal(cwd, 'maxsim-planner'),
+    executor_model: await resolveModelInternal(cwd, 'maxsim-executor'),
+    checker_model: await resolveModelInternal(cwd, 'maxsim-plan-checker'),
+    verifier_model: await resolveModelInternal(cwd, 'maxsim-verifier'),
     commit_docs: config.commit_docs,
     next_num: nextNum,
     slug,
@@ -551,21 +552,21 @@ export function cmdInitQuick(cwd: string, description: string | undefined): CmdR
     timestamp: now.toISOString(),
     quick_dir: '.planning/quick',
     task_dir: slug ? `.planning/quick/${nextNum}-${slug}` : null,
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    planning_exists: pathExistsInternal(cwd, '.planning'),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
   };
   return cmdOk(result);
 }
 
-export function cmdInitResume(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
+export async function cmdInitResume(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
   let interruptedAgentId: string | null = null;
   try { interruptedAgentId = fs.readFileSync(planningPath(cwd, 'current-agent-id.txt'), 'utf-8').trim(); } catch (e) { debugLog(e); }
   const result: ResumeContext = {
-    state_exists: pathExistsInternal(cwd, '.planning/STATE.md'),
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
-    planning_exists: pathExistsInternal(cwd, '.planning'),
+    state_exists: await pathExistsInternal(planningPath(cwd, 'STATE.md')),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    project_exists: await pathExistsInternal(planningPath(cwd, 'PROJECT.md')),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     project_path: '.planning/PROJECT.md',
@@ -576,13 +577,13 @@ export function cmdInitResume(cwd: string): CmdResult {
   return cmdOk(result);
 }
 
-export function cmdInitVerifyWork(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitVerifyWork(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init verify-work');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase!);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase!);
   const result: VerifyWorkContext = {
-    planner_model: resolveModelInternal(cwd, 'maxsim-planner'),
-    checker_model: resolveModelInternal(cwd, 'maxsim-plan-checker'),
+    planner_model: await resolveModelInternal(cwd, 'maxsim-planner'),
+    checker_model: await resolveModelInternal(cwd, 'maxsim-plan-checker'),
     commit_docs: config.commit_docs,
     phase_found: !!phaseInfo,
     phase_dir: phaseInfo?.directory ?? null,
@@ -593,11 +594,11 @@ export function cmdInitVerifyWork(cwd: string, phase: string | undefined): CmdRe
   return cmdOk(result);
 }
 
-export function cmdInitPhaseOp(cwd: string, phase: string | undefined): CmdResult {
-  const config = loadConfig(cwd);
-  let phaseInfo = findPhaseInternal(cwd, phase ?? '');
+export async function cmdInitPhaseOp(cwd: string, phase: string | undefined): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  let phaseInfo = await findPhaseInternal(cwd, phase ?? '');
   if (!phaseInfo) {
-    const roadmapPhase = getRoadmapPhaseInternal(cwd, phase ?? '');
+    const roadmapPhase = await getRoadmapPhaseInternal(cwd, phase ?? '');
     if (roadmapPhase?.found) {
       const phaseName = roadmapPhase.phase_name;
       phaseInfo = { found: true, directory: '', phase_number: roadmapPhase.phase_number, phase_name: phaseName, phase_slug: phaseName ? phaseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : null, plans: [], summaries: [], incomplete_plans: [], has_research: false, has_context: false, has_verification: false };
@@ -617,13 +618,13 @@ export function cmdInitPhaseOp(cwd: string, phase: string | undefined): CmdResul
     has_plans: (phaseInfo?.plans?.length ?? 0) > 0,
     has_verification: phaseInfo?.has_verification ?? false,
     plan_count: phaseInfo?.plans?.length ?? 0,
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    planning_exists: pathExistsInternal(cwd, '.planning'),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     requirements_path: '.planning/REQUIREMENTS.md',
   };
-  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+  if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
   if (phaseInfo?.directory) {
@@ -636,8 +637,8 @@ export function cmdInitPhaseOp(cwd: string, phase: string | undefined): CmdResul
   return cmdOk(result);
 }
 
-export function cmdInitTodos(cwd: string, area: string | undefined): CmdResult {
-  const config = loadConfig(cwd);
+export async function cmdInitTodos(cwd: string, area: string | undefined): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
   const now = new Date();
   const pendingDir = planningPath(cwd, 'todos', 'pending');
   let count = 0;
@@ -666,27 +667,27 @@ export function cmdInitTodos(cwd: string, area: string | undefined): CmdResult {
     area_filter: area ?? null,
     pending_dir: '.planning/todos/pending',
     completed_dir: '.planning/todos/completed',
-    planning_exists: pathExistsInternal(cwd, '.planning'),
-    todos_dir_exists: pathExistsInternal(cwd, '.planning/todos'),
-    pending_dir_exists: pathExistsInternal(cwd, '.planning/todos/pending'),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
+    todos_dir_exists: await pathExistsInternal(planningPath(cwd, 'todos')),
+    pending_dir_exists: await pathExistsInternal(planningPath(cwd, 'todos', 'pending')),
   };
   return cmdOk(result);
 }
 
-export function cmdInitMilestoneOp(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
-  const milestone = getMilestoneInfo(cwd);
+export async function cmdInitMilestoneOp(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  const milestone = await getMilestoneInfo(cwd);
   let phaseCount = 0;
   let completedPhases = 0;
   const phasesDir = phasesPath(cwd);
   try {
-    const dirs = listSubDirs(phasesDir);
+    const dirs = await listSubDirs(phasesDir);
     phaseCount = dirs.length;
     for (const dir of dirs) { try { const phaseFiles = fs.readdirSync(path.join(phasesDir, dir)); if (phaseFiles.some(f => isSummaryFile(f))) completedPhases++; } catch (e) { debugLog(e); } }
   } catch (e) { debugLog(e); }
   const archiveDir = planningPath(cwd, 'archive');
   let archivedMilestones: string[] = [];
-  try { archivedMilestones = listSubDirs(archiveDir); } catch (e) { debugLog(e); }
+  try { archivedMilestones = await listSubDirs(archiveDir); } catch (e) { debugLog(e); }
   const result: MilestoneOpContext = {
     commit_docs: config.commit_docs,
     milestone_version: milestone.version,
@@ -697,57 +698,57 @@ export function cmdInitMilestoneOp(cwd: string): CmdResult {
     all_phases_complete: phaseCount > 0 && phaseCount === completedPhases,
     archived_milestones: archivedMilestones,
     archive_count: archivedMilestones.length,
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    state_exists: pathExistsInternal(cwd, '.planning/STATE.md'),
-    archive_exists: pathExistsInternal(cwd, '.planning/archive'),
-    phases_dir_exists: pathExistsInternal(cwd, '.planning/phases'),
+    project_exists: await pathExistsInternal(planningPath(cwd, 'PROJECT.md')),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    state_exists: await pathExistsInternal(planningPath(cwd, 'STATE.md')),
+    archive_exists: await pathExistsInternal(planningPath(cwd, 'archive')),
+    phases_dir_exists: await pathExistsInternal(planningPath(cwd, 'phases')),
   };
   return cmdOk(result);
 }
 
-export function cmdInitMapCodebase(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
+export async function cmdInitMapCodebase(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
   const codebaseDir = planningPath(cwd, 'codebase');
   let existingMaps: string[] = [];
   try { existingMaps = fs.readdirSync(codebaseDir).filter(f => f.endsWith('.md')); } catch (e) { debugLog(e); }
   const result: MapCodebaseContext = {
-    mapper_model: resolveModelInternal(cwd, 'maxsim-codebase-mapper'),
+    mapper_model: await resolveModelInternal(cwd, 'maxsim-codebase-mapper'),
     commit_docs: config.commit_docs,
     search_gitignored: config.search_gitignored,
     parallelization: config.parallelization,
     codebase_dir: '.planning/codebase',
     existing_maps: existingMaps,
     has_maps: existingMaps.length > 0,
-    planning_exists: pathExistsInternal(cwd, '.planning'),
-    codebase_dir_exists: pathExistsInternal(cwd, '.planning/codebase'),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
+    codebase_dir_exists: await pathExistsInternal(planningPath(cwd, 'codebase')),
   };
   return cmdOk(result);
 }
 
-export function cmdInitExisting(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
+export async function cmdInitExisting(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
   const homedir = os.homedir();
   const braveKeyFile = path.join(homedir, '.maxsim', 'brave_api_key');
   const hasBraveSearch = !!(process.env.BRAVE_API_KEY || fs.existsSync(braveKeyFile));
   const hasCode = findCodeFiles(cwd).length > 0;
-  const hasPackageFile = pathExistsInternal(cwd, 'package.json') || pathExistsInternal(cwd, 'requirements.txt') || pathExistsInternal(cwd, 'Cargo.toml') || pathExistsInternal(cwd, 'go.mod') || pathExistsInternal(cwd, 'Package.swift');
+  const hasPackageFile = await pathExistsInternal(path.join(cwd, 'package.json')) || await pathExistsInternal(path.join(cwd, 'requirements.txt')) || await pathExistsInternal(path.join(cwd, 'Cargo.toml')) || await pathExistsInternal(path.join(cwd, 'go.mod')) || await pathExistsInternal(path.join(cwd, 'Package.swift'));
   let planningFiles: string[] = [];
   try { const planDir = planningPath(cwd); if (fs.existsSync(planDir)) planningFiles = fs.readdirSync(planDir, { recursive: true }).map((f) => String(f)).filter((f) => !f.startsWith('.')); } catch (e) { debugLog(e); }
   const result: InitExistingContext = {
-    researcher_model: resolveModelInternal(cwd, 'maxsim-project-researcher'),
-    synthesizer_model: resolveModelInternal(cwd, 'maxsim-research-synthesizer'),
-    roadmapper_model: resolveModelInternal(cwd, 'maxsim-roadmapper'),
-    mapper_model: resolveModelInternal(cwd, 'maxsim-codebase-mapper'),
+    researcher_model: await resolveModelInternal(cwd, 'maxsim-project-researcher'),
+    synthesizer_model: await resolveModelInternal(cwd, 'maxsim-research-synthesizer'),
+    roadmapper_model: await resolveModelInternal(cwd, 'maxsim-roadmapper'),
+    mapper_model: await resolveModelInternal(cwd, 'maxsim-codebase-mapper'),
     commit_docs: config.commit_docs,
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
-    planning_exists: pathExistsInternal(cwd, '.planning'),
+    project_exists: await pathExistsInternal(planningPath(cwd, 'PROJECT.md')),
+    planning_exists: await pathExistsInternal(planningPath(cwd)),
     planning_files: planningFiles,
-    has_codebase_map: pathExistsInternal(cwd, '.planning/codebase'),
+    has_codebase_map: await pathExistsInternal(planningPath(cwd, 'codebase')),
     has_existing_code: hasCode,
     has_package_file: hasPackageFile,
-    has_git: pathExistsInternal(cwd, '.git'),
-    has_readme: pathExistsInternal(cwd, 'README.md'),
+    has_git: await pathExistsInternal(path.join(cwd, '.git')),
+    has_readme: await pathExistsInternal(path.join(cwd, 'README.md')),
     conflict_detected: planningFiles.length > 0,
     existing_file_count: planningFiles.length,
     brave_search_available: hasBraveSearch,
@@ -758,15 +759,15 @@ export function cmdInitExisting(cwd: string): CmdResult {
   return cmdOk(result);
 }
 
-export function cmdInitProgress(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
-  const milestone = getMilestoneInfo(cwd);
+export async function cmdInitProgress(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  const milestone = await getMilestoneInfo(cwd);
   const progressPhasesDir = phasesPath(cwd);
   const phases: ProgressPhaseInfo[] = [];
   let currentPhase: ProgressPhaseInfo | null = null;
   let nextPhase: ProgressPhaseInfo | null = null;
   try {
-    const dirs = listSubDirs(progressPhasesDir, true);
+    const dirs = await listSubDirs(progressPhasesDir, true);
     for (const dir of dirs) {
       const match = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
       const phaseNumber = match ? match[1] : dir;
@@ -786,8 +787,8 @@ export function cmdInitProgress(cwd: string): CmdResult {
   let pausedAt: string | null = null;
   try { const state = fs.readFileSync(planningPath(cwd, 'STATE.md'), 'utf-8'); const pauseMatch = state.match(/\*\*Paused At:\*\*\s*(.+)/); if (pauseMatch) pausedAt = pauseMatch[1].trim(); } catch (e) { debugLog(e); }
   const result: ProgressContext = {
-    executor_model: resolveModelInternal(cwd, 'maxsim-executor'),
-    planner_model: resolveModelInternal(cwd, 'maxsim-planner'),
+    executor_model: await resolveModelInternal(cwd, 'maxsim-executor'),
+    planner_model: await resolveModelInternal(cwd, 'maxsim-planner'),
     commit_docs: config.commit_docs,
     milestone_version: milestone.version,
     milestone_name: milestone.name,
@@ -799,9 +800,9 @@ export function cmdInitProgress(cwd: string): CmdResult {
     next_phase: nextPhase,
     paused_at: pausedAt,
     has_work_in_progress: !!currentPhase,
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
-    roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
-    state_exists: pathExistsInternal(cwd, '.planning/STATE.md'),
+    project_exists: await pathExistsInternal(planningPath(cwd, 'PROJECT.md')),
+    roadmap_exists: await pathExistsInternal(planningPath(cwd, 'ROADMAP.md')),
+    state_exists: await pathExistsInternal(planningPath(cwd, 'STATE.md')),
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     project_path: '.planning/PROJECT.md',
@@ -828,14 +829,14 @@ export function listCodebaseDocs(cwd: string): string[] {
 
 // ─── Agent-level init commands ───────────────────────────────────────────────
 
-export function cmdInitExecutor(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitExecutor(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init executor');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase);
   const codebaseDocs = listCodebaseDocs(cwd);
   const result: ExecutorAgentContext = {
-    executor_model: resolveModelInternal(cwd, 'maxsim-executor'),
-    verifier_model: resolveModelInternal(cwd, 'maxsim-verifier'),
+    executor_model: await resolveModelInternal(cwd, 'maxsim-executor'),
+    verifier_model: await resolveModelInternal(cwd, 'maxsim-verifier'),
     commit_docs: config.commit_docs,
     parallelization: config.parallelization,
     branching_strategy: config.branching_strategy,
@@ -848,21 +849,21 @@ export function cmdInitExecutor(cwd: string, phase: string | undefined): CmdResu
     state_path: '.planning/STATE.md',
     codebase_docs: codebaseDocs,
   };
-  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+  if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
   return cmdOk(result);
 }
 
-export function cmdInitPlanner(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitPlanner(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init planner');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase);
-  const phase_req_ids = extractReqIds(cwd, phase);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase);
+  const phase_req_ids = await extractReqIds(cwd, phase);
   const codebaseDocs = listCodebaseDocs(cwd);
   const result: PlannerAgentContext = {
-    planner_model: resolveModelInternal(cwd, 'maxsim-planner'),
-    checker_model: resolveModelInternal(cwd, 'maxsim-plan-checker'),
+    planner_model: await resolveModelInternal(cwd, 'maxsim-planner'),
+    checker_model: await resolveModelInternal(cwd, 'maxsim-plan-checker'),
     commit_docs: config.commit_docs,
     research_enabled: config.research,
     plan_checker_enabled: config.plan_checker,
@@ -880,7 +881,7 @@ export function cmdInitPlanner(cwd: string, phase: string | undefined): CmdResul
     requirements_path: '.planning/REQUIREMENTS.md',
     codebase_docs: codebaseDocs,
   };
-  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+  if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
   if (phaseInfo?.directory) {
@@ -891,14 +892,14 @@ export function cmdInitPlanner(cwd: string, phase: string | undefined): CmdResul
   return cmdOk(result);
 }
 
-export function cmdInitResearcher(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitResearcher(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init researcher');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase);
-  const phase_req_ids = extractReqIds(cwd, phase);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase);
+  const phase_req_ids = await extractReqIds(cwd, phase);
   const codebaseDocs = listCodebaseDocs(cwd);
   const result: ResearcherAgentContext = {
-    researcher_model: resolveModelInternal(cwd, 'maxsim-phase-researcher'),
+    researcher_model: await resolveModelInternal(cwd, 'maxsim-phase-researcher'),
     commit_docs: config.commit_docs,
     brave_search: config.brave_search,
     phase_found: !!phaseInfo,
@@ -914,7 +915,7 @@ export function cmdInitResearcher(cwd: string, phase: string | undefined): CmdRe
     requirements_path: '.planning/REQUIREMENTS.md',
     codebase_docs: codebaseDocs,
   };
-  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+  if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
   if (phaseInfo?.directory) {
@@ -924,14 +925,14 @@ export function cmdInitResearcher(cwd: string, phase: string | undefined): CmdRe
   return cmdOk(result);
 }
 
-export function cmdInitVerifier(cwd: string, phase: string | undefined): CmdResult {
+export async function cmdInitVerifier(cwd: string, phase: string | undefined): Promise<CmdResult> {
   if (!phase) return cmdErr('phase required for init verifier');
-  const config = loadConfig(cwd);
-  const phaseInfo = findPhaseInternal(cwd, phase);
-  const phase_req_ids = extractReqIds(cwd, phase);
+  const config = await loadConfig(cwd);
+  const phaseInfo = await findPhaseInternal(cwd, phase);
+  const phase_req_ids = await extractReqIds(cwd, phase);
   const codebaseDocs = listCodebaseDocs(cwd);
   const result: VerifierAgentContext = {
-    verifier_model: resolveModelInternal(cwd, 'maxsim-verifier'),
+    verifier_model: await resolveModelInternal(cwd, 'maxsim-verifier'),
     commit_docs: config.commit_docs,
     phase_found: !!phaseInfo,
     phase_dir: phaseInfo?.directory ?? null,
@@ -946,12 +947,12 @@ export function cmdInitVerifier(cwd: string, phase: string | undefined): CmdResu
   return cmdOk(result);
 }
 
-export function cmdInitDebugger(cwd: string, phase: string | undefined): CmdResult {
-  const config = loadConfig(cwd);
-  const phaseInfo = phase ? findPhaseInternal(cwd, phase) : null;
+export async function cmdInitDebugger(cwd: string, phase: string | undefined): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  const phaseInfo = phase ? await findPhaseInternal(cwd, phase) : null;
   const codebaseDocs = listCodebaseDocs(cwd);
   const result: DebuggerAgentContext = {
-    debugger_model: resolveModelInternal(cwd, 'maxsim-debugger'),
+    debugger_model: await resolveModelInternal(cwd, 'maxsim-debugger'),
     commit_docs: config.commit_docs,
     phase_found: !!phaseInfo,
     phase_dir: phaseInfo?.directory ?? null,
@@ -960,7 +961,7 @@ export function cmdInitDebugger(cwd: string, phase: string | undefined): CmdResu
     state_path: '.planning/STATE.md',
     codebase_docs: codebaseDocs,
   };
-  if (pathExistsInternal(cwd, '.planning/CONVENTIONS.md')) {
+  if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
   return cmdOk(result);
@@ -968,36 +969,36 @@ export function cmdInitDebugger(cwd: string, phase: string | undefined): CmdResu
 
 // ─── Drift-related init commands ─────────────────────────────────────────────
 
-export function cmdInitCheckDrift(cwd: string): CmdResult {
-  const config = loadConfig(cwd);
-  const driftModel = resolveModelInternal(cwd, 'maxsim-drift-checker');
+export async function cmdInitCheckDrift(cwd: string): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  const driftModel = await resolveModelInternal(cwd, 'maxsim-drift-checker');
 
-  const hasPlanning = pathExistsInternal(cwd, '.planning');
-  const hasRequirements = pathExistsInternal(cwd, '.planning/REQUIREMENTS.md');
-  const hasRoadmap = pathExistsInternal(cwd, '.planning/ROADMAP.md');
-  const hasNogos = pathExistsInternal(cwd, '.planning/NO-GOS.md');
-  const hasConventions = pathExistsInternal(cwd, '.planning/CONVENTIONS.md');
-  const hasPreviousReport = pathExistsInternal(cwd, '.planning/DRIFT-REPORT.md');
+  const hasPlanning = await pathExistsInternal(planningPath(cwd));
+  const hasRequirements = await pathExistsInternal(planningPath(cwd, 'REQUIREMENTS.md'));
+  const hasRoadmap = await pathExistsInternal(planningPath(cwd, 'ROADMAP.md'));
+  const hasNogos = await pathExistsInternal(planningPath(cwd, 'NO-GOS.md'));
+  const hasConventions = await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'));
+  const hasPreviousReport = await pathExistsInternal(planningPath(cwd, 'DRIFT-REPORT.md'));
 
   // Collect spec files that exist
   const specFiles: string[] = [];
   if (hasRequirements) specFiles.push('.planning/REQUIREMENTS.md');
   if (hasRoadmap) specFiles.push('.planning/ROADMAP.md');
-  if (pathExistsInternal(cwd, '.planning/STATE.md')) specFiles.push('.planning/STATE.md');
+  if (await pathExistsInternal(planningPath(cwd, 'STATE.md'))) specFiles.push('.planning/STATE.md');
   if (hasNogos) specFiles.push('.planning/NO-GOS.md');
   if (hasConventions) specFiles.push('.planning/CONVENTIONS.md');
 
   // Collect active phase directories
   let phaseDirs: string[] = [];
   try {
-    const dirs = listSubDirs(phasesPath(cwd), true);
+    const dirs = await listSubDirs(phasesPath(cwd), true);
     phaseDirs = dirs.map(d => `.planning/phases/${d}`);
   } catch { /* no phases dir */ }
 
   // Collect archived milestone directories
   let archivedMilestoneDirs: string[] = [];
   try {
-    const archived = getArchivedPhaseDirs(cwd);
+    const archived = await getArchivedPhaseDirs(cwd);
     archivedMilestoneDirs = archived.map(a => a.basePath);
     // De-duplicate
     archivedMilestoneDirs = [...new Set(archivedMilestoneDirs)];
@@ -1029,15 +1030,15 @@ export function cmdInitCheckDrift(cwd: string): CmdResult {
   return cmdOk(result);
 }
 
-export function cmdInitRealign(cwd: string, direction: string | undefined): CmdResult {
-  const config = loadConfig(cwd);
-  const hasReport = pathExistsInternal(cwd, '.planning/DRIFT-REPORT.md');
-  const hasPlanning = pathExistsInternal(cwd, '.planning');
+export async function cmdInitRealign(cwd: string, direction: string | undefined): Promise<CmdResult> {
+  const config = await loadConfig(cwd);
+  const hasReport = await pathExistsInternal(planningPath(cwd, 'DRIFT-REPORT.md'));
+  const hasPlanning = await pathExistsInternal(planningPath(cwd));
 
   // Collect active phase directories
   let phaseDirs: string[] = [];
   try {
-    const dirs = listSubDirs(phasesPath(cwd), true);
+    const dirs = await listSubDirs(phasesPath(cwd), true);
     phaseDirs = dirs.map(d => `.planning/phases/${d}`);
   } catch { /* no phases dir */ }
 

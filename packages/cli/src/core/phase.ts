@@ -11,9 +11,9 @@ import {
   normalizePhaseName,
   comparePhaseNum,
   getPhasePattern,
-  findPhaseInternalAsync,
-  getArchivedPhaseDirsAsync,
-  pathExistsAsync,
+  findPhaseInternal,
+  getArchivedPhaseDirs,
+  pathExistsInternal,
   generateSlugInternal,
   phasesPath,
   roadmapPath,
@@ -23,14 +23,14 @@ import {
   isSummaryFile,
   planId,
   summaryId,
-  listSubDirsAsync,
+  listSubDirs,
   debugLog,
   errorMsg,
   todayISO,
   escapePhaseNum,
-  archivePathAsync,
+  archivePath,
   execGit,
-  safeReadFileAsync,
+  safeReadFile,
 } from './core.js';
 import { extractFrontmatter } from './frontmatter.js';
 import { cmdOk, cmdErr } from './types.js';
@@ -167,7 +167,7 @@ export async function phaseInsertCore(cwd: string, afterPhase: string, descripti
   const existingDecimals: number[] = [];
 
   try {
-    const dirs = await listSubDirsAsync(phasesDirPath);
+    const dirs = await listSubDirs(phasesDirPath);
     const decimalPattern = new RegExp(`^${normalizedBase}\\.(\\d+)`);
     for (const dir of dirs) {
       const dm = dir.match(decimalPattern);
@@ -226,7 +226,7 @@ export async function phaseCompleteCore(cwd: string, phaseNum: string): Promise<
   const phasesDirPath = phasesPath(cwd);
   const today = todayISO();
 
-  const phaseInfo = await findPhaseInternalAsync(cwd, phaseNum);
+  const phaseInfo = await findPhaseInternal(cwd, phaseNum);
   if (!phaseInfo) {
     throw new Error(`Phase ${phaseNum} not found`);
   }
@@ -235,7 +235,7 @@ export async function phaseCompleteCore(cwd: string, phaseNum: string): Promise<
   const summaryCount = phaseInfo.summaries.length;
   let requirementsUpdated = false;
 
-  const rmExists = await pathExistsAsync(rmPath);
+  const rmExists = await pathExistsInternal(rmPath);
   if (rmExists) {
     let roadmapContent = await fsp.readFile(rmPath, 'utf-8');
 
@@ -270,7 +270,7 @@ export async function phaseCompleteCore(cwd: string, phaseNum: string): Promise<
 
     // Update REQUIREMENTS.md
     const reqPath = planningPath(cwd, 'REQUIREMENTS.md');
-    if (await pathExistsAsync(reqPath)) {
+    if (await pathExistsInternal(reqPath)) {
       const reqMatch = roadmapContent.match(
         new RegExp(`Phase\\s+${escapePhaseNum(phaseNum)}[\\s\\S]*?\\*\\*Requirements:\\*\\*\\s*([^\\n]+)`, 'i'),
       );
@@ -304,7 +304,7 @@ export async function phaseCompleteCore(cwd: string, phaseNum: string): Promise<
   let isLastPhase = true;
 
   try {
-    const dirs = await listSubDirsAsync(phasesDirPath, true);
+    const dirs = await listSubDirs(phasesDirPath, true);
 
     for (const dir of dirs) {
       const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)-?(.*)/i);
@@ -322,7 +322,7 @@ export async function phaseCompleteCore(cwd: string, phaseNum: string): Promise<
   }
 
   // Update STATE.md
-  const stExists = await pathExistsAsync(stPath);
+  const stExists = await pathExistsInternal(stPath);
   if (stExists) {
     let stateContent = await fsp.readFile(stPath, 'utf-8');
 
@@ -383,7 +383,7 @@ export async function cmdPhasesList(cwd: string, options: PhasesListOptions): Pr
   const phasesDirPath = phasesPath(cwd);
   const { type, phase, includeArchived, offset, limit } = options;
 
-  if (!(await pathExistsAsync(phasesDirPath))) {
+  if (!(await pathExistsInternal(phasesDirPath))) {
     if (type) {
       return cmdOk({ files: [], count: 0, total: 0 }, '');
     } else {
@@ -392,10 +392,10 @@ export async function cmdPhasesList(cwd: string, options: PhasesListOptions): Pr
   }
 
   try {
-    let dirs = await listSubDirsAsync(phasesDirPath);
+    let dirs = await listSubDirs(phasesDirPath);
 
     if (includeArchived) {
-      const archived = await getArchivedPhaseDirsAsync(cwd);
+      const archived = await getArchivedPhaseDirs(cwd);
       for (const a of archived) {
         dirs.push(`${a.name} [${a.milestone}]`);
       }
@@ -458,7 +458,7 @@ export async function cmdPhaseNextDecimal(cwd: string, basePhase: string): Promi
   const phasesDirPath = phasesPath(cwd);
   const normalized = normalizePhaseName(basePhase);
 
-  if (!(await pathExistsAsync(phasesDirPath))) {
+  if (!(await pathExistsInternal(phasesDirPath))) {
     return cmdOk(
       { found: false, base_phase: normalized, next: `${normalized}.1`, existing: [] },
       `${normalized}.1`,
@@ -466,7 +466,7 @@ export async function cmdPhaseNextDecimal(cwd: string, basePhase: string): Promi
   }
 
   try {
-    const dirs = await listSubDirsAsync(phasesDirPath);
+    const dirs = await listSubDirs(phasesDirPath);
 
     const baseExists = dirs.some(d => d.startsWith(normalized + '-') || d === normalized);
 
@@ -517,7 +517,7 @@ export async function cmdFindPhase(cwd: string, phase: string | undefined): Prom
   const notFound = { found: false, directory: null, phase_number: null, phase_name: null, plans: [] as string[], summaries: [] as string[] };
 
   try {
-    const dirs = await listSubDirsAsync(phasesDirPath, true);
+    const dirs = await listSubDirs(phasesDirPath, true);
 
     const match = dirs.find(d => d.startsWith(normalized));
     if (!match) {
@@ -561,7 +561,7 @@ export async function cmdPhasePlanIndex(cwd: string, phase: string | undefined):
   let phaseDir: string | null = null;
   let phaseDirName: string | null = null;
   try {
-    const dirs = await listSubDirsAsync(phasesDirPath, true);
+    const dirs = await listSubDirs(phasesDirPath, true);
     const match = dirs.find(d => d.startsWith(normalized));
     if (match) {
       phaseDir = path.join(phasesDirPath, match);
@@ -704,7 +704,7 @@ export async function cmdPhaseRemove(
   const phasesDirPath = phasesPath(cwd);
   const force = options.force || false;
 
-  if (!(await pathExistsAsync(rmPath))) {
+  if (!(await pathExistsInternal(rmPath))) {
     return cmdErr('ROADMAP.md not found');
   }
 
@@ -713,7 +713,7 @@ export async function cmdPhaseRemove(
 
   let targetDir: string | null = null;
   try {
-    const dirs = await listSubDirsAsync(phasesDirPath, true);
+    const dirs = await listSubDirs(phasesDirPath, true);
     targetDir = dirs.find(d => d.startsWith(normalized + '-') || d === normalized) || null;
   } catch (e) {
     debugLog('phase-remove-find-target-failed', e);
@@ -741,7 +741,7 @@ export async function cmdPhaseRemove(
     const removedDecimal = parseInt(baseParts[1], 10);
 
     try {
-      const dirs = await listSubDirsAsync(phasesDirPath, true);
+      const dirs = await listSubDirs(phasesDirPath, true);
 
       const decPattern = new RegExp(`^${baseInt}\\.(\\d+)-(.+)$`);
       const toRename: Array<{ dir: string; oldDecimal: number; slug: string }> = [];
@@ -783,7 +783,7 @@ export async function cmdPhaseRemove(
     const removedInt = parseInt(normalized, 10);
 
     try {
-      const dirs = await listSubDirsAsync(phasesDirPath, true);
+      const dirs = await listSubDirs(phasesDirPath, true);
 
       const toRename: Array<{ dir: string; oldInt: number; letter: string; decimal: number | null; slug: string }> = [];
       for (const dir of dirs) {
@@ -890,7 +890,7 @@ export async function cmdPhaseRemove(
 
   // Update STATE.md phase count
   const stPath = statePath(cwd);
-  const stExists = await pathExistsAsync(stPath);
+  const stExists = await pathExistsInternal(stPath);
   if (stExists) {
     let stateContent = await fsp.readFile(stPath, 'utf-8');
     const totalPattern = /(\*\*Total Phases:\*\*\s*)(\d+)/;
@@ -961,22 +961,22 @@ const DECISIONS_SECTION_PATTERN = /(#{2,3}\s*(?:Decisions|Decisions Made|Accumul
 const BLOCKERS_SECTION_PATTERN = /(#{2,3}\s*(?:Blockers|Blockers\/Concerns|Concerns)\s*\n\s*\n?)([\s\S]*?)(?=\n#{2,3}\s|$)/i;
 
 export async function archivePhasePreview(cwd: string, phaseNum: string, outcomeSummary: string): Promise<CmdResult> {
-  const phaseInfo = await findPhaseInternalAsync(cwd, phaseNum);
+  const phaseInfo = await findPhaseInternal(cwd, phaseNum);
   if (!phaseInfo) {
     return cmdErr(`Phase ${phaseNum} not found`);
   }
 
-  const archiveDir = await archivePathAsync(cwd);
+  const archiveDir = await archivePath(cwd);
   const phaseDirName = path.basename(phaseInfo.directory);
   const archiveDest = path.join(archiveDir, phaseDirName);
 
   // Read STATE.md
-  const stContent = await safeReadFileAsync(statePath(cwd)) ?? '';
+  const stContent = await safeReadFile(statePath(cwd)) ?? '';
   const decisionsToRemove = findPhaseTaggedLines(stContent, DECISIONS_SECTION_PATTERN, phaseNum);
   const blockersToRemove = findPhaseTaggedLines(stContent, BLOCKERS_SECTION_PATTERN, phaseNum);
 
   // Read ROADMAP.md section
-  const rmContent = await safeReadFileAsync(roadmapPath(cwd)) ?? '';
+  const rmContent = await safeReadFile(roadmapPath(cwd)) ?? '';
   const escaped = escapePhaseNum(phaseNum);
   const sectionPattern = new RegExp(
     `#{2,4}\\s*Phase\\s+${escaped}\\s*:[\\s\\S]*?(?=\\n#{2,4}\\s+Phase\\s+\\d|\\n## |$)`,
@@ -1023,12 +1023,12 @@ function pruneSection(content: string, sectionPattern: RegExp, phaseNum: string)
 
 export async function archivePhaseExecute(cwd: string, phaseNum: string, outcomeSummary: string): Promise<CmdResult> {
   // Re-read all files fresh (pitfall #6)
-  const phaseInfo = await findPhaseInternalAsync(cwd, phaseNum);
+  const phaseInfo = await findPhaseInternal(cwd, phaseNum);
   if (!phaseInfo) {
     return cmdErr(`Phase ${phaseNum} not found`);
   }
 
-  const archiveDir = await archivePathAsync(cwd);
+  const archiveDir = await archivePath(cwd);
   const phaseDirName = path.basename(phaseInfo.directory);
   const archiveDest = path.join(archiveDir, phaseDirName);
   const phaseDirFull = path.join(cwd, phaseInfo.directory);
@@ -1051,7 +1051,7 @@ export async function archivePhaseExecute(cwd: string, phaseNum: string, outcome
 
   // 3. Prune STATE.md
   const stPath = statePath(cwd);
-  let stContent = await safeReadFileAsync(stPath);
+  let stContent = await safeReadFile(stPath);
   if (stContent) {
     stContent = pruneSection(stContent, DECISIONS_SECTION_PATTERN, phaseNum);
     stContent = pruneSection(stContent, BLOCKERS_SECTION_PATTERN, phaseNum);
@@ -1060,7 +1060,7 @@ export async function archivePhaseExecute(cwd: string, phaseNum: string, outcome
 
   // 4. Collapse ROADMAP.md
   const rmPath = roadmapPath(cwd);
-  let rmContent = await safeReadFileAsync(rmPath);
+  let rmContent = await safeReadFile(rmPath);
   if (rmContent) {
     const escaped = escapePhaseNum(phaseNum);
 
@@ -1098,7 +1098,7 @@ export async function archivePhaseExecute(cwd: string, phaseNum: string, outcome
     archived: true,
     phase: phaseNum,
     archive_path: path.relative(cwd, archiveDest).replace(/\\/g, '/'),
-    decisions_pruned: findPhaseTaggedLines(await safeReadFileAsync(statePath(cwd)) ?? '', DECISIONS_SECTION_PATTERN, phaseNum).length === 0,
+    decisions_pruned: findPhaseTaggedLines(await safeReadFile(statePath(cwd)) ?? '', DECISIONS_SECTION_PATTERN, phaseNum).length === 0,
     blockers_pruned: true,
     roadmap_collapsed: true,
   });
@@ -1120,7 +1120,7 @@ export async function cmdGetArchivedPhase(cwd: string, phaseNum: string): Promis
 
   // Search legacy .planning/milestones/
   const milestonesDir = planningPath(cwd, 'milestones');
-  if (await pathExistsAsync(milestonesDir)) {
+  if (await pathExistsInternal(milestonesDir)) {
     try {
       const entries = await fsp.readdir(milestonesDir, { withFileTypes: true });
       const phaseDirs = entries
@@ -1143,7 +1143,7 @@ export async function cmdGetArchivedPhase(cwd: string, phaseNum: string): Promis
 }
 
 async function searchArchiveLocations(archiveDir: string, normalized: string): Promise<Record<string, unknown> | null> {
-  if (!(await pathExistsAsync(archiveDir))) return null;
+  if (!(await pathExistsInternal(archiveDir))) return null;
 
   try {
     const entries = await fsp.readdir(archiveDir, { withFileTypes: true });
@@ -1166,7 +1166,7 @@ async function searchArchiveLocations(archiveDir: string, normalized: string): P
 
 async function searchForPhaseInDir(baseDir: string, normalized: string, milestone: string): Promise<Record<string, unknown> | null> {
   try {
-    const dirs = await listSubDirsAsync(baseDir, true);
+    const dirs = await listSubDirs(baseDir, true);
     const match = dirs.find(d => d.startsWith(normalized));
     if (!match) return null;
 

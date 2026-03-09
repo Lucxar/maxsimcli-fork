@@ -4,8 +4,8 @@
  * Ported from maxsim/bin/lib/core.cjs
  */
 
-import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { simpleGit } from 'simple-git';
@@ -122,22 +122,14 @@ export const planId = (f: string): string => f.replace('-PLAN.md', '').replace('
 export const summaryId = (f: string): string => f.replace('-SUMMARY.md', '').replace('SUMMARY.md', '');
 
 /** List subdirectory names, optionally sorted by phase number. */
-export function listSubDirs(dir: string, sortByPhase = false): string[] {
-  const dirs = fs.readdirSync(dir, { withFileTypes: true })
-    .filter(e => e.isDirectory())
-    .map(e => e.name);
-  return sortByPhase ? dirs.sort((a, b) => comparePhaseNum(a, b)) : dirs;
-}
-
-/** Async version of listSubDirs using fs.promises. */
-export async function listSubDirsAsync(dir: string, sortByPhase = false): Promise<string[]> {
+export async function listSubDirs(dir: string, sortByPhase = false): Promise<string[]> {
   const entries = await fsp.readdir(dir, { withFileTypes: true });
   const dirs = entries.filter(e => e.isDirectory()).map(e => e.name);
   return sortByPhase ? dirs.sort((a, b) => comparePhaseNum(a, b)) : dirs;
 }
 
-/** Async version of safeReadFile using fs.promises. */
-export async function safeReadFileAsync(filePath: string): Promise<string | null> {
+/** Read a file, returning null if it doesn't exist or fails. */
+export async function safeReadFile(filePath: string): Promise<string | null> {
   try {
     return await fsp.readFile(filePath, 'utf-8');
   } catch {
@@ -167,83 +159,8 @@ export function escapePhaseNum(phase: string | number): string {
 
 // ─── File & Config utilities ─────────────────────────────────────────────────
 
-export function safeReadFile(filePath: string): string | null {
-  try {
-    return fs.readFileSync(filePath, 'utf-8');
-  } catch {
-    return null;
-  }
-}
-
 let _configCache: { cwd: string; config: AppConfig } | null = null;
 
-export function loadConfig(cwd: string): AppConfig {
-  if (_configCache && _configCache.cwd === cwd) return _configCache.config;
-  const cfgPath = configPath(cwd);
-  const defaults: AppConfig = {
-    model_profile: 'balanced',
-    commit_docs: true,
-    search_gitignored: false,
-    branching_strategy: 'none',
-    phase_branch_template: 'maxsim/phase-{phase}-{slug}',
-    milestone_branch_template: 'maxsim/{milestone}-{slug}',
-    research: true,
-    plan_checker: true,
-    verifier: true,
-    parallelization: true,
-    brave_search: false,
-  };
-
-  try {
-    const raw = fs.readFileSync(cfgPath, 'utf-8');
-    const parsed: Record<string, unknown> = JSON.parse(raw) as Record<string, unknown>;
-
-    const get = (key: string, nested?: { section: string; field: string }): unknown => {
-      if (parsed[key] !== undefined) return parsed[key];
-      if (nested) {
-        const section = parsed[nested.section];
-        if (section && typeof section === 'object' && section !== null && nested.field in section) {
-          return (section as Record<string, unknown>)[nested.field];
-        }
-      }
-      return undefined;
-    };
-
-    const parallelization = ((): boolean => {
-      const val = get('parallelization');
-      if (typeof val === 'boolean') return val;
-      if (typeof val === 'object' && val !== null && 'enabled' in val) {
-        return (val as { enabled: boolean }).enabled;
-      }
-      return defaults.parallelization;
-    })();
-
-    const result: AppConfig = {
-      model_profile: (get('model_profile') as ModelProfileName | undefined) ?? defaults.model_profile,
-      commit_docs: (get('commit_docs', { section: 'planning', field: 'commit_docs' }) as boolean | undefined) ?? defaults.commit_docs,
-      search_gitignored: (get('search_gitignored', { section: 'planning', field: 'search_gitignored' }) as boolean | undefined) ?? defaults.search_gitignored,
-      branching_strategy: (get('branching_strategy', { section: 'git', field: 'branching_strategy' }) as BranchingStrategy | undefined) ?? defaults.branching_strategy,
-      phase_branch_template: (get('phase_branch_template', { section: 'git', field: 'phase_branch_template' }) as string | undefined) ?? defaults.phase_branch_template,
-      milestone_branch_template: (get('milestone_branch_template', { section: 'git', field: 'milestone_branch_template' }) as string | undefined) ?? defaults.milestone_branch_template,
-      research: (get('research', { section: 'workflow', field: 'research' }) as boolean | undefined) ?? defaults.research,
-      plan_checker: ((get('plan_checker', { section: 'workflow', field: 'plan_checker' }) ?? get('plan_checker', { section: 'workflow', field: 'plan_check' })) as boolean | undefined) ?? defaults.plan_checker,
-      verifier: (get('verifier', { section: 'workflow', field: 'verifier' }) as boolean | undefined) ?? defaults.verifier,
-      parallelization,
-      brave_search: (get('brave_search') as boolean | undefined) ?? defaults.brave_search,
-      model_overrides: parsed['model_overrides'] as AppConfig['model_overrides'],
-    };
-    _configCache = { cwd, config: result };
-    return result;
-  } catch (e) {
-    // If the file exists but is unparseable, warn the user
-    if (fs.existsSync(cfgPath)) {
-      console.warn(`[maxsim] Warning: config.json exists but could not be parsed — using defaults.`);
-      debugLog('config-load-failed', e);
-    }
-    _configCache = { cwd, config: defaults };
-    return defaults;
-  }
-}
 
 // ─── Git utilities ───────────────────────────────────────────────────────────
 
@@ -333,163 +250,11 @@ export function getPhasePattern(escapedPhaseNum?: string, flags = 'gim'): RegExp
   );
 }
 
-function searchPhaseInDir(baseDir: string, relBase: string, normalized: string): PhaseSearchResult | null {
-  try {
-    const dirs = listSubDirs(baseDir, true);
-    const match = dirs.find(d => d.startsWith(normalized));
-    if (!match) return null;
-
-    const dirMatch = match.match(/^(\d+[A-Z]?(?:\.\d+)?)-?(.*)/i);
-    const phaseNumber = dirMatch ? dirMatch[1] : normalized;
-    const phaseName = dirMatch && dirMatch[2] ? dirMatch[2] : null;
-    const phaseDir = path.join(baseDir, match);
-    const phaseFiles = fs.readdirSync(phaseDir);
-
-    const plans = phaseFiles.filter(isPlanFile).sort();
-    const summaries = phaseFiles.filter(isSummaryFile).sort();
-    const hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-    const hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
-    const hasVerification = phaseFiles.some(f => f.endsWith('-VERIFICATION.md') || f === 'VERIFICATION.md');
-
-    const completedPlanIds = new Set(summaries.map(summaryId));
-    const incompletePlans = plans.filter(p => !completedPlanIds.has(planId(p)));
-
-    return {
-      found: true,
-      directory: path.join(relBase, match),
-      phase_number: phaseNumber,
-      phase_name: phaseName,
-      phase_slug: phaseName ? phaseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : null,
-      plans,
-      summaries,
-      incomplete_plans: incompletePlans,
-      has_research: hasResearch,
-      has_context: hasContext,
-      has_verification: hasVerification,
-    };
-  } catch (e) {
-    debugLog('search-phase-in-dir-failed', { dir: baseDir, phase: normalized, error: errorMsg(e) });
-    return null;
-  }
-}
-
-export function findPhaseInternal(cwd: string, phase: string): PhaseSearchResult | null {
-  if (!phase) return null;
-
-  const pd = phasesPath(cwd);
-  const normalized = normalizePhaseName(phase);
-
-  const current = searchPhaseInDir(pd, path.join('.planning', 'phases'), normalized);
-  if (current) return current;
-
-  const milestonesDir = planningPath(cwd, 'milestones');
-
-  try {
-    fs.statSync(milestonesDir);
-  } catch {
-    return null;
-  }
-
-  try {
-    const milestoneEntries = fs.readdirSync(milestonesDir, { withFileTypes: true });
-    const archiveDirs = milestoneEntries
-      .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
-      .map(e => e.name)
-      .sort()
-      .reverse();
-
-    for (const archiveName of archiveDirs) {
-      const versionMatch = archiveName.match(/^(v[\d.]+)-phases$/);
-      if (!versionMatch) continue;
-      const version = versionMatch[1];
-      const archivePath = path.join(milestonesDir, archiveName);
-      const relBase = path.join('.planning', 'milestones', archiveName);
-      const result = searchPhaseInDir(archivePath, relBase, normalized);
-      if (result) {
-        result.archived = version;
-        return result;
-      }
-    }
-  } catch (e) {
-    debugLog('find-phase-milestone-search-failed', e);
-  }
-
-  return null;
-}
-
-export function getArchivedPhaseDirs(cwd: string): ArchivedPhaseDir[] {
-  const milestonesDir = planningPath(cwd, 'milestones');
-  const results: ArchivedPhaseDir[] = [];
-
-  try {
-    const milestoneEntries = fs.readdirSync(milestonesDir, { withFileTypes: true });
-    const phaseDirs = milestoneEntries
-      .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
-      .map(e => e.name)
-      .sort()
-      .reverse();
-
-    for (const archiveName of phaseDirs) {
-      const versionMatch = archiveName.match(/^(v[\d.]+)-phases$/);
-      if (!versionMatch) continue;
-      const version = versionMatch[1];
-      const archivePath = path.join(milestonesDir, archiveName);
-      const dirs = listSubDirs(archivePath, true);
-
-      for (const dir of dirs) {
-        results.push({
-          name: dir,
-          milestone: version,
-          basePath: path.join('.planning', 'milestones', archiveName),
-          fullPath: path.join(archivePath, dir),
-        });
-      }
-    }
-  } catch (e) {
-    debugLog('get-archived-phase-dirs-failed', e);
-  }
-
-  return results;
-}
 
 // ─── Roadmap & model utilities ───────────────────────────────────────────────
 
-export function getRoadmapPhaseInternal(cwd: string, phaseNum: string | number): RoadmapPhaseInfo | null {
-  if (!phaseNum) return null;
-  const rp = roadmapPath(cwd);
-
-  try {
-    const content = fs.readFileSync(rp, 'utf-8');
-    const escapedPhase = escapePhaseNum(phaseNum);
-    const phasePattern = getPhasePattern(escapedPhase, 'i');
-    const headerMatch = content.match(phasePattern);
-    if (!headerMatch) return null;
-
-    const phaseName = headerMatch[1].trim();
-    const headerIndex = headerMatch.index!;
-    const restOfContent = content.slice(headerIndex);
-    const nextHeaderMatch = restOfContent.match(/\n#{2,4}\s+Phase\s+\d/i);
-    const sectionEnd = nextHeaderMatch ? headerIndex + nextHeaderMatch.index! : content.length;
-    const section = content.slice(headerIndex, sectionEnd).trim();
-
-    const goalMatch = section.match(/\*\*Goal(?::\*\*|\*\*:)\s*([^\n]+)/i);
-    const goal = goalMatch ? goalMatch[1].trim() : null;
-
-    return {
-      found: true,
-      phase_number: phaseNum.toString(),
-      phase_name: phaseName,
-      goal,
-      section,
-    };
-  } catch (e) {
-    debugLog('get-roadmap-phase-failed', { phase: phaseNum, error: errorMsg(e) });
-    return null;
-  }
-}
-
-export function resolveModelInternal(cwd: string, agentType: AgentType, config?: AppConfig): ModelResolution {
-  config = config ?? loadConfig(cwd);
+export async function resolveModelInternal(cwd: string, agentType: AgentType, config?: AppConfig): Promise<ModelResolution> {
+  config = config ?? await loadConfig(cwd);
 
   const override = config.model_overrides?.[agentType];
   if (override) {
@@ -505,38 +270,15 @@ export function resolveModelInternal(cwd: string, agentType: AgentType, config?:
 
 // ─── Misc utilities ──────────────────────────────────────────────────────────
 
-export function pathExistsInternal(cwd: string, targetPath: string): boolean {
-  const fullPath = path.isAbsolute(targetPath) ? targetPath : path.join(cwd, targetPath);
-  try {
-    fs.statSync(fullPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export function generateSlugInternal(text: string | null | undefined): string | null {
   if (!text) return null;
   return slugify(text, { lower: true, strict: true });
 }
 
-export function getMilestoneInfo(cwd: string): MilestoneInfo {
-  try {
-    const roadmap = fs.readFileSync(roadmapPath(cwd), 'utf-8');
-    const versionMatch = roadmap.match(/v(\d+\.\d+)/);
-    const nameMatch = roadmap.match(/## .*v\d+\.\d+[:\s]+([^\n(]+)/);
-    return {
-      version: versionMatch ? versionMatch[0] : 'v1.0',
-      name: nameMatch ? nameMatch[1].trim() : 'milestone',
-    };
-  } catch {
-    return { version: 'v1.0', name: 'milestone' };
-  }
-}
+// ─── Async internal helpers ─────────────────────────────────────────────────
 
-// ─── Async versions of internal helpers (Phase 10: Performance) ─────────────
-
-export async function pathExistsAsync(p: string): Promise<boolean> {
+export async function pathExistsInternal(p: string): Promise<boolean> {
   try {
     await fsp.access(p);
     return true;
@@ -545,7 +287,7 @@ export async function pathExistsAsync(p: string): Promise<boolean> {
   }
 }
 
-export async function loadConfigAsync(cwd: string): Promise<AppConfig> {
+export async function loadConfig(cwd: string): Promise<AppConfig> {
   if (_configCache && _configCache.cwd === cwd) return _configCache.config;
   const cfgPath = configPath(cwd);
   const defaults: AppConfig = {
@@ -603,7 +345,7 @@ export async function loadConfigAsync(cwd: string): Promise<AppConfig> {
     _configCache = { cwd, config: result };
     return result;
   } catch (e) {
-    if (await pathExistsAsync(cfgPath)) {
+    if (await pathExistsInternal(cfgPath)) {
       console.warn(`[maxsim] Warning: config.json exists but could not be parsed — using defaults.`);
       debugLog('config-load-failed', e);
     }
@@ -612,9 +354,9 @@ export async function loadConfigAsync(cwd: string): Promise<AppConfig> {
   }
 }
 
-async function searchPhaseInDirAsync(baseDir: string, relBase: string, normalized: string): Promise<PhaseSearchResult | null> {
+async function searchPhaseInDir(baseDir: string, relBase: string, normalized: string): Promise<PhaseSearchResult | null> {
   try {
-    const dirs = await listSubDirsAsync(baseDir, true);
+    const dirs = await listSubDirs(baseDir, true);
     const match = dirs.find(d => d.startsWith(normalized));
     if (!match) return null;
 
@@ -652,18 +394,18 @@ async function searchPhaseInDirAsync(baseDir: string, relBase: string, normalize
   }
 }
 
-export async function findPhaseInternalAsync(cwd: string, phase: string): Promise<PhaseSearchResult | null> {
+export async function findPhaseInternal(cwd: string, phase: string): Promise<PhaseSearchResult | null> {
   if (!phase) return null;
 
   const pd = phasesPath(cwd);
   const normalized = normalizePhaseName(phase);
 
-  const current = await searchPhaseInDirAsync(pd, path.join('.planning', 'phases'), normalized);
+  const current = await searchPhaseInDir(pd, path.join('.planning', 'phases'), normalized);
   if (current) return current;
 
   // Search new archive location: .planning/archive/<milestone>/
   const archiveDir = planningPath(cwd, 'archive');
-  if (await pathExistsAsync(archiveDir)) {
+  if (await pathExistsInternal(archiveDir)) {
     try {
       const archiveEntries = await fsp.readdir(archiveDir, { withFileTypes: true });
       const versionDirs = archiveEntries
@@ -675,7 +417,7 @@ export async function findPhaseInternalAsync(cwd: string, phase: string): Promis
       for (const versionName of versionDirs) {
         const versionPath = path.join(archiveDir, versionName);
         const relBase = path.join('.planning', 'archive', versionName);
-        const result = await searchPhaseInDirAsync(versionPath, relBase, normalized);
+        const result = await searchPhaseInDir(versionPath, relBase, normalized);
         if (result) {
           result.archived = versionName;
           return result;
@@ -689,7 +431,7 @@ export async function findPhaseInternalAsync(cwd: string, phase: string): Promis
   // Legacy: search .planning/milestones/
   const milestonesDir = planningPath(cwd, 'milestones');
 
-  if (!(await pathExistsAsync(milestonesDir))) return null;
+  if (!(await pathExistsInternal(milestonesDir))) return null;
 
   try {
     const milestoneEntries = await fsp.readdir(milestonesDir, { withFileTypes: true });
@@ -705,7 +447,7 @@ export async function findPhaseInternalAsync(cwd: string, phase: string): Promis
       const version = versionMatch[1];
       const archiveMilestonePath = path.join(milestonesDir, archiveName);
       const relBase = path.join('.planning', 'milestones', archiveName);
-      const result = await searchPhaseInDirAsync(archiveMilestonePath, relBase, normalized);
+      const result = await searchPhaseInDir(archiveMilestonePath, relBase, normalized);
       if (result) {
         result.archived = version;
         return result;
@@ -718,7 +460,7 @@ export async function findPhaseInternalAsync(cwd: string, phase: string): Promis
   return null;
 }
 
-export async function getArchivedPhaseDirsAsync(cwd: string): Promise<ArchivedPhaseDir[]> {
+export async function getArchivedPhaseDirs(cwd: string): Promise<ArchivedPhaseDir[]> {
   const results: ArchivedPhaseDir[] = [];
 
   // New archive location: .planning/archive/<milestone>/
@@ -733,7 +475,7 @@ export async function getArchivedPhaseDirsAsync(cwd: string): Promise<ArchivedPh
 
     for (const versionName of versionDirs) {
       const versionPath = path.join(archiveDir, versionName);
-      const dirs = await listSubDirsAsync(versionPath, true);
+      const dirs = await listSubDirs(versionPath, true);
 
       for (const dir of dirs) {
         results.push({
@@ -763,7 +505,7 @@ export async function getArchivedPhaseDirsAsync(cwd: string): Promise<ArchivedPh
       if (!versionMatch) continue;
       const version = versionMatch[1];
       const archiveMilestonePath = path.join(milestonesDir, archiveName);
-      const dirs = await listSubDirsAsync(archiveMilestonePath, true);
+      const dirs = await listSubDirs(archiveMilestonePath, true);
 
       for (const dir of dirs) {
         results.push({
@@ -781,12 +523,12 @@ export async function getArchivedPhaseDirsAsync(cwd: string): Promise<ArchivedPh
   return results;
 }
 
-export async function getRoadmapPhaseInternalAsync(cwd: string, phaseNum: string | number): Promise<RoadmapPhaseInfo | null> {
+export async function getRoadmapPhaseInternal(cwd: string, phaseNum: string | number): Promise<RoadmapPhaseInfo | null> {
   if (!phaseNum) return null;
   const rp = roadmapPath(cwd);
 
   try {
-    const content = await safeReadFileAsync(rp);
+    const content = await safeReadFile(rp);
     if (!content) return null;
     const escapedPhase = escapePhaseNum(phaseNum);
     const phasePattern = getPhasePattern(escapedPhase, 'i');
@@ -816,19 +558,14 @@ export async function getRoadmapPhaseInternalAsync(cwd: string, phaseNum: string
   }
 }
 
-export function archivePath(cwd: string, milestone?: string): string {
-  const ms = milestone ?? getMilestoneInfo(cwd).version;
+export async function archivePath(cwd: string, milestone?: string): Promise<string> {
+  const ms = milestone ?? (await getMilestoneInfo(cwd)).version;
   return planningPath(cwd, 'archive', ms);
 }
 
-export async function archivePathAsync(cwd: string, milestone?: string): Promise<string> {
-  const ms = milestone ?? (await getMilestoneInfoAsync(cwd)).version;
-  return planningPath(cwd, 'archive', ms);
-}
-
-export async function getMilestoneInfoAsync(cwd: string): Promise<MilestoneInfo> {
+export async function getMilestoneInfo(cwd: string): Promise<MilestoneInfo> {
   try {
-    const roadmap = await safeReadFileAsync(roadmapPath(cwd));
+    const roadmap = await safeReadFile(roadmapPath(cwd));
     if (!roadmap) return { version: 'v1.0', name: 'milestone' };
     const versionMatch = roadmap.match(/v(\d+\.\d+)/);
     const nameMatch = roadmap.match(/## .*v\d+\.\d+[:\s]+([^\n(]+)/);

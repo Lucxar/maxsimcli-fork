@@ -7,7 +7,7 @@
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 
-import { normalizePhaseName, getPhasePattern, findPhaseInternalAsync, roadmapPath, phasesPath, listSubDirsAsync, isPlanFile, isSummaryFile, debugLog, todayISO, safeReadFileAsync } from './core.js';
+import { normalizePhaseName, getPhasePattern, findPhaseInternal, roadmapPath, phasesPath, listSubDirs, isPlanFile, isSummaryFile, debugLog, todayISO, safeReadFile } from './core.js';
 import { cmdOk, cmdErr } from './types.js';
 import type { PhaseStatus, RoadmapPhase, RoadmapMilestone, RoadmapAnalysis, CmdResult } from './types.js';
 
@@ -15,7 +15,7 @@ import type { PhaseStatus, RoadmapPhase, RoadmapMilestone, RoadmapAnalysis, CmdR
 
 export async function cmdRoadmapGetPhase(cwd: string, phaseNum: string): Promise<CmdResult> {
   const rmPath = roadmapPath(cwd);
-  const content = await safeReadFileAsync(rmPath);
+  const content = await safeReadFile(rmPath);
   if (!content) return cmdOk({ found: false, error: 'ROADMAP.md not found' }, '');
 
   try {
@@ -51,7 +51,7 @@ export async function cmdRoadmapGetPhase(cwd: string, phaseNum: string): Promise
 
 export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
   const rmPath = roadmapPath(cwd);
-  const content = await safeReadFileAsync(rmPath);
+  const content = await safeReadFile(rmPath);
   if (!content) return cmdOk({ error: 'ROADMAP.md not found', milestones: [], phases: [], current_phase: null });
 
   const phasesDir = phasesPath(cwd);
@@ -76,7 +76,7 @@ export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
   }
 
   let allDirs: string[] = [];
-  try { allDirs = await listSubDirsAsync(phasesDir); } catch { /* phases dir may not exist */ }
+  try { allDirs = await listSubDirs(phasesDir); } catch { /* phases dir may not exist */ }
 
   const phases: RoadmapPhase[] = await Promise.all(
     parsedPhases.map(async (p) => {
@@ -132,7 +132,7 @@ export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
 export async function cmdRoadmapUpdatePlanProgress(cwd: string, phaseNum: string): Promise<CmdResult> {
   if (!phaseNum) return cmdErr('phase number required for roadmap update-plan-progress');
   const rmPath = roadmapPath(cwd);
-  const phaseInfo = await findPhaseInternalAsync(cwd, phaseNum);
+  const phaseInfo = await findPhaseInternal(cwd, phaseNum);
   if (!phaseInfo) return cmdErr(`Phase ${phaseNum} not found`);
 
   const planCount = phaseInfo.plans.length;
@@ -143,7 +143,7 @@ export async function cmdRoadmapUpdatePlanProgress(cwd: string, phaseNum: string
   const status = isComplete ? 'Complete' : summaryCount > 0 ? 'In Progress' : 'Planned';
   const today = todayISO();
 
-  const rawContent = await safeReadFileAsync(rmPath);
+  const rawContent = await safeReadFile(rmPath);
   if (!rawContent) return cmdOk({ updated: false, reason: 'ROADMAP.md not found', plan_count: planCount, summary_count: summaryCount }, 'no roadmap');
 
   let roadmapContent = rawContent;
