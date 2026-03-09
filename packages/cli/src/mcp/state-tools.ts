@@ -1,6 +1,9 @@
 /**
  * State Management MCP Tools — STATE.md operations exposed as MCP tools
  *
+ * Integrates with GitHub: blocker add/resolve uses best-effort GitHub
+ * issue linking when blocker text references issue numbers.
+ *
  * CRITICAL: Never import output() or error() from core — they call process.exit().
  * CRITICAL: Never write to stdout — it is reserved for MCP JSON-RPC protocol.
  * CRITICAL: Never call process.exit() — the server must stay alive after every tool call.
@@ -13,7 +16,31 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { statePath } from '../core/core.js';
 import { stateExtractField, stateReplaceField, appendToStateSection } from '../core/state.js';
+
+import { detectGitHubMode } from '../github/gh.js';
+import { postComment } from '../github/issues.js';
+
 import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';
+
+// ---- Helpers ---------------------------------------------------------------
+
+/**
+ * Extract GitHub issue numbers from text.
+ *
+ * Matches patterns like "#42", "issue 42", "issue #42", "blocked by #42".
+ * Returns unique issue numbers found.
+ */
+function extractIssueNumbers(text: string): number[] {
+  const matches = text.matchAll(/#(\d+)|issue\s+#?(\d+)/gi);
+  const numbers = new Set<number>();
+  for (const match of matches) {
+    const num = parseInt(match[1] || match[2], 10);
+    if (!Number.isNaN(num) && num > 0) {
+      numbers.add(num);
+    }
+  }
+  return Array.from(numbers);
+}
 
 /**
  * Register all state management tools on the MCP server.
@@ -208,9 +235,38 @@ export function registerStateTools(server: McpServer): void {
 
         fs.writeFileSync(stPath, updated, 'utf-8');
 
+        // GitHub integration: best-effort dependency linking
+        let githubLinked: number[] = [];
+        let githubWarning: string | undefined;
+
+        try {
+          const mode = await detectGitHubMode();
+          if (mode === 'full') {
+            const issueNumbers = extractIssueNumbers(text);
+            if (issueNumbers.length > 0) {
+              for (const issueNum of issueNumbers) {
+                const commentResult = await postComment(
+                  issueNum,
+                  `**Blocker added in MAXSIM:**\n\n${text}\n\n---\n*Posted by MAXSIM blocker tracking*`,
+                );
+                if (commentResult.ok) {
+                  githubLinked.push(issueNum);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          githubWarning = `GitHub linking failed: ${(e as Error).message}`;
+        }
+
         return mcpSuccess(
-          { added: true, blocker: text },
-          'Blocker added',
+          {
+            added: true,
+            blocker: text,
+            github_linked_issues: githubLinked.length > 0 ? githubLinked : null,
+            ...(githubWarning ? { github_warning: githubWarning } : {}),
+          },
+          `Blocker added${githubLinked.length > 0 ? ` (linked to ${githubLinked.map(n => `#${n}`).join(', ')})` : ''}`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');
@@ -255,9 +311,16 @@ export function registerStateTools(server: McpServer): void {
 
         const sectionBody = match[2];
         const lines = sectionBody.split('\n');
+
+        // Collect matching blocker lines for GitHub comment
+        const matchingLines: string[] = [];
         const filtered = lines.filter((line) => {
           if (!line.startsWith('- ')) return true;
-          return !line.toLowerCase().includes(text.toLowerCase());
+          if (line.toLowerCase().includes(text.toLowerCase())) {
+            matchingLines.push(line);
+            return false;
+          }
+          return true;
         });
 
         let newBody = filtered.join('\n');
@@ -272,9 +335,40 @@ export function registerStateTools(server: McpServer): void {
 
         fs.writeFileSync(stPath, content, 'utf-8');
 
+        // GitHub integration: post resolution comment on referenced issues
+        let githubCommented: number[] = [];
+        let githubWarning: string | undefined;
+
+        try {
+          const mode = await detectGitHubMode();
+          if (mode === 'full') {
+            // Extract issue numbers from the matched blocker text
+            const allText = matchingLines.join(' ') + ' ' + text;
+            const issueNumbers = extractIssueNumbers(allText);
+            if (issueNumbers.length > 0) {
+              for (const issueNum of issueNumbers) {
+                const commentResult = await postComment(
+                  issueNum,
+                  `**Blocker resolved in MAXSIM:**\n\nResolved blocker matching: "${text}"\n\n---\n*Posted by MAXSIM blocker tracking*`,
+                );
+                if (commentResult.ok) {
+                  githubCommented.push(issueNum);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          githubWarning = `GitHub comment failed: ${(e as Error).message}`;
+        }
+
         return mcpSuccess(
-          { resolved: true, blocker: text },
-          'Blocker resolved',
+          {
+            resolved: true,
+            blocker: text,
+            github_commented_issues: githubCommented.length > 0 ? githubCommented : null,
+            ...(githubWarning ? { github_warning: githubWarning } : {}),
+          },
+          `Blocker resolved${githubCommented.length > 0 ? ` (commented on ${githubCommented.map(n => `#${n}`).join(', ')})` : ''}`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');
