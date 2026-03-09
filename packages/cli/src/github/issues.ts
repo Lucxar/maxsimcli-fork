@@ -16,6 +16,7 @@
 
 import type { GhResult } from './types.js';
 import { ghExec } from './gh.js';
+import { loadMapping, saveMapping, updateTaskMapping } from './mapping.js';
 
 // ---- Helpers ---------------------------------------------------------------
 
@@ -282,4 +283,463 @@ export function buildPrBody(closesIssues: number[], additionalContent?: string):
   const closesLines = closesIssues.map(n => `Closes #${n}`).join('\n');
   const content = additionalContent ? `\n\n${additionalContent}` : '';
   return `${closesLines}${content}`;
+}
+
+// ---- Lifecycle Functions ----------------------------------------------------
+
+/**
+ * Close an issue with an optional reason.
+ *
+ * Reason defaults to 'completed' if not specified.
+ */
+export async function closeIssue(
+  issueNumber: number,
+  reason?: 'completed' | 'not_planned',
+): Promise<GhResult<void>> {
+  const args: string[] = ['issue', 'close', String(issueNumber)];
+  if (reason) {
+    args.push('--reason', reason);
+  }
+
+  const result = await ghExec<string>(args);
+  if (!result.ok) return { ok: false, error: result.error, code: result.code };
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Reopen a closed issue.
+ */
+export async function reopenIssue(issueNumber: number): Promise<GhResult<void>> {
+  const result = await ghExec<string>(['issue', 'reopen', String(issueNumber)]);
+  if (!result.ok) return { ok: false, error: result.error, code: result.code };
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Close an issue as superseded by a newer issue.
+ *
+ * 1. Posts "Superseded by #{newIssueNumber}" comment on old issue
+ * 2. Adds 'superseded' label to old issue
+ * 3. Closes old issue as completed
+ * 4. Posts "Replaces #{oldIssueNumber}" comment on new issue
+ *
+ * Creates bidirectional cross-references.
+ */
+export async function closeIssueAsSuperseded(
+  oldIssueNumber: number,
+  newIssueNumber: number,
+): Promise<GhResult<void>> {
+  // 1. Post cross-reference comment on old issue
+  const commentResult = await postComment(
+    oldIssueNumber,
+    `Superseded by #${newIssueNumber}`,
+  );
+  if (!commentResult.ok) return { ok: false, error: commentResult.error, code: commentResult.code };
+
+  // 2. Add superseded label
+  const labelResult = await ghExec<string>([
+    'issue',
+    'edit',
+    String(oldIssueNumber),
+    '--add-label',
+    'superseded',
+  ]);
+  if (!labelResult.ok) return { ok: false, error: labelResult.error, code: labelResult.code };
+
+  // 3. Close old issue
+  const closeResult = await closeIssue(oldIssueNumber, 'completed');
+  if (!closeResult.ok) return closeResult;
+
+  // 4. Post cross-reference comment on new issue
+  const replaceCommentResult = await postComment(
+    newIssueNumber,
+    `Replaces #${oldIssueNumber}`,
+  );
+  if (!replaceCommentResult.ok) return { ok: false, error: replaceCommentResult.error, code: replaceCommentResult.code };
+
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Post a comment on an issue.
+ */
+export async function postComment(
+  issueNumber: number,
+  body: string,
+): Promise<GhResult<void>> {
+  const result = await ghExec<string>([
+    'issue',
+    'comment',
+    String(issueNumber),
+    '--body',
+    body,
+  ]);
+  if (!result.ok) return { ok: false, error: result.error, code: result.code };
+  return { ok: true, data: undefined };
+}
+
+// ---- Import Function --------------------------------------------------------
+
+/**
+ * Import an existing external GitHub issue into MAXSIM tracking.
+ *
+ * Reads the issue details and adds 'maxsim' and 'imported' labels.
+ * Returns the issue details for the AI to decide placement.
+ */
+export async function importExternalIssue(
+  issueNumber: number,
+): Promise<GhResult<{ number: number; title: string; labels: string[] }>> {
+  // Fetch issue details
+  const viewResult = await ghExec<{
+    title: string;
+    labels: Array<{ name: string }>;
+    body: string;
+    state: string;
+  }>(['issue', 'view', String(issueNumber), '--json', 'title,labels,body,state'], {
+    parseJson: true,
+  });
+
+  if (!viewResult.ok) return { ok: false, error: viewResult.error, code: viewResult.code };
+
+  // Add maxsim and imported labels
+  const labelResult = await ghExec<string>([
+    'issue',
+    'edit',
+    String(issueNumber),
+    '--add-label',
+    'maxsim,imported',
+  ]);
+  if (!labelResult.ok) return { ok: false, error: labelResult.error, code: labelResult.code };
+
+  const existingLabels = viewResult.data.labels.map(l => l.name);
+  const allLabels = Array.from(new Set([...existingLabels, 'maxsim', 'imported']));
+
+  return {
+    ok: true,
+    data: {
+      number: issueNumber,
+      title: viewResult.data.title,
+      labels: allLabels,
+    },
+  };
+}
+
+// ---- Parent Tracking Update -------------------------------------------------
+
+/**
+ * Update the parent tracking issue's task list checkbox.
+ *
+ * Reads the parent issue body, finds `- [ ] #{childNumber}` or `- [x] #{childNumber}`,
+ * toggles the checkbox, and updates the issue body via `gh issue edit`.
+ */
+export async function updateParentTaskList(
+  parentIssueNumber: number,
+  childIssueNumber: number,
+  checked: boolean,
+): Promise<GhResult<void>> {
+  // Read current body
+  const viewResult = await ghExec<{ body: string }>(
+    ['issue', 'view', String(parentIssueNumber), '--json', 'body'],
+    { parseJson: true },
+  );
+
+  if (!viewResult.ok) return { ok: false, error: viewResult.error, code: viewResult.code };
+
+  const currentBody = viewResult.data.body;
+
+  // Build regex to match either checked or unchecked state for this child issue
+  const checkboxPattern = new RegExp(
+    `- \\[([ x])\\] #${childIssueNumber}\\b`,
+    'g',
+  );
+
+  const newCheckState = checked ? 'x' : ' ';
+  const updatedBody = currentBody.replace(checkboxPattern, `- [${newCheckState}] #${childIssueNumber}`);
+
+  if (updatedBody === currentBody) {
+    // No matching task list entry found -- not necessarily an error
+    return { ok: true, data: undefined };
+  }
+
+  // Update the issue body
+  const editResult = await ghExec<string>([
+    'issue',
+    'edit',
+    String(parentIssueNumber),
+    '--body',
+    updatedBody,
+  ]);
+
+  if (!editResult.ok) return { ok: false, error: editResult.error, code: editResult.code };
+  return { ok: true, data: undefined };
+}
+
+// ---- Batch Operations -------------------------------------------------------
+
+/**
+ * Create all issues for a plan at once (eager creation on plan finalization).
+ *
+ * 1. Creates all task issues with concurrency limit of 5 (rate limit safety).
+ * 2. After all task issues created, creates parent tracking issue.
+ * 3. Updates mapping file for all created issues.
+ * 4. Returns parent issue number and all task issue numbers.
+ *
+ * Handles partial failures: continues batch, reports which failed.
+ */
+export async function createAllPlanIssues(opts: {
+  phaseNum: string;
+  planNum: string;
+  phaseName: string;
+  tasks: Array<{
+    taskId: string;
+    title: string;
+    summary: string;
+    actions: string[];
+    acceptanceCriteria: string[];
+    dependencies?: string[];
+    estimate?: number;
+  }>;
+  milestone?: string;
+  projectTitle?: string;
+  cwd: string;
+}): Promise<
+  GhResult<{
+    parentIssue: number;
+    taskIssues: Array<{ taskId: string; issueNumber: number }>;
+  }>
+> {
+  const BATCH_SIZE = 5;
+  const results: Array<{ taskId: string; issueNumber: number; nodeId: string }> = [];
+  const failures: Array<{ taskId: string; error: string }> = [];
+
+  // Process tasks in batches of 5 for rate limit safety
+  for (let i = 0; i < opts.tasks.length; i += BATCH_SIZE) {
+    const batch = opts.tasks.slice(i, i + BATCH_SIZE);
+
+    const batchPromises = batch.map(async task => {
+      // Resolve task dependencies to issue numbers from already-created issues
+      let depIssueNumbers: number[] | undefined;
+      if (task.dependencies && task.dependencies.length > 0) {
+        depIssueNumbers = task.dependencies
+          .map(depId => {
+            const found = results.find(r => r.taskId === depId);
+            return found ? found.issueNumber : 0;
+          })
+          .filter(n => n > 0);
+      }
+
+      const result = await createTaskIssue({
+        title: task.title,
+        phaseNum: opts.phaseNum,
+        planNum: opts.planNum,
+        taskId: task.taskId,
+        summary: task.summary,
+        actions: task.actions,
+        acceptanceCriteria: task.acceptanceCriteria,
+        dependencies: depIssueNumbers,
+        milestone: opts.milestone,
+        projectTitle: opts.projectTitle,
+        estimate: task.estimate,
+      });
+
+      return { taskId: task.taskId, result };
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+
+    for (const { taskId, result } of batchResults) {
+      if (result.ok) {
+        results.push({
+          taskId,
+          issueNumber: result.data.number,
+          nodeId: result.data.node_id,
+        });
+      } else {
+        failures.push({ taskId, error: result.error });
+      }
+    }
+  }
+
+  // If ALL tasks failed, return error
+  if (results.length === 0) {
+    return {
+      ok: false,
+      error: `All task issue creations failed: ${failures.map(f => `${f.taskId}: ${f.error}`).join('; ')}`,
+      code: 'UNKNOWN',
+    };
+  }
+
+  // Create parent tracking issue with all child issue numbers
+  const childNumbers = results.map(r => r.issueNumber);
+  const parentResult = await createParentTrackingIssue({
+    phaseNum: opts.phaseNum,
+    phaseName: opts.phaseName,
+    childIssueNumbers: childNumbers,
+    milestone: opts.milestone,
+    projectTitle: opts.projectTitle,
+  });
+
+  if (!parentResult.ok) {
+    return {
+      ok: false,
+      error: `Task issues created but parent tracking issue failed: ${parentResult.error}`,
+      code: parentResult.code,
+    };
+  }
+
+  // Update mapping file for all created issues
+  const mapping = loadMapping(opts.cwd);
+  if (mapping) {
+    // Ensure phase entry exists
+    if (!mapping.phases[opts.phaseNum]) {
+      mapping.phases[opts.phaseNum] = {
+        tracking_issue: { number: 0, node_id: '', item_id: '', status: 'To Do' },
+        plan: '',
+        tasks: {},
+      };
+    }
+
+    // Update parent tracking issue
+    mapping.phases[opts.phaseNum].tracking_issue = {
+      number: parentResult.data.number,
+      node_id: parentResult.data.node_id,
+      item_id: '',
+      status: 'To Do',
+    };
+    mapping.phases[opts.phaseNum].plan = `${opts.phaseNum}-${opts.planNum}`;
+
+    // Update each task issue
+    for (const r of results) {
+      mapping.phases[opts.phaseNum].tasks[r.taskId] = {
+        number: r.issueNumber,
+        node_id: r.nodeId,
+        item_id: '',
+        status: 'To Do',
+      };
+    }
+
+    saveMapping(opts.cwd, mapping);
+  }
+
+  // Build result with failure info if partial
+  const taskIssues = results.map(r => ({ taskId: r.taskId, issueNumber: r.issueNumber }));
+
+  return {
+    ok: true,
+    data: {
+      parentIssue: parentResult.data.number,
+      taskIssues,
+    },
+  };
+}
+
+/**
+ * Supersede old plan's issues when a plan is re-planned (fresh issues per plan).
+ *
+ * 1. Load mapping to find old plan's issue numbers.
+ * 2. For each old issue, close as superseded with cross-reference to new issue.
+ * 3. Close old parent tracking issue as superseded.
+ * 4. Update mapping: mark old entries, add new entries.
+ */
+export async function supersedePlanIssues(opts: {
+  phaseNum: string;
+  oldPlanNum: string;
+  newPlanNum: string;
+  newIssueNumbers: Array<{ taskId: string; issueNumber: number }>;
+  cwd: string;
+}): Promise<GhResult<void>> {
+  const mapping = loadMapping(opts.cwd);
+  if (!mapping) {
+    return {
+      ok: false,
+      error: 'github-issues.json does not exist. Run project setup first.',
+      code: 'NOT_FOUND',
+    };
+  }
+
+  const phase = mapping.phases[opts.phaseNum];
+  if (!phase) {
+    return {
+      ok: false,
+      error: `No phase ${opts.phaseNum} found in mapping file`,
+      code: 'NOT_FOUND',
+    };
+  }
+
+  // Check that this is the old plan
+  const currentPlan = phase.plan;
+  const expectedOldPlan = `${opts.phaseNum}-${opts.oldPlanNum}`;
+  if (currentPlan !== expectedOldPlan) {
+    return {
+      ok: false,
+      error: `Phase ${opts.phaseNum} is on plan '${currentPlan}', expected '${expectedOldPlan}'`,
+      code: 'UNKNOWN',
+    };
+  }
+
+  const failures: string[] = [];
+
+  // Supersede each old task issue with corresponding new issue
+  const oldTasks = Object.entries(phase.tasks);
+  for (const [taskId, oldTask] of oldTasks) {
+    // Find the corresponding new issue for this task
+    const newIssue = opts.newIssueNumbers.find(n => n.taskId === taskId);
+    if (!newIssue) {
+      // No corresponding new issue — just close the old one
+      const closeResult = await closeIssue(oldTask.number, 'completed');
+      if (!closeResult.ok) {
+        failures.push(`close task ${taskId} (#${oldTask.number}): ${closeResult.error}`);
+      }
+      continue;
+    }
+
+    const supersedeResult = await closeIssueAsSuperseded(
+      oldTask.number,
+      newIssue.issueNumber,
+    );
+    if (!supersedeResult.ok) {
+      failures.push(
+        `supersede task ${taskId} (#${oldTask.number} -> #${newIssue.issueNumber}): ${supersedeResult.error}`,
+      );
+    }
+  }
+
+  // Close old parent tracking issue
+  if (phase.tracking_issue.number > 0) {
+    // Find any new parent issue number (if available) for cross-reference
+    // The new parent will be created separately, so we just close the old one
+    const closeResult = await closeIssue(phase.tracking_issue.number, 'completed');
+    if (!closeResult.ok) {
+      failures.push(
+        `close parent tracking issue #${phase.tracking_issue.number}: ${closeResult.error}`,
+      );
+    }
+  }
+
+  // Update mapping: update the plan reference
+  phase.plan = `${opts.phaseNum}-${opts.newPlanNum}`;
+
+  // Clear old task entries and add new ones
+  phase.tasks = {};
+  for (const newIssue of opts.newIssueNumbers) {
+    phase.tasks[newIssue.taskId] = {
+      number: newIssue.issueNumber,
+      node_id: '',
+      item_id: '',
+      status: 'To Do',
+    };
+  }
+
+  saveMapping(opts.cwd, mapping);
+
+  if (failures.length > 0) {
+    // Partial failure: mapping updated but some GitHub operations failed
+    return {
+      ok: false,
+      error: `Partial failure during supersession: ${failures.join('; ')}`,
+      code: 'UNKNOWN',
+    };
+  }
+
+  return { ok: true, data: undefined };
 }
