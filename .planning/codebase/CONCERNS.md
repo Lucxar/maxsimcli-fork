@@ -1,489 +1,315 @@
-# CONCERNS.md
+# Codebase Concerns
 
-**Last Updated:** 2026-03-03
-
-Technical debt, known issues, security considerations, and fragile areas in MAXSIM codebase.
+**Mapped:** 2026-03-09
+**Focus:** Tech debt, known issues, security considerations, performance, fragile areas
 
 ---
 
 ## Tech Debt
 
-### 1. Large Module Consolidation
-**Area:** Core CLI logic
-**Issue:** Several modules exceed safe refactoring thresholds:
-- `packages/cli/src/backend/server.ts` — 1,159 lines (monolithic backend server with server routing, WebSocket, MCP, file watching, terminal management all in one file)
-- `packages/cli/src/core/verify.ts` — 965 lines (verification suite with 30+ internal functions)
-- `packages/cli/src/core/phase.ts` — 940 lines (phase CRUD, lifecycle, scaffolding, removal all mixed)
-- `packages/cli/src/core/init.ts` — 791 lines (7 major context loaders without clear separation)
+### TD-1: Massive Sync/Async Function Duplication in `core.ts`
 
-**Files:** `packages/cli/src/backend/server.ts`, `packages/cli/src/core/verify.ts`, `packages/cli/src/core/phase.ts`, `packages/cli/src/core/init.ts`
+**Area:** Core utilities
+**Issue:** Nearly every core function has both a synchronous and asynchronous version with identical logic. The sync/async pairs include: `loadConfig`/`loadConfigAsync`, `searchPhaseInDir`/`searchPhaseInDirAsync`, `findPhaseInternal`/`findPhaseInternalAsync`, `getArchivedPhaseDirs`/`getArchivedPhaseDirsAsync`, `getRoadmapPhaseInternal`/`getRoadmapPhaseInternalAsync`, `getMilestoneInfo`/`getMilestoneInfoAsync`, `archivePath`/`archivePathAsync`, `pathExistsInternal`/`pathExistsAsync`, `listSubDirs`/`listSubDirsAsync`, `safeReadFile`/`safeReadFileAsync`.
+**Files:**
+- `packages/cli/src/core/core.ts` (842 lines, ~50% is duplication)
+**Impact:** High. Every bug fix or logic change must be applied twice. Divergence risk is severe -- the sync `findPhaseInternal` searches legacy `.planning/milestones/` but NOT `.planning/archive/`, while the async `findPhaseInternalAsync` searches both `.planning/archive/` AND `.planning/milestones/`. This means `init.ts` (which uses sync `findPhaseInternal`) behaves differently from `phase.ts` (which uses async `findPhaseInternalAsync`) when looking for archived phases.
+**Fix approach:** Remove all sync versions. The CLI entry point (`cli.ts`) already uses `async main()`. The `init.ts` module is the primary consumer of sync versions -- convert its exported functions to async. Since these are all called from `cli.ts` handlers that already support `async`, this is straightforward.
 
-**Impact:** Difficult to test individual concerns; high risk of side effects during refactoring; difficult to locate specific logic.
+### TD-2: Triple Duplication of Markdown Parsers
 
-**Fix Approach:** Decompose into smaller modules per concern (e.g., `verify-summary.ts`, `verify-artifacts.ts`, `verify-consistency.ts` for verify.ts; `server-routing.ts`, `server-websocket.ts`, `server-mcp.ts` for server.ts). Extract context loaders into separate files.
+**Area:** Dashboard and backend server
+**Issue:** The parsing functions (`parseRoadmap`, `parseState`, `parsePhases`, `parsePhaseDetail`, `parseTodos`, `parseProject`) exist in three independent copies with slightly different implementations.
+**Files:**
+- `packages/cli/src/backend/server.ts` (lines 125-432)
+- `packages/dashboard/src/server.ts` (lines 329-642)
+- `packages/dashboard/lib/parsers.ts` (458 lines -- appears to be an extracted copy)
+**Impact:** Medium-high. Bug fixes or parsing improvements must be applied in 3 places. The `dashboard/lib/parsers.ts` was extracted but `dashboard/src/server.ts` still contains its own inline copies. The backend server (`packages/cli/src/backend/server.ts`) is a newer addition that also copied these parsers rather than sharing them.
+**Fix approach:** Use the `@maxsim/core` path alias (already configured for the dashboard) to expose parsers from a shared location in `packages/cli/src/core/`. The backend server already imports from `../core/index.js`.
 
----
+### TD-3: Build Artifacts Committed to Git
 
-### 2. High `any` Type Usage
-**Area:** Type safety
-**Issue:** 98 occurrences of `any`, `as any`, or `unknown` casting in `packages/cli/src/**/*.ts`:
-- `packages/cli/src/backend/server.ts`: 5 occurrences of unsafe type assertions
-- `packages/cli/src/core/core.ts`: 15 occurrences including config parsing
-- `packages/cli/src/mcp/context-tools.ts`: 9 occurrences in context loading
+**Area:** Build and repository
+**Issue:** The `packages/cli/dist/` directory (187 tracked files, ~21MB) is committed to the git repository. This includes bundled JavaScript, sourcemaps, dashboard client assets, and hook bundles. Every build creates large diffs and the repository grows continuously.
+**Files:**
+- `packages/cli/dist/` (187 files, 21MB)
+- `.gitignore` -- does NOT exclude `packages/cli/dist/`
+**Impact:** Medium. Repository bloat, noisy git diffs, merge conflicts on dist files, slow clones. The git status shows these as modified on every build cycle.
+**Fix approach:** Add `packages/cli/dist/` to `.gitignore`. The CI/CD pipeline already runs `npm run build` before publish -- the dist files do not need to be in the repository. Ensure the `publish.yml` workflow builds before publishing (it already does per CLAUDE.md).
 
-**Files:** Distributed across 26 files; major concentrations in `core.ts`, `backend/server.ts`, `config.ts`
+### TD-4: `init.ts` Uses Synchronous I/O Throughout
 
-**Impact:** Runtime type errors not caught at compile time; harder to refactor safely.
+**Area:** Context initialization
+**Issue:** All `cmdInit*` functions in `init.ts` (1060 lines) use synchronous filesystem operations via `findPhaseInternal`, `loadConfig`, `pathExistsInternal`, `listSubDirs`, `getMilestoneInfo`, and direct `fs.readdirSync` calls. This blocks the Node.js event loop during context assembly.
+**Files:**
+- `packages/cli/src/core/init.ts` (1060 lines)
+**Impact:** Low for CLI tool usage (single-request process), but medium for backend server or MCP server contexts where the event loop matters. The CLI is a short-lived process so blocking is acceptable there, but if init functions are ever called from the backend server, they would block all concurrent requests.
+**Fix approach:** Convert to async using the async variants already available in `core.ts`. Since all callers in `cli.ts` already support async handlers, this is backward-compatible.
 
-**Fix Approach:** Introduce stricter Zod schemas or TypeScript types for JSON parsing. Replace `any` with specific union types or interfaces. Use `as const` assertions where appropriate.
+### TD-5: Node.js >=22 Requirement
 
----
+**Area:** Platform compatibility
+**Issue:** The `engines` field requires Node.js >=22.0.0. This excludes users on LTS Node 20 (active LTS until April 2026). The codebase uses `fetch()` (available since Node 18), `AbortSignal.timeout()` (Node 18+), and `fs.cp()` (Node 16.7+ stable). No Node 22-specific APIs are apparent.
+**Files:**
+- `packages/cli/package.json` (line 19)
+- Root `package.json` (line 12)
+**Impact:** Low-medium. Some users may not have Node 22 installed. Claude Code ships with its own Node runtime, but `npx maxsimcli` uses the user's system Node.
+**Fix approach:** Test on Node 20 LTS. If no Node 22-specific APIs are required, lower the minimum to `>=20.0.0`.
 
-### 3. Callback-Style Error Handling Mixed with Result Types
-**Area:** Error handling pattern
-**Issue:** Codebase mixes three error patterns:
-1. Exceptions (thrown in many core functions)
-2. `CmdResult` union type (ok/err return values in commands)
-3. Callbacks (output()/error() which throw CliOutput/CliError)
+### TD-6: OOM Build Workaround
 
-`packages/cli/src/core/state.ts:63` uses `readTextArgOrFile()` which throws exceptions while surrounding code returns `CmdResult`. Same inconsistency in `packages/cli/src/core/phase.ts` where `phaseAddCore()` throws but command wrapper returns `CmdResult`.
-
-**Files:** `packages/cli/src/core/state.ts`, `packages/cli/src/core/phase.ts`, `packages/cli/src/cli.ts`, `packages/cli/src/core/init.ts`
-
-**Impact:** Unpredictable exception flow; difficult to understand error boundaries; some thrown errors may not be caught properly.
-
-**Fix Approach:** Audit all functions, pick one pattern (recommend `CmdResult`), and convert all internal helpers to return results instead of throwing.
-
----
-
-### 4. Synchronous File I/O in Async Context
-**Area:** Performance
-**Issue:** Mixed use of sync and async file operations:
-- `packages/cli/src/backend/server.ts:234` uses `fs.readFileSync()` in sync function for state/roadmap parsing
-- `packages/cli/src/core/phase.ts` uses both `fsp.readFile()` (async) and helper functions that may access disk synchronously
-- Install code (`packages/cli/src/install/index.ts`) uses `fs.copyFileSync()`, `fs.mkdirSync()` in long chains
-
-**Files:** `packages/cli/src/backend/server.ts`, `packages/cli/src/core/phase.ts`, `packages/cli/src/install/index.ts`, `packages/cli/src/install/hooks.ts`
-
-**Impact:** Can block event loop during file operations; slower startup on slow disks; incompatible with potential future streaming/worker-thread architectures.
-
-**Fix Approach:** Audit filesystem calls, convert sync to async, use `Promise.all()` for batch operations. This is partially done (e.g., `listSubDirsAsync`, `safeReadFileAsync`) but not comprehensive.
-
----
-
-### 5. Manifest Hash Calculation
-**Area:** Install stability
-**Issue:** `packages/cli/src/install/manifest.ts` uses simple content hashing via `crypto.createHash('sha256')` to detect user modifications. No documented hash algorithm version or migration path if hash algo changes.
-
-**Files:** `packages/cli/src/install/manifest.ts`, `packages/cli/src/install/patches.ts`
-
-**Impact:** Version upgrade could trigger false positives if hash algo changes; user patches could be lost.
-
-**Fix Approach:** Add version field to manifest metadata. Document hash algorithm. Implement migration logic if algorithm ever needs to change.
+**Area:** Build pipeline
+**Issue:** The CLI build requires `NODE_OPTIONS=--max-old-space-size=8192` and DTS generation was disabled (`dts: false` in `tsdown.config.ts`) to prevent OOM crashes during build. This is a workaround, not a fix -- the bundler is consuming excessive memory.
+**Files:**
+- Root `package.json` (line 27: `build:cli` script)
+- `packages/cli/tsdown.config.ts` (line 10: `dts: false`)
+**Impact:** Medium. No TypeScript declarations are generated for the published package. Users who import from `maxsimcli` programmatically get no type information. The 8GB memory requirement makes CI builds fragile.
+**Fix approach:** Investigate which tsdown entry point causes the OOM. The `backend-server` entry with `noExternal` for express, ws, chokidar, and detect-port likely bundles excessive code. Consider splitting the backend server into a separate build step or using dynamic imports for heavy dependencies.
 
 ---
 
 ## Known Bugs
 
-### 1. PTY/Terminal Unavailable Handling
-**Symptoms:** When `node-pty` is not installed, user sees error message: `"Terminal unavailable: node-pty is not installed."` but terminal socket still accepts connections and hangs.
+### BUG-1: Sync vs Async Phase Search Behavioral Divergence
 
-**Files:** `packages/cli/src/backend/terminal.ts:96-103`
+**Symptoms:** Init commands (context assembly) may fail to find phases that exist in `.planning/archive/` while phase operations succeed.
+**Files:**
+- `packages/cli/src/core/core.ts` -- `findPhaseInternal()` (line 376) only searches `.planning/milestones/` for archived phases
+- `packages/cli/src/core/core.ts` -- `findPhaseInternalAsync()` (line 655) searches both `.planning/archive/` and `.planning/milestones/`
+**Trigger:** User archives phases using the new archive system, then uses init commands (which call `findPhaseInternal` sync) to reference those phases.
+**Workaround:** None. The sync function is missing the `.planning/archive/` search path entirely.
 
-**Trigger:** Run dashboard on system without node-pty (e.g., headless server, or installation without optional deps).
+### BUG-2: Port Hash Collision Between Dashboard and Backend Server
 
-**Workaround:** Always install `node-pty` as dependency, or implement graceful degradation that closes WebSocket immediately on spawn failure.
+**Symptoms:** Dashboard and backend server may attempt to bind the same port for different projects, or different projects may collide.
+**Files:**
+- `packages/cli/src/backend/lifecycle.ts` (line 16-22): `projectPort()` uses `hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0` mapping to range 3100-3199
+- `packages/dashboard/src/server.ts` (line 66-72): `projectPort()` uses `hash = ((hash << 5) + hash + ch.charCodeAt(i)) >>> 0` mapping to range 3100-3199
+**Trigger:** Two implementations use different hash algorithms (djb2 vs. a different variant) for the same purpose, potentially computing different ports for the same project path. Also, with only 100 ports in the range, projects collide with ~1% probability per project pair.
+**Workaround:** Both use `detect-port` to find a free port, so the collision causes a port shift rather than a crash. But the deterministic port feature (finding a running server by project path) breaks when the hash algorithms disagree.
 
----
+### BUG-3: Config Cache is Global Module-Level Singleton
 
-### 2. Stale Lock File Cleanup Race
-**Symptoms:** Backend process is killed, but lock file (``.planning/.backend-lock`) persists. Next invocation thinks backend is running but it's not, causing timeout.
-
-**Files:** `packages/cli/src/backend/lifecycle.ts:160-171`
-
-**Trigger:** Kill backend process manually (e.g., `kill -9`) without letting it clean up lock file.
-
-**Workaround:** `startBackend()` should check lock file staleness (e.g., PID doesn't exist) before assuming it's valid.
-
----
-
-### 3. WebSocket Broadcast with Closed Connections
-**Symptoms:** WebSocket broadcast may attempt to write to closed sockets during server shutdown, causing unhandled rejections.
-
-**Files:** `packages/cli/src/backend/server.ts:490-510` (WebSocket connection handler lacks proper error boundary during shutdown)
-
-**Trigger:** Rapid disconnect/shutdown cycle with many WebSocket clients.
-
-**Workaround:** Add try-catch around all `ws.send()` calls; filter closed sockets before broadcast.
-
----
-
-### 4. Phase Name Normalization Edge Case
-**Symptoms:** Phase numbers with decimals (e.g., `01.1`, `01.2`) sort correctly via `comparePhaseNum()`, but some file parsing assumes phase names match directory prefix exactly.
-
-**Files:** `packages/cli/src/backend/server.ts:318-322` (phase directory matching), `packages/cli/src/core/phase.ts:89`
-
-**Trigger:** Create phases with decimal notation (e.g., `01.1-Phase-Name`), then run roadmap analysis.
-
-**Workaround:** Normalization is correct in `core.ts:normalizePhaseName()`, but not consistently applied in all file matchers. Fix by always using normalized phase names in file searches.
+**Symptoms:** Stale config after config.json changes within the same process lifetime (backend server, MCP server).
+**Files:**
+- `packages/cli/src/core/core.ts` (line 178): `let _configCache: { cwd: string; config: AppConfig } | null = null;`
+**Trigger:** User modifies `.planning/config.json` while the backend or MCP server is running. The cache has no TTL or invalidation mechanism.
+**Workaround:** Restart the backend/MCP server after config changes.
 
 ---
 
 ## Security Considerations
 
-### 1. Path Traversal in File Server
-**Risk:** `packages/cli/src/backend/server.ts:61-65` implements `isWithinPlanning()` to restrict file access to `.planning/` directory. However, path resolution uses `path.resolve()` which may behave differently on Windows vs. Unix (backslash handling).
+### SEC-1: No Authentication on Backend Server HTTP API
 
-**Files:** `packages/cli/src/backend/server.ts:61-65`, all file access in HTTP endpoints
-
-**Current Mitigation:** Check uses `startsWith()` after `path.resolve()`, which should prevent traversal via `..`. No symlink resolution.
-
+**Risk:** Critical when network mode is enabled
+**Files:**
+- `packages/cli/src/backend/server.ts` -- Express app has no auth middleware
+- `packages/dashboard/src/server.ts` -- Express app has no auth middleware
+**Current mitigation:** The backend server binds to `127.0.0.1` by default. Network mode is opt-in during install.
 **Recommendations:**
-1. Use `path.relative()` to ensure computed path is under target, then validate it doesn't start with `..`.
-2. Add explicit symlink check: `fs.realpathSync()` to resolve symlinks before comparison.
-3. Add tests for Windows paths with mixed separators.
+1. Add a shared secret token (generated at server start, stored in lock file, passed to dashboard client) for all API endpoints when network mode is enabled.
+2. Add rate limiting to prevent brute-force or DOS attacks.
+3. The `/api/shutdown` endpoint can shut down the server from any local process -- add authentication.
+4. The `PUT /api/plan/*` endpoint allows arbitrary file writes within `.planning/` -- ensure the `isWithinPlanning()` guard handles symlink traversal.
 
----
+### SEC-2: Terminal WebSocket Allows `--dangerously-skip-permissions` Flag
 
-### 2. Environment Variable Exposure in Terminal
-**Risk:** `packages/cli/src/backend/terminal.ts:122` passes entire `process.env` to PTY spawn: `env: process.env as Record<string, string>`. May leak sensitive env vars like API keys, credentials, or auth tokens to terminal.
+**Risk:** High
+**Files:**
+- `packages/cli/src/backend/terminal.ts` (line 112): Constructs `claude --dangerously-skip-permissions` when `skipPermissions` is true
+- `packages/cli/src/backend/server.ts` (line 1031): `skipPermissions: !!msg.skipPermissions` -- client WebSocket message controls this flag
+**Current mitigation:** None. Any WebSocket client can request a terminal session with `skipPermissions: true`.
+**Recommendations:** Never pass `--dangerously-skip-permissions` based on a client message. This flag should require explicit user consent at the server/CLI level, not be controllable from the WebSocket API.
 
-**Files:** `packages/cli/src/backend/terminal.ts:122`
+### SEC-3: `req.body` Casting Without Validation
 
-**Current Mitigation:** None documented.
+**Risk:** Medium
+**Files:**
+- `packages/cli/src/backend/server.ts` -- 8 instances of `req.body as { ... }` with no runtime validation
+**Current mitigation:** Some endpoints check for required fields after casting, but no schema validation (despite `zod` being a dependency).
+**Recommendations:** Use Zod schemas to validate all incoming request bodies. The `zod` package is already in `dependencies`.
 
-**Recommendations:**
-1. Allowlist safe env vars (PATH, HOME, TERM, etc.) instead of passing all.
-2. Document that users should not rely on terminal for sensitive operations.
-3. Log warnings if dangerous env vars detected.
+### SEC-4: `execSync` with Shell Commands for Process Management
 
----
+**Risk:** Low (values are not user-controlled)
+**Files:**
+- `packages/cli/src/core/dashboard-launcher.ts` (lines 64, 76, 86): `execSync` with `netstat`, `taskkill`, `lsof` commands
+- `packages/cli/src/install/dashboard.ts` (lines 34, 40, 46, 50): `execSync` for firewall rule management
+**Current mitigation:** The port number is an integer, not a user string. But the firewall management functions use `execSync` with constructed commands.
+**Recommendations:** Validate that port values are within expected ranges before constructing shell commands. Use `process.kill()` directly instead of `taskkill`/`lsof` where possible.
 
-### 3. MCP Tool Parameter Validation
-**Risk:** `packages/cli/src/mcp/**/*.ts` registers 50+ tools with varying validation. Some use Zod schemas, others do minimal validation.
+### SEC-5: MCP Project Root Detection Walks Filesystem
 
-**Files:** `packages/cli/src/mcp/state-tools.ts`, `packages/cli/src/mcp/phase-tools.ts`, `packages/cli/src/mcp/roadmap-tools.ts`
-
-**Current Mitigation:** Basic type checking in TypeScript, but runtime validation is inconsistent.
-
-**Recommendations:**
-1. Audit all MCP tools for input validation gaps.
-2. Ensure all file path parameters are validated via `isWithinPlanning()`.
-3. Add runtime schema validation for all tool inputs.
-
----
-
-### 4. Unencrypted Lock File Contents
-**Risk:** `.planning/.backend-lock` stores port number and PID in plaintext, readable by any local user. Could be exploited to hijack backend or DOS the server.
-
-**Files:** `packages/cli/src/backend/lifecycle.ts:36-40`
-
-**Current Mitigation:** Lock file is in `.planning/` which is typically project-local, not system-wide. No filesystem permission checks.
-
-**Recommendations:**
-1. Set lock file permissions to 0600 (owner-only read/write).
-2. Consider storing only process PID and deriving port from PID via `projectPort()`.
-3. Document security model: assume project directory is trusted.
+**Risk:** Low
+**Files:**
+- `packages/cli/src/mcp/utils.ts` (line 17-49): `detectProjectRoot()` walks up from cwd looking for `.planning/` directory
+**Current mitigation:** 100-iteration safety limit prevents infinite loops.
+**Recommendations:** The cached root (`_cachedRoot`) persists across tool calls. If the MCP server's cwd changes (unlikely but possible), stale cache could point to the wrong project.
 
 ---
 
 ## Performance Bottlenecks
 
-### 1. Roadmap Parsing with Repeated Regex
-**Problem:** `cmdRoadmapAnalyze()` in `packages/cli/src/core/roadmap.ts:52-130` parses roadmap content with multiple overlapping regex passes:
-- Line 58: `getPhasePattern()` executed once
-- Line 111: `milestonePattern` instantiated and executed
-- Line 121: `checklistPattern` instantiated and executed
-- Each phase then re-scanned for goal/depends_on matches
+### PERF-1: Synchronous I/O in Backend Server Request Handlers
 
-For a 100-phase roadmap, this is O(n×regex_passes) = inefficient.
+**Problem:** Every API endpoint in the backend server uses synchronous `fs.readFileSync`, `fs.existsSync`, `fs.readdirSync`, and `fs.writeFileSync` calls.
+**Files:**
+- `packages/cli/src/backend/server.ts` -- 23 synchronous file operations across request handlers
+**Cause:** Parser functions (`parseRoadmap`, `parseState`, etc.) were written with sync I/O. Express request handlers call these synchronously, blocking the event loop for all concurrent requests and WebSocket connections.
+**Improvement path:** Convert parser functions to use `fs.promises` or the async variants already in `core.ts`. Express handlers already support async route handlers via `async (req, res) => { ... }`.
 
-**Files:** `packages/cli/src/core/roadmap.ts:52-130`
+### PERF-2: Dashboard Port Scanning is Sequential
 
-**Cause:** Each parsing pass re-creates regexes and scans content independently.
+**Problem:** `findRunningDashboard()` in `dashboard-launcher.ts` checks ports 3333-3343 sequentially, each with a 10-second timeout.
+**Files:**
+- `packages/cli/src/core/dashboard-launcher.ts` (lines 48-54)
+**Cause:** Sequential `await checkHealth(port)` calls in a for-loop. Worst case: 110 seconds if no dashboard is running.
+**Improvement path:** Use `Promise.all()` or `Promise.race()` to check all ports concurrently. The `listRunningDashboards()` function in `packages/dashboard/src/server.ts` (lines 77-94) already does this correctly with `Promise.all()`.
 
-**Improvement Path:**
-1. Single-pass parse with state machine or template engine instead of regex.
-2. Cache compiled regexes at module level.
-3. Consider lazy parsing for dashboard (only parse requested phase).
+### PERF-3: History Digest Reads All Summary Files Synchronously
 
----
-
-### 2. Backend Server In-Memory File Cache Unbounded
-**Problem:** `packages/cli/src/backend/server.ts:454-478` implements path suppression cache to prevent watcher loops, but cleanup is periodic (60s interval) and TTL is short (500ms). For large `.planning/` directories with many file writes, cache could grow without bounds if writes happen faster than cleanup.
-
-**Files:** `packages/cli/src/backend/server.ts:454-478`
-
-**Cause:** `suppressedPaths` Map grows indefinitely between cleanup intervals; no max-size check.
-
-**Improvement Path:**
-1. Use LRU cache (e.g., `quick-lru` from dependencies) with bounded size.
-2. Increase cleanup frequency or implement eager eviction.
-3. Monitor cache size in health endpoint.
-
----
-
-### 3. Dashboard Phase File Read on Every Request
-**Problem:** `parsePhaseDetail()` in `packages/cli/src/backend/server.ts:311-388` reads and parses all phase files from disk for each HTTP request, no caching. For a phase with 50+ plans, this is slow.
-
-**Files:** `packages/cli/src/backend/server.ts:311-388`, HTTP `GET /api/phase/[id]`
-
-**Cause:** No caching layer; file watcher could invalidate cache but isn't integrated.
-
-**Improvement Path:**
-1. Add file-watch-aware cache: invalidate on file change.
-2. Cache parsed frontmatter separately from task extraction.
-3. Consider pagination for large phase detail responses.
-
----
-
-### 4. Terminal Scrollback Memory Leak
-**Problem:** `packages/cli/src/backend/terminal.ts:14-31` limits scrollback to 50k lines, but during long terminal sessions (>10 minutes of continuous output), the slice operation (`slice(-MAX_SCROLLBACK)`) is O(n) and runs frequently.
-
-**Files:** `packages/cli/src/backend/terminal.ts:14-31`
-
-**Cause:** Array resizing and copying on every append exceeding threshold.
-
-**Improvement Path:**
-1. Use circular buffer or ring buffer instead of array.
-2. Implement deque with fixed capacity.
-3. Benchmark impact on real terminal usage patterns.
+**Problem:** `cmdHistoryDigest` in `commands.ts` reads every summary file from every phase (including archived) synchronously in a nested loop.
+**Files:**
+- `packages/cli/src/core/commands.ts` (lines 171-285)
+**Cause:** Sync `fs.readdirSync` and `fs.readFileSync` for every summary file across all phases and archives.
+**Improvement path:** Use `Promise.all()` with `fsp.readFile` to read files in parallel. Add a caching layer for archived phases (their summaries never change).
 
 ---
 
 ## Fragile Areas
 
-### 1. State.md Field Parsing
-**Files:** `packages/cli/src/core/state.ts:39-61`, `packages/cli/src/backend/server.ts:236-240`
+### FRAG-1: Markdown Regex-Based State Machine
 
-**Why Fragile:**
-- Field parsing uses regex patterns with fallbacks (bold vs. plain), which are brittle
-- Pattern in state.ts:42 matches `**fieldName:**` but users might write `** fieldName **:` with spaces
-- Fallback pattern in state.ts:46 is case-insensitive but doesn't account for colon placement variations
+**Files:**
+- `packages/cli/src/core/state.ts` -- `stateExtractField()`, `stateReplaceField()`, `appendToStateSection()`
+- `packages/cli/src/core/phase.ts` -- `phaseCompleteCore()` (lines 223-378) uses 8+ regex replacements on ROADMAP.md
+- `packages/cli/src/core/core.ts` -- `getPhasePattern()` returns a regex for matching phase headers
+**Why fragile:** The entire state and roadmap management is built on regex-based parsing and replacement of markdown files. Any formatting change by a user or AI agent (extra whitespace, different heading levels, missing bold markers) can break extraction or replacement. The `stateReplaceField` function attempts two patterns (bold and plain) but cannot handle all markdown variations.
+**Safe modification:** Always test regex changes against real `.planning/STATE.md` and `.planning/ROADMAP.md` files from user projects. Never assume heading level or whitespace.
+**Test coverage gaps:** Unit tests in `tests/unit/state-errors.test.ts` cover error paths but not the regex matching variations. The `tests/unit/parsing.test.ts` covers frontmatter parsing but not markdown section parsing.
 
-**Safe Modification:**
-1. Always use the bold marker `**Field Name:**` consistently in templates
-2. Add validation in `cmdStateLoad()` to warn if fields are malformed
-3. Consider YAML frontmatter instead of inline Markdown parsing
+### FRAG-2: Phase Renumbering in `cmdPhaseRemove`
 
-**Test Coverage Gaps:**
-- No tests for whitespace variations around field markers
-- No tests for missing field handling (should gracefully return null, not crash)
-- Tests exist in `tests/unit/state-errors.test.ts` but limited to basic cases
+**Files:**
+- `packages/cli/src/core/phase.ts` (lines 694-919)
+**Why fragile:** When a phase is removed, all subsequent phases are renumbered. This involves: renaming directories, renaming files within directories, updating ROADMAP.md with bulk regex replacements (iterating from maxPhase down to removedPhase), and updating STATE.md. A failure at any step leaves the project in an inconsistent state -- there is no transaction or rollback mechanism.
+**Safe modification:** Test with phases that have decimal sub-phases (e.g., removing phase 2 when 2.1, 2.2 exist). Test with letter-suffixed phases (2A, 2B).
+**Test coverage gaps:** `tests/unit/phase-errors.test.ts` tests error cases but not the renumbering logic itself.
 
----
+### FRAG-3: CliOutput/CliError Throw-Based Flow Control
 
-### 2. Phase Directory Lookup
-**Files:** `packages/cli/src/core/phase.ts:89`, `packages/cli/src/backend/server.ts:318-323`
+**Files:**
+- `packages/cli/src/core/core.ts` (lines 49-80): `CliOutput` and `CliError` classes
+- `packages/cli/src/cli.ts` (lines 513-524): Catch block differentiating `CliOutput` from `CliError`
+- All core modules use `rethrowCliSignals(e)` in catch blocks
+**Why fragile:** `output()` and `error()` throw exceptions as control flow (typed as `never`). Every `try/catch` in the codebase must call `rethrowCliSignals(e)` or risk swallowing successful output. The MCP server and backend server have "CRITICAL" comments warning against importing these functions, which indicates this is a known footgun. Any new module that catches errors must remember to rethrow CLI signals.
+**Safe modification:** Never add generic `catch` blocks without `rethrowCliSignals()`. When writing MCP tool handlers, never import `output` or `error` -- use `mcpSuccess`/`mcpError` from `mcp/utils.ts` instead.
+**Test coverage gaps:** No tests verify that `rethrowCliSignals` is called in all catch blocks.
 
-**Why Fragile:**
-- Phase number normalization is applied to lookup but directory names may not match exactly
-- Example: phase `01A` normalizes to `01a`, but directory might be `01A-Phase-Name` (case-sensitive on Linux)
-- Phase insertion doesn't guarantee directory creation with consistent naming
+### FRAG-4: Dashboard Server vs Backend Server Coexistence
 
-**Safe Modification:**
-1. Always create directories with lowercase normalized phase numbers
-2. Use case-insensitive directory matching on case-sensitive filesystems
-3. Add validation in `scaffoldPhaseStubs()` to log actual directory name created
-
-**Test Coverage Gaps:**
-- No tests for case-sensitivity edge cases across platforms
-- No tests for phase insertion creating directory with wrong casing
-- Only `tests/unit/phase-errors.test.ts` exists; lacks integration tests
-
----
-
-### 3. Manifest Validation During Install
-**Files:** `packages/cli/src/install/index.ts:128-138`, `packages/cli/src/install/manifest.ts`
-
-**Why Fragile:**
-- Manifest reads JSON without schema validation
-- If manifest file is corrupted or partially written, `JSON.parse()` throws unhandled error
-- No atomic writes to manifest; partial writes could corrupt on power loss
-
-**Safe Modification:**
-1. Write manifest to temp file, then atomic rename
-2. Add try-catch with recovery around manifest reads
-3. Validate manifest schema before using it
-
-**Test Coverage Gaps:**
-- No tests for corrupt manifest handling
-- No tests for concurrent install attempts
-- `tests/e2e/install.test.ts` exists but doesn't cover failure scenarios
-
----
-
-### 4. WebSocket Message Protocol
-**Files:** `packages/cli/src/backend/server.ts:499-510`
-
-**Why Fragile:**
-- Messages are plain objects `{ type, data }` with no version field
-- If message schema changes, old clients will silently ignore new fields
-- No heartbeat/ping-pong to detect stale connections
-
-**Safe Modification:**
-1. Add message versioning field
-2. Document message schema in API
-3. Implement ping-pong heartbeat or keepalive timeout
-
-**Test Coverage Gaps:**
-- No tests for malformed WebSocket messages
-- No tests for connection stale timeout
-- Dashboard e2e tests (`tests/e2e/dashboard.test.ts`) exist but limited to happy path
+**Files:**
+- `packages/cli/src/backend/server.ts` -- Backend server on ports 3100-3199
+- `packages/dashboard/src/server.ts` -- Dashboard server on ports 3100-3199 and 3333-3343
+- `packages/cli/src/core/dashboard-launcher.ts` -- Dashboard launcher on ports 3333-3343
+**Why fragile:** Three separate server implementations exist with overlapping port ranges and different architectures. The backend server (`packages/cli/src/backend/`) was added as a newer alternative to the dashboard server but both are still functional. The dashboard launcher checks ports 3333-3343, the backend lifecycle checks ports 3100-3199, and the dashboard server also checks 3100-3199. Which server is running depends on how the user started it.
+**Safe modification:** Always check both port ranges when detecting running instances. Be aware that the dashboard server and backend server are independent codebases with duplicated parsing logic.
 
 ---
 
 ## Scaling Limits
 
-### Current Capacity:
-- **Roadmap parsing:** ~100 phases before regex performance degrades
-- **Dashboard concurrent clients:** ~50 WebSocket connections before broadcast latency noticeable (no load test exists)
-- **Terminal scrollback:** 50,000 lines of output
-- **Config cache:** Single in-memory cache entry (no LRU, single-threaded)
+### SCALE-1: File-Based State Management
 
-### Scaling Path:
-1. **Horizontal scaling:** MAXSIM is designed as per-project CLI, not multi-user server. No architectural support for shared backend.
-2. **File watching:** `chokidar` used for `.planning/` watcher; scales to ~1000 files per project before degradation.
-3. **MCP tool registry:** 50+ tools in memory; no lazy loading.
+**Current capacity:** Works well for projects with <50 phases and <200 plan files.
+**Limit:** ROADMAP.md and STATE.md are read, regex-parsed, and rewritten on every operation. Large projects with 100+ phases will see increasing latency as file sizes grow.
+**Scaling path:** The file-based approach is intentional (human-readable, git-trackable). For very large projects, consider caching parsed structures in memory (the backend server already serves from memory) and only re-parsing on file change events.
 
-### Recommendations:
-1. Add performance metrics collection (via backend health endpoint).
-2. Document scaling limits in README.
-3. For enterprise use, consider multi-daemon architecture.
+### SCALE-2: Backend Server Single-Process Architecture
+
+**Current capacity:** One backend server per project.
+**Limit:** The backend server serves HTTP, WebSocket, MCP, and terminal connections in a single process. Heavy terminal output or many concurrent dashboard connections can cause event loop delays, especially with synchronous file I/O in request handlers.
+**Scaling path:** Convert sync I/O to async. Consider worker threads for heavy parsing operations.
 
 ---
 
 ## Dependencies at Risk
 
-### 1. `simple-git` (used for git operations)
-**Risk:** Single point of failure for all git commands. If library has bug or version mismatch with local git, entire phase/state operations fail.
-**Impact:** Blocks workflow execution (can't commit docs, can't branch).
-**Migration Plan:**
-- Audit `simple-git` usage (in `packages/cli/src/core/core.ts`)
-- Consider fallback to shell `git` commands
-- Add --verbose flag to all git calls for debugging
+### DEP-1: `node-pty` Native Module
 
-**File:** `packages/cli/src/core/core.ts` (execGit function)
+**Risk:** Installation failure on some platforms (Windows, older Linux)
+**Impact:** Terminal feature in dashboard becomes unavailable. The installer auto-installs via `npm install node-pty` which requires a C++ build toolchain.
+**Migration plan:** Already handled gracefully -- `PtyManager` in `packages/cli/src/backend/terminal.ts` catches load errors and falls back to a "terminal unavailable" message. The `try { pty = require('node-pty') } catch` pattern (line 41) handles missing native modules.
 
----
+### DEP-2: `chokidar` for File Watching
 
-### 2. `@modelcontextprotocol/sdk` (MCP runtime)
-**Risk:** Rapid development; API surface large. Version `^1.27.1` may introduce breaking changes.
-**Impact:** Dashboard/backend server integration could break.
-**Migration Plan:**
-- Pin exact version in CI
-- Add integration tests for MCP tool execution
-- Document MCP SDK version constraints
+**Risk:** Low. Chokidar v4 is mature and actively maintained.
+**Impact:** File change notifications in the dashboard would stop if chokidar breaks.
+**Migration plan:** Node.js 20+ has `fs.watch` with `recursive: true` support on Windows and macOS. Consider using native `fs.watch` to eliminate this dependency.
 
-**File:** `packages/cli/package.json` (devDependencies)
+### DEP-3: `@modelcontextprotocol/sdk` Pre-1.0 API Surface
 
----
-
-### 3. `node-pty` (optional, terminal support)
-**Risk:** Native C++ addon; may fail to build on some platforms.
-**Impact:** Terminal feature gracefully degrades, but error messages could be clearer.
-**Migration Plan:**
-- Add build script detection in install
-- Document node-pty as optional dependency
-- Consider bundling pre-built binaries for common platforms
-
-**File:** `packages/cli/src/backend/terminal.ts` (lazy-loads with error handling)
-
----
-
-### 4. `chokidar` (file watcher)
-**Risk:** Behavior differences across platforms (especially Windows symlinks).
-**Impact:** File changes may not be detected, dashboard state falls out of sync.
-**Migration Plan:**
-- Add fallback to polling watcher
-- Test on Windows with symlinks
-- Document known platform limitations
-
-**File:** `packages/cli/src/backend/server.ts` (file watcher setup)
+**Risk:** Medium. The MCP SDK is actively evolving.
+**Impact:** Breaking changes in `McpServer`, `StdioServerTransport`, or `StreamableHTTPServerTransport` would require updates to both `packages/cli/src/mcp-server.ts` and `packages/cli/src/backend/server.ts`.
+**Migration plan:** Pin to a specific version range. The current `^1.27.1` allows minor updates which should be backward-compatible.
 
 ---
 
 ## Missing Critical Features
 
-### 1. Rollback / Undo Mechanism
-**Problem:** Once a phase is marked complete or state is advanced, there's no easy way to revert. Users who execute wrong plan must manually edit STATE.md and ROADMAP.md.
+### MISS-1: No Request Body Validation Layer
 
-**What It Blocks:** Safe experimentation with workflows; recovery from accidental phase completion.
+**Problem:** All backend API endpoints cast `req.body as { ... }` without runtime validation. `zod` is a dependency but is only used in MCP tool parameter definitions.
+**What it blocks:** Production readiness of the backend server API. Malformed requests can cause runtime type errors.
 
-**Recommendation:** Add `state undo` command that restores from backup; maintain STATE.md history in `.planning/.state-history/`.
+### MISS-2: No Backend Server Authentication
 
----
-
-### 2. Multi-User Project Support
-**Problem:** MAXSIM assumes single user per project. Lock files and state updates don't account for concurrent edits.
-
-**What It Blocks:** Team collaboration on shared codebases; merging parallel phase work.
-
-**Recommendation:** Document as single-user only for now. Future: implement collaborative locking and conflict resolution.
-
----
-
-### 3. Error Recovery Guide
-**Problem:** When a command fails (e.g., phase not found, ROADMAP.md malformed), error messages don't guide user to fix it.
-
-**What It Blocks:** User autonomy; requires CLI developer intervention for non-obvious errors.
-
-**Recommendation:** Audit error messages; add `--help` context and remediation steps. Link to troubleshooting guide.
+**Problem:** The backend server has no authentication mechanism. Any process on localhost can read/write `.planning/` files, shut down the server, or control the terminal.
+**What it blocks:** Network mode security. Multi-user environments.
 
 ---
 
 ## Test Coverage Gaps
 
-### 1. Windows Path Handling
-**What's Untested:** File paths with backslashes, mixed separators, and symlinks on Windows.
-**Files:** All file I/O functions in `packages/cli/src/`
-**Risk:** High — install and backend serve to Windows users but little automated testing for Windows-specific paths.
-**Priority:** High — add Windows CI runner.
+### GAP-1: No Tests for Phase Lifecycle Operations
 
----
+**What's untested:** `phaseAddCore`, `phaseInsertCore`, `phaseCompleteCore`, `phaseRemoveCore`, `archivePhaseExecute`
+**Files:** `packages/cli/src/core/phase.ts` (1193 lines)
+**Risk:** High. These are the most complex state-mutation functions. Phase removal includes renumbering logic that modifies multiple files.
+**Priority:** Critical. A single bug in phase renumbering corrupts the project structure.
 
-### 2. Concurrent File Writes
-**What's Untested:** Two processes writing to STATE.md or ROADMAP.md simultaneously (e.g., two Claude Code instances).
-**Files:** `packages/cli/src/core/state.ts`, `packages/cli/src/core/phase.ts`
-**Risk:** Medium — file corruption possible if writes interleave.
-**Priority:** Medium — add file lock mechanism; document single-writer assumption.
+### GAP-2: No Tests for Backend Server API Endpoints
 
----
+**What's untested:** All HTTP endpoints in the backend server
+**Files:** `packages/cli/src/backend/server.ts` (1159 lines)
+**Risk:** Medium. The server handles file writes, state mutations, and WebSocket connections without test coverage.
+**Priority:** High for production deployment.
 
-### 3. Large File Performance
-**What's Untested:** Roadmap with 200+ phases, STATE.md with 1000+ decisions, terminal with 500k lines of scrollback.
-**Files:** `packages/cli/src/backend/server.ts`, `packages/cli/src/core/roadmap.ts`
-**Risk:** Medium — regex parsing and in-memory caching could fail at scale.
-**Priority:** Medium — add perf benchmarks.
+### GAP-3: No Tests for MCP Tool Handlers
 
----
+**What's untested:** Individual MCP tool handler logic in `packages/cli/src/mcp/*.ts`
+**Files:** 9 MCP tool files totaling ~3,500 lines
+**Risk:** Medium. MCP tools are the primary interface for AI agents. The `mcp-server.test.ts` tests basic server connectivity but not tool behavior.
+**Priority:** Medium. Tool handlers mostly delegate to core functions which have some test coverage.
 
-### 4. MCP Tool Error Handling
-**What's Untested:** MCP tools with invalid input (e.g., non-existent phase numbers, malformed JSON), exception throwing in tool handlers.
-**Files:** `packages/cli/src/mcp/**/*.ts` (50+ tools)
-**Risk:** Medium — unhandled exceptions could crash backend.
-**Priority:** Medium — add error recovery tests; audit all tool handlers.
+### GAP-4: No Tests for Context Assembly (`init.ts`)
 
----
+**What's untested:** All 15+ `cmdInit*` functions that assemble context for workflow bootstrapping
+**Files:** `packages/cli/src/core/init.ts` (1060 lines)
+**Risk:** Medium. These functions read filesystem state and construct context objects. Errors result in wrong context being passed to AI agents.
+**Priority:** Medium.
 
-### 5. Dashboard State Sync
-**What's Untested:** Dashboard displaying correct state when backend file watcher detects changes, multi-client sync.
-**Files:** `packages/cli/src/backend/server.ts` (file watcher integration), HTTP response handlers
-**Risk:** Medium — dashboard UI could show stale data.
-**Priority:** Low-Medium — add e2e tests for file change detection.
+### GAP-5: No Tests for Markdown Regex Parsing Variations
 
----
+**What's untested:** Edge cases in `stateExtractField`, `stateReplaceField`, `getPhasePattern`, `appendToStateSection`
+**Files:** `packages/cli/src/core/state.ts`, `packages/cli/src/core/core.ts`
+**Risk:** High. These regex-based parsers handle user-editable markdown with no schema enforcement. Variations in formatting (extra spaces, different heading levels, missing bold markers) can break extraction.
+**Priority:** High. User-facing data corruption when parsing fails silently.
 
-## Recommendations Summary
+### GAP-6: No Integration Tests for Install Flow
 
-| Area | Priority | Effort | Notes |
-|------|----------|--------|-------|
-| Decompose large modules | High | Medium | Start with verify.ts and server.ts |
-| Fix state/phase parsing edge cases | High | Low | Validate field formats, normalize names |
-| Add concurrent write protection | Medium | Medium | File locks or advisory locking |
-| Type safety improvements | Medium | High | Introduce Zod schemas across codebase |
-| Performance benchmarking | Low-Medium | Low | Set up test harness for large files |
-| Windows CI testing | High | Medium | Add GitHub Actions Windows runner |
-| MCP error recovery | Medium | Medium | Audit all tool handlers |
-| Terminal/PTY error handling | Medium | Low | Improve error messages and recovery |
-
+**What's untested:** The full install flow including path replacement, file copying, manifest writing, hook installation, and `.mcp.json` configuration
+**Files:** `packages/cli/src/install/index.ts` (600 lines), `packages/cli/src/install/*.ts`
+**Risk:** Medium. The `tests/e2e/install.test.ts` verifies the tarball structure but not the actual install behavior.
+**Priority:** Medium. Install bugs affect every new user.

@@ -2,111 +2,106 @@
 
 ## What This Is
 
-MAXSIM is a spec-driven development (SDD) system for Claude Code. It prevents context rot by offloading work to fresh-context subagents. Ships as an npm package (`maxsimcli`) that installs markdown commands, workflows, agents, and skills into `~/.claude/`. Users run `/maxsim:*` slash commands to plan, execute, and verify project phases.
+MAXSIM is a meta-prompting, context engineering, and spec-driven development system for Claude Code. It solves "context rot" — the quality degradation that occurs as Claude's context window fills — by offloading work to fresh-context subagents, each with a single responsibility.
+
+Users install via `npx maxsimcli@latest` (local-only) and it installs command/skill/agent files into the project's `.claude/` directory. The "runtime" is the AI itself — commands are markdown prompts, not executable code.
 
 ## Core Value
 
-Every AI-assisted coding task runs with the right amount of context -- no more, no less -- producing consistent, correct output from phase 1 to phase 50.
+**Consistent, high-quality AI-assisted development at any project scale.** MAXSIM ensures that phase 50 gets the same quality as phase 1, regardless of project complexity or session length.
 
-## Current Milestone: v5.1 Surgical Cleanup
+## Requirements
 
-**Goal:** Eliminate critical internal tech debt — unify error handling, add test coverage for untested core modules, extract duplicated patterns, and remove dead code.
+### Active (v5.0)
 
-**Target fixes:**
-- Unify error handling to CmdResult pattern; remove CliOutput/CliError exceptions and process.exit() from 15+ modules
-- Add unit tests for phase.ts (1193 lines, 0 tests), init.ts (1060 lines, 0 tests), verify.ts (965 lines, 0 tests)
-- Extract shared helpers: loadJsonFile() (10+ duplication sites), phase dir resolution (8 places), logging
-- Remove 4 unused workflow files; resolve research-phase command/workflow duality
+- GitHub Issues as single source of truth for tasks, phases, and progress
+- `gh` CLI as hard requirement (no fallback)
+- Local-only installation (`.claude/` per project, no global install)
+- Simplified command surface (~9 commands, down from ~35)
+- State-machine commands that resume from external state (GitHub Issues)
+- Native parallel execution with worktree isolation (up to 30 agents)
+- Skills-based architecture for progressive context disclosure
+- Two-stage review loop (spec compliance → code quality) with retry
+- Spec-driven development as core methodology
+- Agent Teams for multi-agent coordination
+- Custom agent definitions for specialized workers (Executor, Planner, Researcher, Verifier)
 
-## Current State
+### Deferred
 
-MAXSIM is a working product at v5.0 with real users. Shipped v5.0 Context-Aware SDD on 2026-03-08. The following is implemented and shipped:
+- Migration tooling from old `.planning/` schema
+- Multi-runtime support (OpenCode, Gemini, Codex) — removed, Claude Code only
+- Dashboard web UI — removed, GitHub Project Board replaces it
 
-### CLI & Core Engine
-- **CLI tools router** (`cli.cjs`) dispatching 150+ commands to core modules
-- **Phase lifecycle**: create, list, complete, insert, remove phases with `.planning/` directory structure
-- **State management**: STATE.md CRUD with decisions, blockers, metrics tracking
-- **Roadmap parsing**: phase goal/criteria extraction, dependency analysis
-- **Plan verification**: structure validation, health checks, auto-repair
-- **Smart context loading**: topic-based file selection to prevent context overload
-- **Model profiles**: quality/balanced/budget/tokenburner tiers with per-agent model resolution
-- **Atomic git commits** per task with conventional commit format
+## Context
 
-### Agents (14 specialized subagent prompts)
-- **Executor**: runs tasks with atomic commits and deviation handling
-- **Planner**: creates phase plans with task breakdown and dependency analysis
-- **Phase Researcher**: investigates implementation approaches before planning
-- **Plan Checker**: verifies plans achieve phase goals before execution
-- **Spec Reviewer**: checks implementation matches spec (stage 1 review)
-- **Code Reviewer**: checks code quality, security, patterns (stage 2 review)
-- **Verifier**: goal-backward phase verification
-- **Debugger**: scientific method bug investigation
-- **Codebase Mapper**: parallel codebase analysis (4 focus areas)
-- **Research Synthesizer**: merges parallel research outputs
-- **Roadmapper**: creates roadmaps with phase breakdown and success criteria
-- **Project Researcher**: domain ecosystem research before roadmap creation
-- **Integration Checker**: cross-phase E2E flow verification
-- **Drift Checker**: spec-vs-codebase drift analysis with severity-tiered reporting
+### Tech Stack
+- TypeScript 5.9, Node.js 22+, npm workspaces monorepo
+- 2 packages: `cli` (published as `maxsimcli`), `website` (GitHub Pages)
+- tsdown bundler, Vitest testing, Biome linting
+- Express + MCP SDK for backend services
+- `gh` CLI for GitHub Issues/Projects integration
 
-### Skills (11 built-in workflow enforcement skills)
-- **using-maxsim**: entry point, routes work through MAXSIM workflow
-- **tdd**: Red-Green-Refactor enforcement
-- **systematic-debugging**: root-cause analysis before any fix
-- **verification-before-completion**: evidence-first gates, blocks false completion claims
-- **code-review**: security/correctness/quality gates
-- **maxsim-simplify**: 3-reviewer parallel pattern (reuse, quality, efficiency)
-- **maxsim-batch**: worktree-based parallel execution (5-30 agents)
-- **sdd**: fresh subagent per task with mandatory 2-stage review
-- **brainstorming**: hard-gate design approval with trade-off analysis
-- **roadmap-writing**: standardized roadmap format generation
-- **memory-management**: persistent pattern/error/decision storage
+### Architecture
+- Three-layer system: Commands → Skills/Workflows → Agents
+- CLI tools router (`cli.ts`) dispatches 40+ commands to core modules
+- MCP server exposes project operations as typed tools
+- Data: `.planning/` for project context, GitHub Issues for work tracking
 
-### Workflows (orchestration templates)
-- **execute-phase**: wave-based parallel plan execution with Execute-Review-Simplify-Review cycle
-- **plan-phase**: research -> plan -> verify loop
-- **new-project**: vision -> requirements -> acceptance criteria -> roadmap
-- **init-existing**: codebase scan -> validation -> context generation
-- **discuss-phase**: adaptive questioning before planning
-- **discuss**: triage problems/ideas/bugs to todo or phase with adaptive questioning
-- **check-drift**: compare spec against codebase, produce severity-tiered drift report
-- **realign**: correct spec-code divergence in either direction (to-code or to-spec)
-- **sdd**: spec-driven dispatch with fresh agent per task
-- **batch**: worktree-based parallel execution orchestration
-
-### Dashboard
-- **React 19 + Vite frontend** with phase overview, terminal (xterm.js), Q&A panel
-- **Express + WebSocket backend** for real-time `.planning/` file watching
-- **MCP server integration** for Claude Code tool access
-- **`maxsimcli start`** launches Dashboard + MCP + Terminal
-- **Multi-project** via port range isolation (3333-3343)
-
-### Install System
-- **`npx maxsimcli@latest`** installs commands, workflows, agents, skills to `~/.claude/`
-- **Manifest tracking** with hash-based modification detection
-- **Patch persistence** for user customizations across updates
-- **Claude Code only** -- no multi-runtime selection
+### Delivery
+- `npx maxsimcli@latest` installs to `./.claude/` (local only)
+- semantic-release auto-publishes on push to main
+- Templates (commands, skills, agents) are the primary deliverable
 
 ## Constraints
 
-- **npm delivery**: everything must work via `npx maxsimcli@latest`
-- **Backward compatibility**: existing `.planning/` directories must remain readable
-- **Claude Code only**: no adapter abstractions for other runtimes
-- **Build verification**: `npm run build` must pass before any push to main
-- **Single-user**: no multi-user collaboration support planned
+- Prototype stage — breaking changes acceptable
+- No backward compatibility with v4.x `.planning/` schema required
+- `gh` CLI + GitHub authentication required for all workflows
+- Every push to main triggers npm publish (intentional, immediate delivery)
 
-## Tech Stack
+## Key Decisions
 
-- TypeScript 5.9.3, Node.js 22+, npm workspaces monorepo
-- React 19 + Vite for dashboard, tsdown for Node.js bundling
-- Express + WebSockets for dashboard backend, MCP SDK for Claude integration
-- Vitest for testing, Biome for linting, semantic-release for publishing
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | GitHub Issues as source of truth | Single system, no drift between .planning/ and GitHub. AI can read/write issues natively via `gh` |
+| 2 | `gh` CLI hard requirement | Dual-path implementations cause bugs (TD-1 lesson). One path, done right |
+| 3 | Local-only install | Every project needs its own GitHub repo context. Global install doesn't make sense |
+| 4 | Remove dashboard | GitHub Project Board provides phase overview. Eliminates 52K-line server + React frontend |
+| 5 | ~9 commands (down from ~35) | Fewer commands = less confusion, better documentation, easier maintenance |
+| 6 | State-machine commands | One command picks up where it left off via GitHub state. No need to remember sequence |
+| 7 | Skills for progressive disclosure | Load context on-demand, not upfront. Prevents context pollution |
+| 8 | Clean break, no migration | Prototype stage. Migration tooling adds complexity for minimal user base |
+| 9 | Quality model profile | Opus for research/roadmap — deeper analysis for this architectural overhaul |
 
-## Known Tech Debt
+## Current State Summary
 
-- Large monolithic modules: server.ts (1371 lines), verify.ts (965 lines), phase.ts (1193 lines)
-- 5 `any` type usages across 4 files
-- Mixed error handling: exceptions vs CmdResult vs CliOutput/CliError
-- Sync/async file I/O inconsistency in CLI tool functions
+MAXSIM v4.x is a working prototype with ~35 commands, 15 agents, 11 skills, a web dashboard, and an MCP server. It uses `.planning/` markdown files as the primary data store. GitHub Issues integration exists but is secondary.
+
+Key tech debt:
+- 50% sync/async duplication in core.ts (has caused bugs)
+- Triple-duplicated markdown parsers across dashboard/backend
+- 21MB dist/ committed to git
+- OOM build workaround (8GB memory, DTS disabled)
+- Dashboard server is 52K lines
+
+The v5.0 milestone is a fundamental simplification: GitHub-native, fewer commands, no dashboard, skills-based architecture.
+
+## Known Risks / Tech Debt
+
+- **TD-1 (HIGH):** Sync/async duplication — 50% of core.ts is duplicated logic, already caused BUG-1
+- **TD-2 (MEDIUM):** Triple markdown parser duplication
+- **TD-3 (MEDIUM):** dist/ committed to git (21MB, 187 files)
+- **TD-6 (MEDIUM):** OOM build workaround, no TypeScript declarations
+- **BUG-1:** Sync vs async phase search searches different paths
+
+## Codebase Analysis
+
+Detailed codebase analysis available in:
+- `.planning/codebase/STACK.md` — Technology stack
+- `.planning/codebase/ARCHITECTURE.md` — Architecture patterns
+- `.planning/codebase/CONVENTIONS.md` — Code conventions
+- `.planning/codebase/CONCERNS.md` — Known issues and tech debt
+- `.planning/codebase/STRUCTURE.md` — File tree overview
 
 ---
-*Last updated: 2026-03-08 after v5.1 milestone start*
+*Initialized: 2026-03-09 via /maxsim:init-existing*

@@ -1,224 +1,296 @@
-# Technology Stack
+# STACK.md
 
-**Date:** 2026-03-03
+> Technology stack reference for MAXSIM. Updated 2026-03-09.
+
+---
 
 ## Languages
 
-### Primary
-- **TypeScript** 5.9.3: All source code in `packages/cli/src/`, `packages/dashboard/src/`, `packages/website/src/`
-- **JavaScript** (Node.js): Target ES2022 for Node 22+ environments
+### Primary: TypeScript
 
-### Secondary
-- **HTML/CSS**: Dashboard UI via React + Tailwind CSS
-- **YAML**: Frontmatter in markdown files and configuration
+- **Version:** ~5.9.3 (workspace root and all packages)
+- **Target:** ES2022
+- **Module system:** NodeNext (CLI), ESNext/Bundler (dashboard client), CommonJS (dashboard server)
+- **Strict mode:** Enabled globally via `tsconfig.base.json`
+- **Branded types:** Use `Brand<T, B>` pattern in `packages/cli/src/core/types.ts` for `PhaseNumber`, `PhasePath`, `PhaseSlug`
+- **Discriminated unions:** `Result<T>`, `CmdResult` for typed error handling without exceptions
 
-## Runtime & Environment
+### Secondary: JavaScript (CommonJS)
 
-### Node.js
-- **Minimum version:** 22.0.0
-- **Requirement:** Specified in `package.json` engines field for all packages
-- **Target:** ES2022 in `tsconfig.base.json`
-- **Platform:** Cross-platform (Windows, macOS, Linux)
+- Build scripts use `.cjs` extension: `scripts/copy-assets.cjs`, `scripts/pre-push-docs-check.cjs`, `scripts/e2e-test.cjs`
+- Generated hook bundles output as `.cjs` for Node.js compatibility
+
+### Secondary: Markdown
+
+- 38 command specs in `templates/commands/maxsim/*.md`
+- 40 workflow files in `templates/workflows/*.md`
+- 15 agent prompts in `templates/agents/*.md`
+- Markdown files are the "runtime" -- AI agents execute them as prompt instructions
+
+---
+
+## Runtime
+
+### Environment
+
+- **Runtime:** Node.js >= 22.0.0 (enforced in root `package.json` and `packages/cli/package.json` via `engines` field)
+- **Current dev version:** v25.2.1
+- **Platform:** Cross-platform (Windows, macOS, Linux). CI runs on `ubuntu-latest`.
 
 ### Package Manager
-- **npm**: npm workspaces (not pnpm or Yarn)
-- **Lockfile:** `package-lock.json` (v3 lockfile format)
-- **Monorepo:** 3 npm workspaces in `packages/`
 
-## Frameworks & Core Libraries
+- **Manager:** npm (workspaces)
+- **Lockfile:** `package-lock.json` (553KB, committed)
+- **Workspace config:** Root `package.json` declares `"workspaces": ["packages/cli", "packages/dashboard", "packages/website"]`
 
-### CLI Core (packages/cli)
-- **Framework:** Node.js HTTP servers (Express via dashboard, native for MCP)
-- **Express:** 4.22.1 (HTTP server for dashboard backend)
-- **Model Context Protocol (MCP):** `@modelcontextprotocol/sdk` 1.27.1 (server implementation)
-- **WebSockets:** `ws` 8.19.0 (real-time communication with dashboard)
-- **File watching:** `chokidar` 4.0.3 (monitor `.planning/` directory changes)
-- **Port detection:** `detect-port` 2.1.0 (dynamic port allocation)
-- **YAML parsing:** `yaml` 2.8.2 (FRONTMATTER parsing in STATE.md, etc.)
+### Monorepo Structure
 
-### Dashboard (packages/dashboard)
-- **Frontend:** React 19 + Vite 6 (client SPA bundled to `dist/client/`)
-- **Styling:** Tailwind CSS 4 (via `@tailwindcss/vite`)
-- **Code editor:** CodeMirror 6 with markdown language support (`@codemirror/lang-markdown`)
-- **Terminal emulation:** xterm.js 6.0.0 (`@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-webgl`)
-- **Backend:** Express 4 + Node.js http server + MCP server, bundled as single `dist/server.js`
-- **PTY (pseudo-terminal):** `node-pty` 1.1.0 (shell process management)
-- **Real-time updates:** WebSockets (`ws`) + Chokidar for file watching
-- **Process launcher:** `open` 10 (cross-platform process opening)
-- **QR codes:** `qrcode` 1 (network access QR generation)
+| Package | Name | Published | Role |
+|---------|------|-----------|------|
+| `packages/cli` | `maxsimcli` | Yes (npm) | Main CLI, tools router, core logic, MCP server, backend server, hooks |
+| `packages/dashboard` | `@maxsim/dashboard` | No (private) | Vite+React frontend + Express backend, bundled into CLI dist |
+| `packages/website` | `@maxsim/website` | No (private) | Marketing website, deployed to GitHub Pages |
 
-### Website (packages/website)
-- **Framework:** React 19 + Vite 7.3.1
-- **Styling:** Tailwind CSS 4
-- **Helmet:** `react-helmet-async` 2.0.5 (meta tag management)
-- **Icons:** `lucide-react` 0.575.0
+---
 
-### Shared Libraries
-- **Zod:** 3.25.0 (schema validation, used in CLI core)
-- **Slugification:** `slugify` 1.6.6 (normalize file/directory names)
-- **Utilities:** `fs-extra` 11.3.3 (enhanced file operations), `minimist` 1.2.8 (CLI argument parsing)
-- **CLI output:** `chalk` 5.6.2 (colored terminal output), `ora` 9.3.0 (spinners), `figlet` 1.10.0 (ASCII art)
-- **Prompts:** `@inquirer/prompts` 8.3.0 (interactive terminal prompts)
-- **Animation:** `motion` 12 (React component animations)
-- **Git operations:** `simple-git` 3.32.2 (programmatic git commands)
-- **Markdown rendering:** `react-markdown` 10.1.0 (parse/render markdown in UI)
-- **Debouncing:** `lodash.debounce` 4.0.8 (rate-limit event handlers)
-- **Class merging:** `clsx` 2, `tailwind-merge` 3 (Tailwind CSS utilities)
-- **Static file serving:** `sirv` 3 (lightweight static asset server)
+## Frameworks
 
-## Build & Bundling
+### Core
 
-### Bundlers
-- **tsdown** 0.20.3: Bundles TypeScript → CommonJS for Node.js targets
-  - CLI entry: `packages/cli/src/cli.ts` → `dist/cli.cjs`
-  - Installer: `packages/cli/src/install.ts` → `dist/install.cjs`
-  - Dashboard server: `packages/dashboard/src/server.ts` → `dist/server.js` (with `noExternal` inlining all deps)
-  - Hooks: `packages/cli/src/hooks/*.ts` → `dist/assets/hooks/*.cjs`
+| Framework | Version | Package | Purpose |
+|-----------|---------|---------|---------|
+| Express | ^4.22.1 | `packages/cli` | HTTP API server for backend and dashboard |
+| ws | ^8.19.0 | `packages/cli` | WebSocket server for real-time dashboard updates |
+| @modelcontextprotocol/sdk | ^1.27.1 | `packages/cli` | MCP server implementation (stdio + streamable HTTP transports) |
+| zod | ^3.25.0 | `packages/cli` | Schema validation for MCP tool inputs |
+| React | ^19 | `packages/dashboard` | Dashboard frontend UI |
+| React DOM | ^19 | `packages/dashboard` | React rendering |
 
-- **Vite** 6.x / 7.3.1: Bundles React frontends
-  - Dashboard client: `packages/dashboard/src/main.tsx` → `dist/client/`
-  - Website: `packages/website/src/main.tsx` → `dist/`
+### Build & Dev
 
-### Build Pipeline
-1. Dashboard: Vite bundles client to `packages/dashboard/dist/client/`, tsdown bundles server to `packages/dashboard/dist/server.js`
-2. CLI: tsdown bundles `src/cli.ts` and `src/install.ts` to `.cjs`, builds hooks
-3. Copy assets: `packages/cli/scripts/copy-assets.cjs` copies templates, dashboard build, hooks, CHANGELOG, README into `packages/cli/dist/assets/`
-4. Result: `packages/cli/dist/` contains complete, self-contained npm package
+| Tool | Version | Purpose | Config File |
+|------|---------|---------|-------------|
+| tsdown | ^0.20.3 | TypeScript bundler (esbuild-based) | `packages/cli/tsdown.config.ts`, `packages/dashboard/tsdown.config.server.mts` |
+| Vite | ^6 (dashboard), ^7.3.1 (website) | Frontend bundler and dev server | `packages/dashboard/vite.config.ts`, `packages/website/vite.config.ts` |
+| @vitejs/plugin-react | ^4 (dashboard), ^5.1.1 (website) | React JSX transform for Vite | Configured in `vite.config.ts` |
+| esbuild | ^0.24.0 | Underlying bundler for tsdown | Transitive dependency |
 
-### Build Commands
-```bash
-npm run build          # Full build (dashboard + cli + assets)
-npm run build:cli      # CLI only (tsdown + copy-assets)
-npm run build:dashboard # Dashboard only (vite + tsdown server)
+### Testing
+
+| Tool | Version | Purpose | Config File |
+|------|---------|---------|-------------|
+| Vitest | ^4.0.18 | Test runner (unit + e2e) | `packages/cli/vitest.config.ts`, `packages/cli/vitest.e2e.config.ts` |
+
+### Linting & Formatting
+
+| Tool | Version | Purpose | Config File |
+|------|---------|---------|-------------|
+| Biome | ^2.4.4 | Linting only (formatter disabled) | `biome.json` |
+
+### CSS
+
+| Tool | Version | Purpose | Package |
+|------|---------|---------|---------|
+| Tailwind CSS | ^4 | Utility-first CSS | `packages/dashboard` |
+| @tailwindcss/vite | ^4 | Vite plugin for Tailwind | `packages/dashboard` |
+| @tailwindcss/postcss | ^4 | PostCSS plugin for Tailwind | `packages/dashboard` |
+| PostCSS | ^8 | CSS processing | `packages/dashboard` |
+
+### CI/CD & Release
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| semantic-release | ^24.2.5 | Automatic versioning and npm publishing |
+| @semantic-release/commit-analyzer | ^13.0.1 | Parse conventional commits for version bumps |
+| @semantic-release/changelog | ^6.0.3 | Generate CHANGELOG.md |
+| @semantic-release/npm | ^12.0.1 | Publish to npm registry |
+| @semantic-release/git | ^10.0.1 | Commit version bumps and changelog |
+| @semantic-release/github | ^11.0.1 | Create GitHub releases |
+| @semantic-release/release-notes-generator | ^14.0.3 | Generate release notes |
+| husky | ^9.1.7 | Git hooks manager |
+
+---
+
+## Key Dependencies
+
+### Critical (runtime, shipped in npm package)
+
+| Dependency | Version | Location | Purpose |
+|------------|---------|----------|---------|
+| @modelcontextprotocol/sdk | ^1.27.1 | `packages/cli` | MCP protocol server (stdio + HTTP transports) |
+| express | ^4.22.1 | `packages/cli` | Backend HTTP server |
+| ws | ^8.19.0 | `packages/cli` | WebSocket for real-time communication |
+| zod | ^3.25.0 | `packages/cli` | Input validation for MCP tools |
+| chokidar | ^4.0.3 | `packages/cli` | File system watching for `.planning/` directory |
+| detect-port | ^2.1.0 | `packages/cli` | Find available ports for backend/dashboard |
+| figlet | ^1.10.0 | `packages/cli` | ASCII art banner in installer |
+
+### Infrastructure (devDependencies, used during build/install but bundled)
+
+| Dependency | Version | Location | Purpose |
+|------------|---------|----------|---------|
+| chalk | ^5.6.2 | `packages/cli` | Colored terminal output in installer |
+| ora | ^9.3.0 | `packages/cli` | Spinner animations in installer |
+| @inquirer/prompts | ^8.3.0 | `packages/cli` | Interactive CLI prompts (select, confirm) |
+| minimist | ^1.2.8 | `packages/cli` | CLI argument parsing |
+| fs-extra | ^11.3.3 | `packages/cli` | Enhanced file system operations |
+| simple-git | ^3.32.2 | `packages/cli` | Git operations (check-ignore, raw commands) |
+| slugify | ^1.6.6 | `packages/cli` | Generate URL-safe slugs from text |
+| yaml | ^2.8.2 | `packages/cli` | YAML frontmatter parsing |
+| escape-string-regexp | ^5.0.0 | `packages/cli` | Safe regex escaping |
+
+### Dashboard-Specific Dependencies
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| @xterm/xterm | ^6.0.0 | Terminal emulation in browser |
+| @xterm/addon-fit | ^0.11.0 | Auto-resize terminal to container |
+| @xterm/addon-webgl | ^0.19.0 | WebGL-accelerated terminal rendering |
+| @xterm/addon-serialize | ^0.14.0 | Serialize terminal state |
+| node-pty | ^1.1.0 | Native PTY for terminal sessions (optional, graceful degradation) |
+| @uiw/react-codemirror | ^4 | Code/markdown editor component |
+| @codemirror/lang-markdown | ^6 | Markdown syntax for CodeMirror |
+| @codemirror/theme-one-dark | ^6 | Dark theme for CodeMirror |
+| motion | ^12 | Animation library (Framer Motion successor) |
+| react-markdown | ^10.1.0 | Markdown rendering in React |
+| sirv | ^3 | Static file server for built dashboard assets |
+| open | ^10 | Open URLs in default browser |
+| qrcode | ^1 | QR code generation for network mode |
+| clsx | ^2 | Conditional className utility |
+| tailwind-merge | ^3 | Merge Tailwind classes without conflicts |
+| lodash.debounce | ^4.0.8 | Debounce utility for file watcher events |
+
+### Website-Specific Dependencies
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| @markdoc/markdoc | ^0.5.5 | Markdoc content rendering |
+| lucide-react | ^0.575.0 | Icon library |
+| react-helmet-async | ^2.0.5 | Document head management |
+| motion | ^12.34.3 | Animations |
+| vite-plugin-sitemap | ^0.8.2 | Sitemap generation |
+
+---
+
+## Configuration
+
+### TypeScript Configuration Hierarchy
+
+```
+tsconfig.base.json          -- Shared: ES2022, NodeNext, strict, composite, declarationMap
+  tsconfig.json             -- Root: references packages/cli only
+  packages/cli/tsconfig.json        -- CLI: outDir=dist, rootDir=src
+  packages/dashboard/tsconfig.json  -- Dashboard client: react-jsx, ESNext, bundler moduleResolution, path aliases
+  packages/dashboard/tsconfig.server.json  -- Dashboard server: CommonJS, node moduleResolution
+  packages/website/tsconfig.json    -- Website: separate config
 ```
 
-## Testing
+### Path Aliases
 
-### Test Runner
-- **Vitest** 4.0.18: Unit and e2e test execution
-- **Configuration:**
-  - Unit tests: `packages/cli/vitest.config.ts` (excludes e2e tests)
-  - E2E tests: `packages/cli/vitest.e2e.config.ts` (60s timeout, hooks-based setup)
-  - Global setup: `packages/cli/tests/e2e/globalSetup.ts`
+| Alias | Target | Used In |
+|-------|--------|---------|
+| `@/*` | `./src/*` | `packages/dashboard` (tsconfig + vite) |
+| `@maxsim/core` | `../cli/src/core/index.ts` | `packages/dashboard` (tsconfig + vite + tsdown) |
 
-### Test Organization
-- **Unit tests:** `packages/cli/tests/unit/` (e.g., `pack.test.ts`)
-- **E2E tests:** `packages/cli/tests/e2e/` (install, tools, dashboard integration)
+### Build Configuration
 
-### Test Commands
-```bash
-npm test              # Run unit tests
-npm run e2e           # Run e2e tests
-```
+- **CLI build:** `tsdown` produces 6 entry bundles, all CJS format targeting ES2022 with Node platform:
+  - `dist/install.cjs` -- npm install entry point (bin)
+  - `dist/cli.cjs` -- Tools router
+  - `dist/mcp-server.cjs` -- MCP stdio server
+  - `dist/backend-server.cjs` -- Unified backend (Express + WS + MCP + terminal)
+  - `dist/assets/hooks/*.cjs` -- 3 hook bundles (statusline, context-monitor, check-update)
+- **Dashboard build:** Vite produces `dist/client/` (static SPA), tsdown produces `dist/server.cjs` (renamed to `dist/server.js`)
+- **Copy-assets step:** Copies templates, dashboard build, CHANGELOG, README into `dist/assets/`
+- **Banner:** All CLI bundles include `#!/usr/bin/env node` shebang
+- **Sourcemaps:** Enabled for all bundles
+- **DTS:** Disabled (set to `false` to avoid OOM during build)
+- **Memory:** Build uses `NODE_OPTIONS=--max-old-space-size=8192` for CLI builds
 
-## Code Quality & Linting
+### Bundling Strategy
 
-### Linter
-- **Biome** 2.4.4: JavaScript/TypeScript linting and formatting checks
-- **Config file:** `biome.json`
-- **Scope:** `packages/*/src/**/*.ts`, `packages/*/src/**/*.tsx`, `scripts/**/*.cjs`
-- **Rules:** VCS-aware (uses `.gitignore`), custom linting rules
-- **Format disabled:** Formatting not enforced (eslint-like linting only)
+| Bundle | External | Inlined (noExternal) |
+|--------|----------|---------------------|
+| `install.cjs` | `node:*` | Everything else (chalk, figlet, ora, inquirer, fs-extra, minimist) |
+| `cli.cjs` | `node:*` | Everything else (simple-git, slugify, yaml, escape-string-regexp) |
+| `mcp-server.cjs` | `node:*` | `@modelcontextprotocol/*`, `zod` |
+| `backend-server.cjs` | `node:*`, `node-pty` | `@modelcontextprotocol/*`, `zod`, `express`, `ws`, `chokidar`, `detect-port` |
+| Dashboard `server.js` | `node-pty` | Everything else (express, sirv, ws, chokidar, detect-port, open, @maxsim/core, zod) |
 
-### Linting Command
-```bash
-npm run lint
-```
+### Biome Configuration (`biome.json`)
 
-## Version Control & Release
+- **Linting:** Enabled with `recommended: false` (minimal rule set)
+- **Formatting:** Disabled
+- **File scope:** `packages/*/src/**/*.ts`, `packages/*/src/**/*.tsx`, `scripts/**/*.cjs`
+- **VCS:** Git-aware, respects `.gitignore`
 
-### Git Hooks
-- **Husky** 9.1.7: Git hook management
-- **Pre-push:** Verify build succeeds before pushing (mandatory for main)
+### Environment Variables
 
-### Semantic Versioning
-- **semantic-release** 24.2.5: Automated version bumping and npm publishing
-- **Plugins:**
-  - `@semantic-release/commit-analyzer`: Parse conventional commits (feat, fix, etc.)
-  - `@semantic-release/changelog`: Update CHANGELOG.md
-  - `@semantic-release/npm`: Publish to npm (CLI package only)
-  - `@semantic-release/git`: Create git tags and commits
-  - `@semantic-release/github`: Create GitHub releases
-- **Version mapping:**
-  - `feat:` → minor version bump
-  - `fix:` → patch version bump
-  - `fix!:` / `feat!:` → major version bump (breaking change)
-  - `chore:`, `docs:`, `test:` → no publish
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `MAXSIM_PORT` | Backend server port | `3142` |
+| `MAXSIM_PROJECT_CWD` | Project working directory for backend | `process.cwd()` |
+| `MAXSIM_NETWORK_MODE` | Enable network access to dashboard | `0` (disabled) |
+| `MAXSIM_DEBUG` | Enable debug logging to stderr | Not set |
+| `STANDALONE_BUILD` | CI flag for build | Not set |
+| `NPM_TOKEN` | npm registry auth (CI only) | Secret |
+| `GITHUB_TOKEN` | GitHub API auth (CI only) | Secret |
+| `HUSKY` | Disable husky hooks in CI | Set to `'0'` in CI |
 
-### Release Config
-- **File:** `.releaserc.json`
-- **Trigger:** Automatic on every push to `main`
-- **Artifacts:** Updated `CHANGELOG.md`, `packages/cli/package.json`, git tags
+### Semantic Release Configuration (`.releaserc.json`)
 
-## Configuration Files
+- **Branch:** `main` only
+- **Plugins (in order):** commit-analyzer, release-notes-generator, changelog, npm (pkgRoot: `packages/cli`), git (commits changelog + package.json), github
+- **Conventional commits:** `fix:` = patch, `feat:` = minor, `feat!:`/`fix!:` = major, `chore:`/`docs:`/`test:` = no release
 
-### TypeScript
-- **Base config:** `tsconfig.base.json` (ES2022, strict mode, Node.js module resolution)
-- **Root config:** `tsconfig.json` (extends base)
-- **Package configs:**
-  - `packages/cli/tsconfig.json`: Excludes tests, outputs to `dist/`
-  - `packages/dashboard/tsconfig.server.json`: For server bundling
-  - `packages/website/tsconfig.app.json`: ESNext modules, strict JSX
-
-### Build Tools
-- **tsdown.config.cli.mts** (implicit): CLI bundling config
-- **packages/dashboard/tsdown.config.server.mts**: Server bundling with `noExternal` (all deps inlined)
-- **packages/dashboard/vite.config.ts**: Client bundling config with alias `@maxsim/core` → `../cli/src/core/`
-- **packages/website/vite.config.ts**: Website bundling
-
-## Environment Variables
-
-### CLI Runtime
-- `CLAUDE_CONFIG_DIR`: Override Claude Code config directory (adapter)
-- `MAXSIM_DEBUG`: Enable debug logging in `core.ts`
-- `MAXSIM_PORT`: Dashboard port (default 3333, auto-detected if occupied)
-- `MAXSIM_PROJECT_CWD`: Project working directory for dashboard (default current dir)
-- `MAXSIM_NETWORK_MODE`: Enable network-accessible dashboard (env var check for '1')
-- `BRAVE_API_KEY`: Optional Brave Search API key (fallback to file in user config)
-- `STANDALONE_BUILD`: Set in CI/CD to enable standalone build mode
-
-### Git/CI
-- `NODE_AUTH_TOKEN`: npm registry authentication (set in CI/CD)
-- `GITHUB_TOKEN`: GitHub API access (semantic-release)
-- `NPM_TOKEN`: npm registry publish token (semantic-release)
-- `HUSKY`: Disable hooks in CI (set to '0' in semantic-release)
+---
 
 ## Platform Requirements
 
 ### Development
-- **Node.js:** 22.0.0 or higher
-- **npm:** Included with Node.js 22
-- **Git:** For version control and semantic-release
-- **Supported OS:** Windows 11 Pro, macOS, Linux
 
-### Production (User Installation)
-- **Node.js:** 22.0.0 or higher
-- **npm:** Included with Node.js 22
-- **Supported OS:** Any OS where Node.js 22 runs
-- **Delivery:** npm package (`maxsimcli` published to registry)
-- **Installation:** `npx maxsimcli@latest` (automatic)
+- Node.js >= 22.0.0
+- npm (included with Node.js)
+- Git (for husky hooks, simple-git operations)
+- `gh` CLI (optional, for GitHub Issues integration -- graceful degradation if absent)
+- `node-pty` native addon (optional, for terminal in dashboard -- graceful degradation if unavailable)
 
-## Deployment & Distribution
+### Production (End User)
 
-### npm Package
-- **Package name:** `maxsimcli`
-- **Current version:** 4.2.0
-- **Registry:** npmjs.org
-- **Binary:** `dist/install.cjs` (entry point via `bin.maxsimcli`)
-- **Main export:** `dist/cli.cjs` (tools router)
-- **Assets included:**
-  - Templates: `dist/assets/templates/`
-  - Dashboard: `dist/assets/dashboard/` (client + bundled server)
-  - Hooks: `dist/assets/hooks/`
-  - CHANGELOG: `dist/assets/CHANGELOG.md`
+- Node.js >= 22.0.0 (for `npx maxsimcli@latest`)
+- Claude Code, OpenCode, Gemini CLI, or Codex (AI runtime that executes the installed markdown prompts)
+- Git (most workflows depend on git operations)
+- `gh` CLI (optional, for GitHub Issues features)
 
-### GitHub Pages
-- **Website:** Deployed to GitHub Pages on every push to `main`
-- **Source:** `packages/website/dist/`
-- **Workflow:** `.github/workflows/deploy-website.yml`
+### CI/CD
 
-### CI/CD Pipeline
-- **Trigger:** Every push to `main` and manual dispatch
-- **Jobs:** build-and-test → e2e → release (sequential)
-- **Node version:** 22 (pinned in workflows)
-- **Build env:** `STANDALONE_BUILD=true` for full builds
+- GitHub Actions (`ubuntu-latest`)
+- Node.js 22 (via `actions/setup-node@v4`)
+- npm registry access (NPM_TOKEN secret)
+- GitHub token (GITHUB_TOKEN secret)
+
+---
+
+## Git Hooks
+
+### Pre-push (``.husky/pre-push``)
+
+Runs sequentially before every push:
+1. `npm run build` -- Full monorepo build
+2. `npm run lint` -- Biome lint check
+3. `node scripts/pre-push-docs-check.cjs` -- Documentation consistency check
+4. `npm test` -- Unit tests
+
+---
+
+## npm Package Output
+
+The published `maxsimcli` package contains:
+- `dist/install.cjs` -- Entry point (bin)
+- `dist/cli.cjs` -- Tools router
+- `dist/mcp-server.cjs` -- MCP server
+- `dist/backend-server.cjs` -- Backend server
+- `dist/assets/` -- Templates (commands, workflows, agents), hooks, dashboard, changelog, README
+- `README.md` -- Auto-copied from repo root at prepublish time
+
+Current version: 4.6.0

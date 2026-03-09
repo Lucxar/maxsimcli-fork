@@ -2,63 +2,75 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-08)
-
-**Core value:** Every AI-assisted coding task runs with the right amount of context -- no more, no less -- producing consistent, correct output from phase 1 to phase 50.
-**Current focus:** v5.1 Surgical Cleanup -- error handling, test coverage, dedup, dead code removal
+**Core Value:** Consistent, high-quality AI-assisted development at any project scale
+**Current Focus:** Phase 1 -- Infrastructure Cleanup
 
 ## Current Position
 
-Milestone: v5.1 Surgical Cleanup
-Phase: 01 -- GitHub Issues Integration for MCP Task Management
-Plan: 06 of 6 (complete)
-Status: Complete
-Last activity: 2026-03-09 -- Plan 01-06 complete (build verification and smoke test)
+**Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
+**Phase:** 1 (Infrastructure Cleanup)
+**Plan:** None (phase not yet planned)
+**Status:** Roadmap created, ready to begin Phase 1
 
-Progress: [██████████] 100%
+## Progress
+
+| Metric | Value |
+|--------|-------|
+| Phases Complete | 0/6 |
+| Plans Complete | 0 |
+| Plans Failed | 0 |
+| Blockers | 0 |
 
 ## Accumulated Context
 
 ### Decisions
 
-- [01-01] Used GhResult<T> discriminated union consistent with project's existing CmdResult pattern
-- [01-01] Synchronous fs in mapping.ts to match existing core module patterns
-- [01-02] Used fail<T>() helper to re-wrap GhResult error branches across generic types
-- [01-02] GraphQL updateProjectV2Field mutation for adding single-select status options (no CLI equivalent)
-- [01-02] REST API for milestones (simpler than GraphQL for CRUD ops)
-- [01-03] Explicit GhResult error construction for cross-generic propagation (avoids TS narrowing issues)
-- [01-03] Batch size 5 with Promise.all per batch for GitHub rate limit safety
-- [01-04] Batched GraphQL queries in syncCheck (up to 100 issues/query) with sequential fallback
-- [01-04] handleExternalClose returns data for AI decision (does not auto-decide)
-- [01-04] findIssueInMapping duplicated in github-tools.ts and board-tools.ts to avoid circular deps
-- [01-05] findIssueInMapping duplicated in phase-tools.ts (same pattern as github-tools.ts and board-tools.ts)
-- [01-05] extractIssueNumbers regex for blocker linking: matches #N, "issue N", "issue #N" patterns
-- [01-05] mcp_complete_phase closes ALL remaining open task issues (not just tracking issue)
-- [01-06] Disabled DTS generation globally in tsdown shared config to fix OOM build failure
+1. GitHub Issues = source of truth (not .planning/)
+2. `gh` CLI = hard requirement, no fallback
+3. Local-only install (no global)
+4. Dashboard removed (GitHub Project Board replaces)
+5. ~9 commands (down from ~35)
+6. State-machine commands (idempotent, resume from GitHub)
+7. Skills for progressive disclosure
+8. Clean break, no v4.x migration
+9. Quality model profile for v5.0 planning
+10. Prototype stage, breaking changes OK
 
-### Architecture
+### Known Issues
 
-- THREE INDEPENDENT LAYERS: Claude Code standalone + Core Server (MCP) + Dashboard (optional UI)
-- .mcp.json auto-discovery replaces need for session-start hook
-- MCP install is optional (graceful fallback to Bash tools router)
-- Skills installed at `.claude/skills/maxsim-*/SKILL.md`
-- `using-maxsim` registered in AGENTS.md (not hooks)
+| ID | Issue | Severity | Target Phase |
+|----|-------|----------|--------------|
+| TD-1 | Sync/async duplication in core.ts (50% duplication) | HIGH | Phase 1 |
+| TD-2 | Triple markdown parser duplication | MEDIUM | Phase 1 |
+| TD-3 | dist/ committed to git (21MB, 187 files) | MEDIUM | Phase 1 |
+| TD-6 | OOM build workaround, no TypeScript declarations | MEDIUM | Phase 1 |
+| BUG-1 | Sync vs async phase search searches different paths | HIGH | Phase 1 |
 
-### Pending Todos
+### Blockers
 
-None.
+None currently.
 
-### Roadmap Evolution
+### Key Metrics
 
-- Phase 1 added: GitHub Issues Integration for MCP Task Management
-
-### Blockers/Concerns
-
-None.
+- Commands: ~35 current, target ~9
+- Agents: 15 current, to be consolidated
+- Skills: 11 current, to be expanded with better triggers
+- Dashboard: removing entirely (52K-line server + React frontend)
 
 ## Session Continuity
 
-Last session: 2026-03-09T16:50:48.117Z
-Stopped at: Completed 01-06-PLAN.md
-Resume file: None
-Next action: Phase 01 complete -- all 6 plans executed successfully
+### Last Session
+- **Date:** 2026-03-09
+- **Activity:** Project initialization and roadmap creation
+- **Outcome:** 6-phase roadmap created, 28/28 requirements mapped
+- **Next Step:** Begin Phase 1 (Infrastructure Cleanup) -- remove dashboard, purge dist/, fix build, eliminate sync duplication
+
+### Recovery Instructions
+1. Read `.planning/ROADMAP.md` for phase structure and dependencies
+2. Read `.planning/STATE.md` (this file) for current position
+3. Check active phase details in ROADMAP.md Phase Details section
+4. Resume from current position noted above
+
+---
+*State initialized: 2026-03-09*
+*Last updated: 2026-03-09 (roadmap created)*
