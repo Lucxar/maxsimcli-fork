@@ -20,15 +20,12 @@ commands.html
 next-env.d.ts
 *.tsbuildinfo
 
-# Dashboard compiled server output
-packages/dashboard/server.js
-packages/dashboard/.server-build/
-
 # Temp files
 tmp/
 
-# Build artifacts (committed to npm, not git)
-hooks/dist/
+# Build artifacts — CI builds fresh, not committed
+packages/cli/dist/
+dist/
 
 # Generated during build — copied from root README.md
 packages/cli/README.md
