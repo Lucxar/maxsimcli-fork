@@ -50,4 +50,9 @@ export default defineConfig([
     entry: { 'maxsim-statusline': 'src/hooks/maxsim-statusline.ts' },
     dts: false,
   },
+  {
+    ...hookShared,
+    entry: { 'maxsim-sync-reminder': 'src/hooks/maxsim-sync-reminder.ts' },
+    dts: false,
+  },
 ]);

@@ -228,7 +228,7 @@ export function installHookFiles(
 export function configureSettingsHooks(
   targetDir: string,
   isGlobal: boolean,
-): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string } {
+): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string; syncReminderCommand: string } {
   const dirName = getDirName();
 
   const settingsPath = path.join(targetDir, 'settings.json');
@@ -239,7 +239,11 @@ export function configureSettingsHooks(
   const updateCheckCommand = isGlobal
     ? buildHookCommand(targetDir, 'maxsim-check-update.js')
     : 'node ' + dirName + '/hooks/maxsim-check-update.js';
+  const syncReminderCommand = isGlobal
+    ? buildHookCommand(targetDir, 'maxsim-sync-reminder.js')
+    : 'node ' + dirName + '/hooks/maxsim-sync-reminder.js';
   interface InstallHookEntry {
+    matcher?: string;
     hooks?: Array<{ type: string; command: string }>;
   }
 
@@ -274,7 +278,35 @@ export function configureSettingsHooks(
     );
   }
 
-  return { settingsPath, settings, statuslineCommand, updateCheckCommand };
+  // Configure PostToolUse hook for sync reminder
+  if (!installHooks.PostToolUse) {
+    installHooks.PostToolUse = [];
+  }
+
+  const hasMaxsimSyncReminder = installHooks.PostToolUse.some(
+    (entry: InstallHookEntry) =>
+      entry.hooks &&
+      entry.hooks.some(
+        (h) => h.command && h.command.includes('maxsim-sync-reminder'),
+      ),
+  );
+
+  if (!hasMaxsimSyncReminder) {
+    installHooks.PostToolUse.push({
+      matcher: 'Write|Edit',
+      hooks: [
+        {
+          type: 'command',
+          command: syncReminderCommand,
+        },
+      ],
+    });
+    console.log(
+      `  ${chalk.green('\u2713')} Configured sync reminder hook`,
+    );
+  }
+
+  return { settingsPath, settings, statuslineCommand, updateCheckCommand, syncReminderCommand };
 }
 
 /**

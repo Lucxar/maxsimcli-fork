@@ -11,6 +11,7 @@ describe('npm pack validation', () => {
     const hooksAssetsDir = path.join(distDir, 'assets', 'hooks');
     expect(existsSync(path.join(hooksAssetsDir, 'maxsim-check-update.cjs'))).toBe(true);
     expect(existsSync(path.join(hooksAssetsDir, 'maxsim-statusline.cjs'))).toBe(true);
+    expect(existsSync(path.join(hooksAssetsDir, 'maxsim-sync-reminder.cjs'))).toBe(true);
   });
 
   it('cli.cjs exists in dist/ — required for maxsim-tools.cjs install step', () => {
