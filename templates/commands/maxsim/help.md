@@ -1,6 +1,6 @@
 ---
 name: maxsim:help
-description: Show available MAXSIM commands and usage guide
+description: Show MAXSIM command reference and usage guide
 ---
 <objective>
 Display the complete MAXSIM command reference.
@@ -18,5 +18,5 @@ Output ONLY the reference content below. Do NOT add:
 
 <process>
 Output the complete MAXSIM command reference from @./workflows/help.md.
-Display the reference content directly — no additions or modifications.
+Display directly -- no additions or modifications.
 </process>
