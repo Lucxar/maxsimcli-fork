@@ -100,7 +100,6 @@ describe('install real-world verification (E2E-05)', () => {
 
     const hookFiles = readdirSync(hooksDir).filter((f) => f.endsWith('.js'));
     expect(hookFiles).toContain('maxsim-statusline.js');
-    expect(hookFiles).toContain('maxsim-context-monitor.js');
     expect(hookFiles).toContain('maxsim-check-update.js');
   });
 

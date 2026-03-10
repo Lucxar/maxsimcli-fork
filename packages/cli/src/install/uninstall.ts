@@ -108,6 +108,7 @@ export function uninstall(isGlobal: boolean, explicitConfigDir: string | null = 
       'maxsim-check-update.js',
       'maxsim-check-update.sh',
       'maxsim-context-monitor.js',
+      'maxsim-sync-reminder.js',
     ];
     let hookCount = 0;
     for (const hook of maxsimHooks) {
@@ -208,7 +209,8 @@ export function uninstall(isGlobal: boolean, explicitConfigDir: string | null = 
             const hasMaxsimHook = entry.hooks.some(
               (h) =>
                 h.command &&
-                h.command.includes('maxsim-context-monitor'),
+                (h.command.includes('maxsim-context-monitor') ||
+                  h.command.includes('maxsim-sync-reminder')),
             );
             return !hasMaxsimHook;
           }

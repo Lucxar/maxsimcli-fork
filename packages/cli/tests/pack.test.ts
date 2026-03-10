@@ -10,7 +10,6 @@ describe('npm pack validation', () => {
   it('bundled hooks assets exist in dist/assets/hooks/', () => {
     const hooksAssetsDir = path.join(distDir, 'assets', 'hooks');
     expect(existsSync(path.join(hooksAssetsDir, 'maxsim-check-update.cjs'))).toBe(true);
-    expect(existsSync(path.join(hooksAssetsDir, 'maxsim-context-monitor.cjs'))).toBe(true);
     expect(existsSync(path.join(hooksAssetsDir, 'maxsim-statusline.cjs'))).toBe(true);
   });
 

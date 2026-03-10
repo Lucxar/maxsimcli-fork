@@ -47,11 +47,6 @@ export default defineConfig([
   },
   {
     ...hookShared,
-    entry: { 'maxsim-context-monitor': 'src/hooks/maxsim-context-monitor.ts' },
-    dts: false,
-  },
-  {
-    ...hookShared,
     entry: { 'maxsim-statusline': 'src/hooks/maxsim-statusline.ts' },
     dts: false,
   },

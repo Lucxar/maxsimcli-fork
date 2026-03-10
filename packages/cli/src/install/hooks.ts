@@ -72,6 +72,9 @@ export function cleanupOrphanedFiles(configDir: string): void {
     'agents/maxsim-spec-reviewer.md',
     'agents/maxsim-verifier.md',
 
+    // v5.x: Context monitor removal (Phase 6)
+    'hooks/maxsim-context-monitor.js',
+
     // v5.0: Removed workflow files (Phase 3)
     'maxsim/workflows/add-phase.md',
     'maxsim/workflows/add-tests.md',
@@ -117,6 +120,7 @@ export function cleanupOrphanedHooks(
     'maxsim-intel-index.js',
     'maxsim-intel-session.js',
     'maxsim-intel-prune.js',
+    'maxsim-context-monitor',
   ];
 
   let cleanedHooks = false;
@@ -224,7 +228,7 @@ export function installHookFiles(
 export function configureSettingsHooks(
   targetDir: string,
   isGlobal: boolean,
-): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string; contextMonitorCommand: string } {
+): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string } {
   const dirName = getDirName();
 
   const settingsPath = path.join(targetDir, 'settings.json');
@@ -235,10 +239,6 @@ export function configureSettingsHooks(
   const updateCheckCommand = isGlobal
     ? buildHookCommand(targetDir, 'maxsim-check-update.js')
     : 'node ' + dirName + '/hooks/maxsim-check-update.js';
-  const contextMonitorCommand = isGlobal
-    ? buildHookCommand(targetDir, 'maxsim-context-monitor.js')
-    : 'node ' + dirName + '/hooks/maxsim-context-monitor.js';
-
   interface InstallHookEntry {
     hooks?: Array<{ type: string; command: string }>;
   }
@@ -274,34 +274,7 @@ export function configureSettingsHooks(
     );
   }
 
-  // Configure PostToolUse hook for context window monitoring
-  if (!installHooks.PostToolUse) {
-    installHooks.PostToolUse = [];
-  }
-
-  const hasContextMonitorHook = installHooks.PostToolUse.some(
-    (entry: InstallHookEntry) =>
-      entry.hooks &&
-      entry.hooks.some(
-        (h) => h.command && h.command.includes('maxsim-context-monitor'),
-      ),
-  );
-
-  if (!hasContextMonitorHook) {
-    installHooks.PostToolUse.push({
-      hooks: [
-        {
-          type: 'command',
-          command: contextMonitorCommand,
-        },
-      ],
-    });
-    console.log(
-      `  ${chalk.green('\u2713')} Configured context window monitor hook`,
-    );
-  }
-
-  return { settingsPath, settings, statuslineCommand, updateCheckCommand, contextMonitorCommand };
+  return { settingsPath, settings, statuslineCommand, updateCheckCommand };
 }
 
 /**
@@ -338,8 +311,8 @@ export async function handleStatusline(
   console.log();
   console.log('  MAXSIM includes a statusline showing:');
   console.log('    \u2022 Model name');
-  console.log('    \u2022 Current task (from todo list)');
-  console.log('    \u2022 Context window usage (color-coded)');
+  console.log('    \u2022 Current phase number');
+  console.log('    \u2022 Milestone progress percentage');
   console.log();
 
   const shouldReplace = await confirm({
