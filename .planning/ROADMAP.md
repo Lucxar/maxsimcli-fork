@@ -43,7 +43,7 @@
   4. Installation writes all files to `.claude/` inside the project directory, never to `~/.claude/` globally
   5. A command interrupted mid-execution can be re-run and resumes from GitHub Issue state without user intervention
 **Plans**: 4 plans in 3 waves
-  - [ ] Plan 01 (Wave 1): Octokit adapter, auth gate, build config, local-only install [ARCH-03, ARCH-04]
+  - [x] Plan 01 (Wave 1): Octokit adapter, auth gate, build config, local-only install [ARCH-03, ARCH-04]
   - [ ] Plan 02 (Wave 2): Issue & sub-issue CRUD, labels, milestones via Octokit [ARCH-01, ARCH-05]
   - [ ] Plan 03 (Wave 2): Projects v2 board & sync module via Octokit REST [ARCH-01, ARCH-05]
   - [ ] Plan 04 (Wave 3): MCP tools integration, legacy removal, clean barrel export [ARCH-01, ARCH-02, ARCH-05]
@@ -131,7 +131,7 @@ Unmapped: 0
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Cleanup | 0/3 | Planned | - |
-| 2. GitHub Issues Foundation | 0/4 | Planned | - |
+| 2. GitHub Issues Foundation | 1/4 | In Progress | - |
 | 3. Command Surface Simplification | 0/? | Not started | - |
 | 4. Prompt & Skill Architecture | 0/? | Not started | - |
 | 5. Parallel Execution Model | 0/? | Not started | - |
@@ -140,3 +140,4 @@ Unmapped: 0
 ---
 *Roadmap created: 2026-03-09*
 *Phase 2 planned: 2026-03-10*
+*Plan 02-01 complete: 2026-03-10*
