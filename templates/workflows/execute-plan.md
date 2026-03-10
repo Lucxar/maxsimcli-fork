@@ -77,7 +77,7 @@ grep -n "type=\"checkpoint" .planning/phases/XX-name/{phase}-{plan}-PLAN.md
 | Verify-only | B (segmented) | Segments between checkpoints. After none/human-verify → SUBAGENT. After decision/human-action → MAIN |
 | Decision | C (main) | Execute entirely in main context |
 
-**Pattern A:** init_agent_tracking → spawn Task(subagent_type="maxsim-executor", model=executor_model) with prompt: execute plan at [path], autonomous, all tasks + SUMMARY + commit, follow deviation/auth rules, report: plan name, tasks, SUMMARY path, commit hash → track agent_id → wait → update tracking → report.
+**Pattern A:** init_agent_tracking → spawn Task(subagent_type="executor", model=executor_model) with prompt: execute plan at [path], autonomous, all tasks + SUMMARY + commit, follow deviation/auth rules, report: plan name, tasks, SUMMARY path, commit hash → track agent_id → wait → update tracking → report.
 
 **Pattern B:** Execute segment-by-segment. Autonomous segments: spawn subagent for assigned tasks only (no SUMMARY/commit). Checkpoints: main context. After all segments: aggregate, create SUMMARY, commit. See segment_execution.
 
@@ -110,7 +110,7 @@ Pattern B only (verify-only checkpoints). Skip for A/C.
 
 1. Parse segment map: checkpoint locations and types
 2. Per segment:
-   - Subagent route: spawn maxsim-executor for assigned tasks only. Prompt: task range, plan path, read full plan for context, execute assigned tasks, track deviations, NO SUMMARY/commit. Track via agent protocol.
+   - Subagent route: spawn executor for assigned tasks only. Prompt: task range, plan path, read full plan for context, execute assigned tasks, track deviations, NO SUMMARY/commit. Track via agent protocol.
    - Main route: execute tasks using standard flow (step name="execute")
 3. After ALL segments: aggregate files/deviations/decisions → create SUMMARY.md → commit → self-check:
    - Verify key-files.created exist on disk with `[ -f ]`
@@ -352,8 +352,12 @@ After implementation is complete and SUMMARY.md is created, run the full review 
 
 ```
 Task(
-  subagent_type="maxsim-spec-reviewer",
+  subagent_type="verifier",
   prompt="
+    ## Task: Review for spec compliance
+
+    ## Suggested Skills: verification-gates, evidence-collection
+
     <objective>
     Review plan {phase}-{plan} for spec compliance.
     </objective>
@@ -387,8 +391,12 @@ Task(
 
 ```
 Task(
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   prompt="
+    ## Task: Review code quality
+
+    ## Suggested Skills: code-review
+
     <objective>
     Review plan {phase}-{plan} code quality. Spec compliance already verified.
     </objective>
@@ -415,8 +423,12 @@ Task(
 
 ```
 Task(
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   prompt="
+    ## Task: Review for code reuse opportunities
+
+    ## Suggested Skills: code-review
+
     <objective>
     Review plan {phase}-{plan} for code reuse opportunities.
     </objective>
@@ -441,8 +453,12 @@ Task(
 
 ```
 Task(
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   prompt="
+    ## Task: Review for code quality issues
+
+    ## Suggested Skills: code-review
+
     <objective>
     Review plan {phase}-{plan} for code quality issues.
     </objective>
@@ -467,8 +483,12 @@ Task(
 
 ```
 Task(
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   prompt="
+    ## Task: Review for efficiency issues
+
+    ## Suggested Skills: code-review
+
     <objective>
     Review plan {phase}-{plan} for efficiency issues.
     </objective>
@@ -499,7 +519,7 @@ After all three reviewers report:
 
 ```
 Task(
-  subagent_type="maxsim-executor",
+  subagent_type="executor",
   prompt="
     <objective>
     Apply simplification fixes for plan {phase}-{plan} based on reviewer findings.
@@ -531,8 +551,12 @@ Run this stage ONLY if Stage 3 reported FIXED (i.e., simplify found and applied 
 
 ```
 Task(
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   prompt="
+    ## Task: Final review after simplification
+
+    ## Suggested Skills: code-review
+
     <objective>
     Final review pass after simplification changes on plan {phase}-{plan}.
     Verify simplification fixes did not introduce regressions.

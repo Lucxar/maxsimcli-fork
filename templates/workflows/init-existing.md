@@ -177,7 +177,7 @@ Spawn 4 mapper agents using the Task tool. Follow the EXACT pattern from `templa
 
 ```
 Task(
-  subagent_type="maxsim-codebase-mapper",
+  subagent_type="researcher",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase tech stack",
@@ -196,7 +196,7 @@ Explore thoroughly. Write documents directly using templates. Return confirmatio
 
 ```
 Task(
-  subagent_type="maxsim-codebase-mapper",
+  subagent_type="researcher",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase architecture",
@@ -215,7 +215,7 @@ Explore thoroughly. Write documents directly using templates. Return confirmatio
 
 ```
 Task(
-  subagent_type="maxsim-codebase-mapper",
+  subagent_type="researcher",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase conventions",
@@ -234,7 +234,7 @@ Explore thoroughly. Write documents directly using templates. Return confirmatio
 
 ```
 Task(
-  subagent_type="maxsim-codebase-mapper",
+  subagent_type="researcher",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase concerns",
@@ -1023,7 +1023,7 @@ Use template from `templates/roadmap.md`.
 ◆ Spawning roadmapper...
 ```
 
-Spawn the `maxsim-roadmapper` agent via Task tool to generate the roadmap:
+Spawn the planner (roadmap mode) via Task tool to generate the roadmap:
 
 ```
 Task(prompt="
@@ -1068,7 +1068,7 @@ not generic setup phases. The codebase already exists.
 
 Write files first, then return. This ensures artifacts persist even if context is lost.
 </instructions>
-", subagent_type="maxsim-roadmapper", model="{roadmapper_model}", description="Create roadmap for existing project")
+", subagent_type="planner", model="{roadmapper_model}", description="Create roadmap for existing project")
 ```
 
 **Handle roadmapper return:**

@@ -10,7 +10,7 @@ Thin orchestrator for the /maxsim:execute state machine. Detects the current sta
 This file is the ORCHESTRATOR ONLY. Per-plan execution logic lives in:
 - @./workflows/execute-plan.md (per-plan subagent execution)
 
-Verification is handled inline (spawning maxsim-verifier agent) since it is a stage of this workflow, not a separate command.
+Verification is handled inline (spawning verifier agent) since it is a stage of this workflow, not a separate command.
 </purpose>
 
 <process>
@@ -141,7 +141,7 @@ Execute each wave in sequence. Within a wave: parallel if `parallelization` is t
 
    ```
    Task(
-     subagent_type="maxsim-executor",
+     subagent_type="executor",
      model="{executor_model}",
      prompt="
        <objective>
@@ -227,10 +227,10 @@ Verify that the phase achieved its GOAL, not just that tasks completed.
 
 ### 5.1 Spawn Verifier
 
-Resolve verifier model and spawn the maxsim-verifier agent:
+Resolve verifier model and spawn the verifier agent:
 
 ```bash
-VERIFIER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model maxsim-verifier --raw)
+VERIFIER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model verifier --raw)
 ```
 
 ```
@@ -242,7 +242,7 @@ Phase requirement IDs: {phase_req_ids}
 Check must_haves against actual codebase.
 Cross-reference requirement IDs from PLAN frontmatter against REQUIREMENTS.md.
 Create VERIFICATION.md.",
-  subagent_type="maxsim-verifier",
+  subagent_type="verifier",
   model="{verifier_model}"
 )
 ```
@@ -330,7 +330,7 @@ Output consumed by /maxsim:execute.
 Plans must be executable prompts.
 </downstream_consumer>
 ",
-  subagent_type="maxsim-planner",
+  subagent_type="planner",
   model="{planner_model}"
 )
 ```
@@ -410,7 +410,7 @@ Display final results:
 - [ ] Per-plan execution delegates to execute-plan.md sub-workflow via Task
 - [ ] Spot-check of SUMMARY.md after each wave
 - [ ] Gate confirmation shown after execution completes
-- [ ] Auto-verification spawns maxsim-verifier agent
+- [ ] Auto-verification spawns verifier agent
 - [ ] Retry loop with gap closure (max 2 retries, 3 total attempts)
 - [ ] Checkpoint-before-clear pattern available
 - [ ] No references to old commands (execute-phase, verify-work)

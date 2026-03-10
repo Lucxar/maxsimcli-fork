@@ -69,7 +69,7 @@ Display banner:
 </step>
 
 <step name="decompose">
-Spawn maxsim-planner with batch-specific prompt to produce a decomposition:
+Spawn planner with batch-specific prompt to produce a decomposition:
 
 ```
 Task(
@@ -132,7 +132,7 @@ status: pending
 Return: ## PLANNING COMPLETE with unit count and decomposition path
 </output>
 ",
-  subagent_type="maxsim-planner",
+  subagent_type="planner",
   model="{planner_model}",
   description="Batch decomposition: ${DESCRIPTION}"
 )
@@ -187,7 +187,7 @@ Options:
 Revise DECOMPOSITION.md to resolve all overlaps.
 </revision_context>
 ",
-  subagent_type="maxsim-planner",
+  subagent_type="planner",
   model="{planner_model}",
   description="Revise batch decomposition: fix overlaps"
 )

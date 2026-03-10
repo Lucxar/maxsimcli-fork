@@ -5,7 +5,7 @@ Before executing any step in this workflow, verify:
 </sanity_check>
 
 <purpose>
-Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates maxsim-phase-researcher, maxsim-planner, and maxsim-plan-checker agents with a revision loop (max 3 iterations).
+Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates researcher, planner, and planner (plan-checking mode) agents with a revision loop (max 3 iterations).
 </purpose>
 
 <required_reading>
@@ -87,7 +87,7 @@ Display banner:
 ◆ Spawning researcher...
 ```
 
-### Spawn maxsim-phase-researcher
+### Spawn researcher
 
 ```bash
 PHASE_DESC=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap get-phase "${PHASE}" | jq -r '.section')
@@ -122,8 +122,8 @@ Write to: {phase_dir}/{phase_num}-RESEARCH.md
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/maxsim-phase-researcher.md for your role and instructions.\n\n" + research_prompt,
-  subagent_type="general-purpose",
+  prompt=research_prompt,
+  subagent_type="researcher",
   model="{researcher_model}",
   description="Research Phase {phase}"
 )
@@ -181,7 +181,7 @@ UAT_PATH=$(echo "$INIT" | jq -r '.uat_path // empty')
 CONTEXT_PATH=$(echo "$INIT" | jq -r '.context_path // empty')
 ```
 
-## 8. Spawn maxsim-planner Agent
+## 8. Spawn planner Agent
 
 Display banner:
 ```
@@ -235,8 +235,8 @@ Output consumed by /maxsim:execute. Plans need:
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/maxsim-planner.md for your role and instructions.\n\n" + filled_prompt,
-  subagent_type="general-purpose",
+  prompt=filled_prompt,
+  subagent_type="planner",
   model="{planner_model}",
   description="Plan Phase {phase}"
 )
@@ -248,7 +248,7 @@ Task(
 - **`## CHECKPOINT REACHED`:** Present to user, get response, spawn continuation (step 12)
 - **`## PLANNING INCONCLUSIVE`:** Show attempts, offer: Add context / Retry / Manual
 
-## 10. Spawn maxsim-plan-checker Agent
+## 10. Spawn planner Agent (Plan Verification Mode)
 
 Display banner:
 ```
@@ -288,8 +288,8 @@ Checker prompt:
 
 ```
 Task(
-  prompt=checker_prompt,
-  subagent_type="maxsim-plan-checker",
+  prompt="## Task: Verify plans achieve phase goal\n\n## Suggested Skills: verification-gates\n\n" + checker_prompt,
+  subagent_type="planner",
   model="{checker_model}",
   description="Verify Phase {phase} plans"
 )
@@ -332,8 +332,8 @@ Return what changed.
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/maxsim-planner.md for your role and instructions.\n\n" + revision_prompt,
-  subagent_type="general-purpose",
+  prompt=revision_prompt,
+  subagent_type="planner",
   model="{planner_model}",
   description="Revise Phase {phase} plans"
 )
@@ -396,8 +396,8 @@ Task(
     1. Read execute-phase.md from execution_context for your complete workflow
     2. Follow ALL steps: initialize, handle_branching, validate_phase, discover_and_group_plans, execute_waves, aggregate_results, close_parent_artifacts, verify_phase_goal, update_roadmap
     3. The --no-transition flag means: after verification + roadmap update, STOP and return status. Do NOT run transition.md.
-    4. When spawning executor agents, use subagent_type='maxsim-executor' with the existing @file pattern from the workflow
-    5. When spawning verifier agents, use subagent_type='maxsim-verifier'
+    4. When spawning executor agents, use subagent_type='executor' with the existing @file pattern from the workflow
+    5. When spawning verifier agents, use subagent_type='verifier'
     6. Preserve the classifyHandoffIfNeeded workaround (spot-check on that specific error)
     7. Do NOT use the Skill tool or /maxsim: commands
     </instructions>
@@ -473,11 +473,11 @@ Verification: {Passed | Passed with override | Skipped}
 - [ ] Phase directory created if needed
 - [ ] CONTEXT.md loaded early (step 4) and passed to ALL agents
 - [ ] Research completed (unless --skip-research or --gaps or exists)
-- [ ] maxsim-phase-researcher spawned with CONTEXT.md
+- [ ] researcher spawned with CONTEXT.md
 - [ ] Existing plans checked
-- [ ] maxsim-planner spawned with CONTEXT.md + RESEARCH.md
+- [ ] planner spawned with CONTEXT.md + RESEARCH.md
 - [ ] Plans created (PLANNING COMPLETE or CHECKPOINT handled)
-- [ ] maxsim-plan-checker spawned with CONTEXT.md
+- [ ] planner (plan-check mode) spawned with CONTEXT.md
 - [ ] Verification passed OR user override OR max iterations with user decision
 - [ ] User sees status between agent spawns
 - [ ] User knows next steps

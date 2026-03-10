@@ -1,5 +1,5 @@
 <purpose>
-Research stage sub-workflow for /maxsim:plan. Spawns the maxsim-phase-researcher agent with phase context to produce RESEARCH.md.
+Research stage sub-workflow for /maxsim:plan. Spawns the researcher agent with phase context to produce RESEARCH.md.
 
 This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on running research and validating the output.
 </purpose>
@@ -20,7 +20,7 @@ The orchestrator provides phase context. Verify we have what we need:
 ## Step 2: Resolve Researcher Model
 
 ```bash
-RESEARCHER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model maxsim-phase-researcher --raw)
+RESEARCHER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model researcher --raw)
 ```
 
 ## Step 3: Check Existing Research
@@ -60,7 +60,7 @@ PHASE_DESC=$(node .claude/maxsim/bin/maxsim-tools.cjs roadmap get-phase "${PHASE
 
 Extract the phase section/description from the JSON output for the researcher prompt.
 
-## Step 5: Spawn maxsim-phase-researcher
+## Step 5: Spawn Researcher
 
 Display:
 ```
@@ -98,8 +98,8 @@ Spawn the researcher:
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/maxsim-phase-researcher.md for your role and instructions.\n\n" + research_prompt,
-  subagent_type="general-purpose",
+  prompt=research_prompt,
+  subagent_type="researcher",
   model="{researcher_model}",
   description="Research Phase {phase_number}"
 )
@@ -170,7 +170,7 @@ After RESEARCH.md is validated (or research is skipped), return control to the p
 <success_criteria>
 - Researcher model resolved from config
 - Existing research detected and reused (unless --force-research)
-- Researcher agent spawned with full context (CONTEXT.md, requirements, state)
+- researcher agent spawned with full context (CONTEXT.md, requirements, state)
 - RESEARCH.md created and validated
 - Blocked/inconclusive scenarios handled with user options
 - Control returned to orchestrator without showing gate or next steps

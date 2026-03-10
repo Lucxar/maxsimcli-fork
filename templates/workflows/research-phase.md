@@ -1,5 +1,5 @@
 <purpose>
-Research how to implement a phase. Spawns maxsim-phase-researcher with phase context.
+Research how to implement a phase. Spawns researcher with phase context.
 
 Standalone research command. For most workflows, use `/maxsim:plan` which integrates research automatically.
 </purpose>
@@ -11,7 +11,7 @@ Standalone research command. For most workflows, use `/maxsim:plan` which integr
 @./references/model-profile-resolution.md
 
 Resolve model for:
-- `maxsim-phase-researcher`
+- `researcher`
 
 ## Step 1: Normalize and Validate Phase
 
@@ -59,7 +59,7 @@ Phase description: {description}
 <output>
 Write to: .planning/phases/${PHASE}-{slug}/${PHASE}-RESEARCH.md
 </output>",
-  subagent_type="maxsim-phase-researcher",
+  subagent_type="researcher",
   model="{researcher_model}"
 )
 ```

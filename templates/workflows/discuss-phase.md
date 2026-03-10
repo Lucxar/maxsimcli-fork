@@ -39,11 +39,11 @@ Every question directed at the user MUST use a structured tool. NEVER write a qu
 <downstream_awareness>
 **CONTEXT.md feeds into:**
 
-1. **maxsim-phase-researcher** — Reads CONTEXT.md to know WHAT to research
+1. **researcher** — Reads CONTEXT.md to know WHAT to research
    - "User wants card-based layout" → researcher investigates card component patterns
    - "Infinite scroll decided" → researcher looks into virtualization libraries
 
-2. **maxsim-planner** — Reads CONTEXT.md to know WHAT decisions are locked
+2. **planner** — Reads CONTEXT.md to know WHAT decisions are locked
    - "Pull-to-refresh on mobile" → planner includes that in task specs
    - "Claude's Discretion: loading skeleton" → planner can decide approach
 
@@ -628,7 +628,7 @@ Task(
     <instructions>
     1. Read plan-phase.md from execution_context for your complete workflow
     2. Follow ALL steps: initialize, validate, load context, research, plan, verify, auto-advance
-    3. When spawning agents (maxsim-phase-researcher, maxsim-planner, maxsim-plan-checker), use Task with specified subagent_type and model
+    3. When spawning agents (researcher, planner), use Task with specified subagent_type and model
     4. For step 14 (auto-advance to execute): spawn execute-phase as a Task with DIRECT file reference — tell it to read execute-phase.md. Include @file refs to execute-phase.md, checkpoints.md, tdd.md, model-profile-resolution.md. Pass --no-transition flag so execute-phase returns results instead of chaining further.
     5. Do NOT use the Skill tool or /maxsim: commands. Read workflow .md files directly.
     6. Return: PHASE COMPLETE (full pipeline success), PLANNING COMPLETE (planning done but execute failed/skipped), PLANNING INCONCLUSIVE, or GAPS FOUND

@@ -79,8 +79,8 @@ For each gap, fill the debug-subagent-prompt template and spawn:
 
 ```
 Task(
-  prompt=filled_debug_subagent_prompt + "\n\n<files_to_read>\n- {phase_dir}/{phase_num}-UAT.md\n- .planning/STATE.md\n</files_to_read>",
-  subagent_type="general-purpose",
+  prompt="## Task: Diagnose root cause of test failure\n\n## Suggested Skills: systematic-debugging\n\n" + filled_debug_subagent_prompt + "\n\n<files_to_read>\n- {phase_dir}/{phase_num}-UAT.md\n- .planning/STATE.md\n</files_to_read>",
+  subagent_type="verifier",
   description="Debug: {truth_short}"
 )
 ```

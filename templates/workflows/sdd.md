@@ -102,11 +102,11 @@ Context table (SDD principle):
 
 **4b — Spawn Executor**
 
-Fresh `maxsim-executor` agent with minimal context:
+Fresh executor agent with minimal context:
 
 ```
 Task(
-  subagent_type="maxsim-executor",
+  subagent_type="executor",
   model="{executor_model}",
   prompt="
     <objective>
@@ -155,13 +155,17 @@ Record the commit hash from the executor's output.
 
 **4c — Review Stage 1: Spec Compliance**
 
-Spawn `maxsim-spec-reviewer` to verify implementation matches task spec:
+Spawn verifier to check implementation matches task spec:
 
 ```
 Task(
-  subagent_type="maxsim-spec-reviewer",
+  subagent_type="verifier",
   model="{executor_model}",
   prompt="
+    ## Task: Review for spec compliance
+
+    ## Suggested Skills: verification-gates, evidence-collection
+
     <objective>
     Review task {task_number} of plan {plan_id} for spec compliance.
     </objective>
@@ -192,13 +196,17 @@ Task(
 
 **4d — Review Stage 2: Code Quality**
 
-Spawn `maxsim-code-reviewer` to check for bugs, edge cases, and conventions:
+Spawn verifier to check for bugs, edge cases, and conventions:
 
 ```
 Task(
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   model="{executor_model}",
   prompt="
+    ## Task: Review for code quality
+
+    ## Suggested Skills: code-review
+
     <objective>
     Review task {task_number} of plan {plan_id} for code quality.
     Spec compliance already verified.
@@ -232,7 +240,7 @@ If EITHER review stage returns FAIL:
 
 ```
 Task(
-  subagent_type="maxsim-executor",
+  subagent_type="executor",
   model="{executor_model}",
   prompt="
     <objective>

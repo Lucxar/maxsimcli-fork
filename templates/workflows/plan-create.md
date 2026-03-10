@@ -1,5 +1,5 @@
 <purpose>
-Planning stage sub-workflow for /maxsim:plan. Spawns the maxsim-planner agent to create PLAN.md files, then optionally spawns maxsim-plan-checker for verification with a revision loop.
+Planning stage sub-workflow for /maxsim:plan. Spawns the planner agent to create PLAN.md files, then optionally spawns the planner (in plan-checking mode) for verification with a revision loop.
 
 This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on creating and verifying plans.
 </purpose>
@@ -20,8 +20,8 @@ The orchestrator provides phase context. Verify we have what we need:
 ## Step 2: Resolve Models
 
 ```bash
-PLANNER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model maxsim-planner --raw)
-CHECKER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model maxsim-plan-checker --raw)
+PLANNER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model planner --raw)
+CHECKER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model planner --raw)
 ```
 
 ## Step 3: Check Existing Plans
@@ -58,7 +58,7 @@ RESEARCH_PATH=$(echo "$INIT" | jq -r '.research_path // empty')
 CONTEXT_PATH=$(echo "$INIT" | jq -r '.context_path // empty')
 ```
 
-## Step 5: Spawn maxsim-planner
+## Step 5: Spawn Planner
 
 Display:
 ```
@@ -108,8 +108,8 @@ Spawn the planner:
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/maxsim-planner.md for your role and instructions.\n\n" + planner_prompt,
-  subagent_type="general-purpose",
+  prompt=planner_prompt,
+  subagent_type="planner",
   model="{planner_model}",
   description="Plan Phase {phase_number}"
 )
@@ -148,7 +148,7 @@ Parse the planner's return message:
   ```
   Handle user choice accordingly.
 
-## Step 7: Spawn maxsim-plan-checker
+## Step 7: Spawn Plan Checker
 
 Initialize iteration tracking: `iteration_count = 1`.
 
@@ -188,8 +188,8 @@ Spawn the checker:
 
 ```
 Task(
-  prompt=checker_prompt,
-  subagent_type="maxsim-plan-checker",
+  prompt="## Task: Verify plans achieve phase goal\n\n## Suggested Skills: verification-gates\n\n" + checker_prompt,
+  subagent_type="planner",
   model="{checker_model}",
   description="Verify Phase {phase_number} plans"
 )
@@ -240,8 +240,8 @@ Task(
 
   ```
   Task(
-    prompt="First, read ~/.claude/agents/maxsim-planner.md for your role and instructions.\n\n" + revision_prompt,
-    subagent_type="general-purpose",
+    prompt=revision_prompt,
+    subagent_type="planner",
     model="{planner_model}",
     description="Revise Phase {phase_number} plans"
   )

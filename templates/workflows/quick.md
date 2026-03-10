@@ -7,7 +7,7 @@ Before executing any step in this workflow, verify:
 <purpose>
 Execute small, ad-hoc tasks with MAXSIM guarantees (atomic commits, STATE.md tracking). Also supports "save for later" todo capture -- managing ideas as local todos with best-effort GitHub Issue creation.
 
-Quick mode spawns maxsim-planner (quick mode) + maxsim-executor(s), tracks tasks in `.planning/quick/`, and updates STATE.md's "Quick Tasks Completed" table.
+Quick mode spawns planner (quick mode) + executor(s), tracks tasks in `.planning/quick/`, and updates STATE.md's "Quick Tasks Completed" table.
 
 With `--full` flag: enables plan-checking (max 2 iterations) and post-execution verification for quality guarantees without full milestone ceremony.
 
@@ -139,7 +139,7 @@ Write plan to: ${QUICK_DIR}/${next_num}-PLAN.md
 Return: ## PLANNING COMPLETE with plan path
 </output>
 ",
-  subagent_type="maxsim-planner",
+  subagent_type="planner",
   model="{planner_model}",
   description="Quick plan: ${DESCRIPTION}"
 )
@@ -199,8 +199,8 @@ Skip: context compliance (no CONTEXT.md), cross-plan deps (single plan), ROADMAP
 
 ```
 Task(
-  prompt=checker_prompt,
-  subagent_type="maxsim-plan-checker",
+  prompt="## Task: Verify plans achieve phase goal\n\n## Suggested Skills: verification-gates\n\n" + checker_prompt,
+  subagent_type="planner",
   model="{checker_model}",
   description="Check quick plan: ${DESCRIPTION}"
 )
@@ -242,8 +242,8 @@ Return what changed.
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/maxsim-planner.md for your role and instructions.\n\n" + revision_prompt,
-  subagent_type="general-purpose",
+  prompt=revision_prompt,
+  subagent_type="planner",
   model="{planner_model}",
   description="Revise quick plan: ${DESCRIPTION}"
 )
@@ -261,7 +261,7 @@ Offer: 1) Force proceed, 2) Abort
 
 **Step 6: Spawn executor**
 
-Spawn maxsim-executor with plan reference:
+Spawn executor with plan reference:
 
 ```
 Task(
@@ -282,7 +282,7 @@ Execute quick task ${next_num}.
 - Do NOT update ROADMAP.md (quick tasks are separate from planned phases)
 </constraints>
 ",
-  subagent_type="maxsim-executor",
+  subagent_type="executor",
   model="{executor_model}",
   description="Execute: ${DESCRIPTION}"
 )
@@ -323,6 +323,10 @@ Display banner:
 ```
 Task(
   prompt="
+    ## Task: Review for spec compliance
+
+    ## Suggested Skills: verification-gates, evidence-collection
+
     <review_context>
     **Plan:** quick-${next_num}
     **Description:** ${DESCRIPTION}
@@ -340,7 +344,7 @@ Task(
     </plan_frontmatter>
     </review_context>
   ",
-  subagent_type="maxsim-spec-reviewer",
+  subagent_type="verifier",
   model="{executor_model}",
   description="Spec review: ${DESCRIPTION}"
 )
@@ -372,6 +376,10 @@ STOP and wait for user decision.
 ```
 Task(
   prompt="
+    ## Task: Review for code quality
+
+    ## Suggested Skills: code-review
+
     <review_context>
     **Plan:** quick-${next_num}
 
@@ -388,7 +396,7 @@ Task(
     </test_results>
     </review_context>
   ",
-  subagent_type="maxsim-code-reviewer",
+  subagent_type="verifier",
   model="{executor_model}",
   description="Code review: ${DESCRIPTION}"
 )
@@ -435,7 +443,7 @@ Task goal: ${DESCRIPTION}
 </files_to_read>
 
 Check must_haves against actual codebase. Create VERIFICATION.md at ${QUICK_DIR}/${next_num}-VERIFICATION.md.",
-  subagent_type="maxsim-verifier",
+  subagent_type="verifier",
   model="{verifier_model}",
   description="Verify: ${DESCRIPTION}"
 )

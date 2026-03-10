@@ -13,11 +13,11 @@ You are a thinking partner, not an interviewer. The user is the visionary -- you
 <downstream_awareness>
 **CONTEXT.md feeds into:**
 
-1. **maxsim-phase-researcher** -- Reads CONTEXT.md to know WHAT to research
+1. **researcher** -- Reads CONTEXT.md to know WHAT to research
    - "User wants card-based layout" -> researcher investigates card component patterns
    - "Infinite scroll decided" -> researcher looks into virtualization libraries
 
-2. **maxsim-planner** -- Reads CONTEXT.md to know WHAT decisions are locked
+2. **planner** -- Reads CONTEXT.md to know WHAT decisions are locked
    - "Pull-to-refresh on mobile" -> planner includes that in task specs
    - "Claude's Discretion: loading skeleton" -> planner can decide approach
 

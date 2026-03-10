@@ -131,7 +131,7 @@ Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`
 
    ```
    Task(
-     subagent_type="maxsim-executor",
+     subagent_type="executor",
      model="{executor_model}",
      prompt="
        <objective>
@@ -366,7 +366,7 @@ Phase requirement IDs: {phase_req_ids}
 Check must_haves against actual codebase.
 Cross-reference requirement IDs from PLAN frontmatter against REQUIREMENTS.md — every ID MUST be accounted for.
 Create VERIFICATION.md.",
-  subagent_type="maxsim-verifier",
+  subagent_type="verifier",
   model="{verifier_model}"
 )
 ```

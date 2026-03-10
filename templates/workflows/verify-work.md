@@ -372,7 +372,7 @@ Display:
 ◆ Spawning planner for gap closure...
 ```
 
-Spawn maxsim-planner in --gaps mode:
+Spawn planner in --gaps mode:
 
 ```
 Task(
@@ -395,7 +395,7 @@ Output consumed by /maxsim:execute
 Plans must be executable prompts.
 </downstream_consumer>
 """,
-  subagent_type="maxsim-planner",
+  subagent_type="planner",
   model="{planner_model}",
   description="Plan gap fixes for Phase {phase}"
 )
@@ -420,7 +420,7 @@ Display:
 
 Initialize: `iteration_count = 1`
 
-Spawn maxsim-plan-checker:
+Spawn plan checker (planner in verification mode):
 
 ```
 Task(
@@ -442,7 +442,7 @@ Return one of:
 - ## ISSUES FOUND — structured issue list
 </expected_output>
 """,
-  subagent_type="maxsim-plan-checker",
+  subagent_type="planner",
   model="{checker_model}",
   description="Verify Phase {phase} fix plans"
 )
@@ -460,7 +460,7 @@ On return:
 
 Display: `Sending back to planner for revision... (iteration {N}/3)`
 
-Spawn maxsim-planner with revision context:
+Spawn planner with revision context:
 
 ```
 Task(
@@ -484,7 +484,7 @@ Read existing PLAN.md files. Make targeted updates to address checker issues.
 Do NOT replan from scratch unless issues are fundamental.
 </instructions>
 """,
-  subagent_type="maxsim-planner",
+  subagent_type="planner",
   model="{planner_model}",
   description="Revise Phase {phase} plans"
 )
@@ -579,8 +579,8 @@ Default to **major** if unclear. User can correct if needed.
 - [ ] Batched writes: on issue, every 5 passes, or completion
 - [ ] Committed on completion
 - [ ] If issues: parallel debug agents diagnose root causes
-- [ ] If issues: maxsim-planner creates fix plans (gap_closure mode)
-- [ ] If issues: maxsim-plan-checker verifies fix plans
+- [ ] If issues: planner creates fix plans (gap_closure mode)
+- [ ] If issues: planner (in verification mode) verifies fix plans
 - [ ] If issues: revision loop until plans pass (max 3 iterations)
 - [ ] Ready for `/maxsim:execute --gaps-only` when complete
 </success_criteria>

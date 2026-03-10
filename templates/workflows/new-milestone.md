@@ -118,7 +118,7 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs config-set workflow.research false
 mkdir -p .planning/research
 ```
 
-Spawn 4 parallel maxsim-project-researcher agents. Each uses this template with dimension-specific fields:
+Spawn 4 parallel researcher agents. Each uses this template with dimension-specific fields:
 
 **Common structure for all 4 researchers:**
 ```
@@ -145,7 +145,7 @@ Focus ONLY on what's needed for the NEW features.
 Write to: .planning/research/{FILE}
 Use template: ~/.claude/maxsim/templates/research-project/{FILE}
 </output>
-", subagent_type="maxsim-project-researcher", model="{researcher_model}", description="{DIMENSION} research")
+", subagent_type="researcher", model="{researcher_model}", description="{DIMENSION} research")
 ```
 
 **Dimension-specific fields:**
@@ -174,7 +174,7 @@ Synthesize research outputs into SUMMARY.md.
 Write to: .planning/research/SUMMARY.md
 Use template: ~/.claude/maxsim/templates/research-project/SUMMARY.md
 Commit after writing.
-", subagent_type="maxsim-research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
+", subagent_type="researcher", model="{synthesizer_model}", description="Synthesize research")
 ```
 
 Display key findings from SUMMARY.md:
@@ -297,7 +297,7 @@ Create roadmap for milestone v[X.Y]:
 
 Write files first, then return.
 </instructions>
-", subagent_type="maxsim-roadmapper", model="{roadmapper_model}", description="Create roadmap")
+", subagent_type="planner", model="{roadmapper_model}", description="Create roadmap")
 ```
 
 **Handle return:**
@@ -376,7 +376,7 @@ Also: `/maxsim:plan [N]` — skip discussion, plan directly
 - [ ] Research completed (if selected) — 4 parallel agents, milestone-aware
 - [ ] Requirements gathered and scoped per category
 - [ ] REQUIREMENTS.md created with REQ-IDs
-- [ ] maxsim-roadmapper spawned with phase numbering context
+- [ ] planner (roadmap mode) spawned with phase numbering context
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
 - [ ] ROADMAP.md phases continue from previous milestone
