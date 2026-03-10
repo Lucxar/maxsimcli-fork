@@ -23,7 +23,11 @@ Load phase state in one call:
 INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init execute-phase "$PHASE")
 ```
 
+Parse `$ARGUMENTS` for: phase number (required), `--worktrees` (force worktree mode), `--no-worktrees` (force standard mode), `--auto` (auto-advance), `--gaps-only` (gap plans only).
+
 Parse JSON for: `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `plans`, `incomplete_plans`, `plan_count`, `incomplete_count`, `has_verification`, `commit_docs`, `executor_model`, `verifier_model`, `parallelization`, `state_path`, `roadmap_path`, `requirements_path`, `phase_req_ids`.
+
+All flags from `$ARGUMENTS` are passed through to the execute-phase workflow steps so they are available for execution mode decision and auto-advance detection.
 
 **If `phase_found` is false:**
 ```
