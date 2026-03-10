@@ -14,9 +14,9 @@ MAXSIM is a spec-driven development system. Work flows through phases, plans, an
 
 **HARD GATE -- No implementation without a plan.**
 If there is no `.planning/` directory, run `/maxsim:init` first.
-If there is no current phase, run `/maxsim:plan-phase` first.
-If there is no PLAN.md for the current phase, run `/maxsim:plan-phase` first.
-If there IS a plan, run `/maxsim:execute-phase` to execute it.
+If there is no current phase, run `/maxsim:plan` first.
+If there is no PLAN.md for the current phase, run `/maxsim:plan` first.
+If there IS a plan, run `/maxsim:execute` to execute it.
 
 ## Process
 
@@ -32,14 +32,16 @@ Before starting any task:
 | Situation | Route To |
 |-----------|----------|
 | No `.planning/` directory | `/maxsim:init` |
-| No ROADMAP.md or empty roadmap | `/maxsim:plan-roadmap` |
-| Active phase has no PLAN.md | `/maxsim:plan-phase` |
-| Active phase has PLAN.md, not started | `/maxsim:execute-phase` |
-| Checkpoint exists in STATE.md | `/maxsim:resume-work` |
+| No ROADMAP.md or empty roadmap | `/maxsim:init` |
+| Active phase has no PLAN.md | `/maxsim:plan N` |
+| Active phase has PLAN.md, not started | `/maxsim:execute N` |
+| Phase complete, needs verification | `/maxsim:execute N` (auto-verifies) |
 | Bug found during execution | `/maxsim:debug` |
-| Phase complete, needs verification | `/maxsim:verify-phase` |
 | Quick standalone task | `/maxsim:quick` |
-| User asks for help | `/maxsim:help` |
+| Check overall status | `/maxsim:progress` |
+| Don't know what to do next | `/maxsim:go` |
+| Change workflow settings | `/maxsim:settings` |
+| Need command reference | `/maxsim:help` |
 
 ### Available Skills
 
@@ -65,19 +67,19 @@ Agents are specialized subagent prompts spawned by MAXSIM commands:
 
 | Agent | Purpose | Triggered By |
 |-------|---------|-------------|
-| `maxsim-executor` | Executes plans with atomic commits | `/maxsim:execute-phase` |
-| `maxsim-planner` | Creates structured PLAN.md files | `/maxsim:plan-phase` |
+| `maxsim-executor` | Executes plans with atomic commits | `/maxsim:execute` |
+| `maxsim-planner` | Creates structured PLAN.md files | `/maxsim:plan` |
 | `maxsim-debugger` | Investigates bugs systematically | `/maxsim:debug` |
-| `maxsim-verifier` | Verifies phase goal achievement | `/maxsim:verify-phase` |
-| `maxsim-roadmapper` | Creates project roadmaps | `/maxsim:plan-roadmap` |
-| `maxsim-phase-researcher` | Researches phase requirements | `/maxsim:plan-phase` |
-| `maxsim-code-reviewer` | Reviews code changes | `/maxsim:review` |
-| `maxsim-spec-reviewer` | Reviews specifications | `/maxsim:plan-roadmap` |
-| `maxsim-plan-checker` | Validates plan completeness | `/maxsim:plan-phase` |
+| `maxsim-verifier` | Verifies phase goal achievement | `/maxsim:execute` (auto-verify stage) |
+| `maxsim-roadmapper` | Creates project roadmaps | `/maxsim:init` |
+| `maxsim-phase-researcher` | Researches phase requirements | `/maxsim:plan` (research stage) |
+| `maxsim-code-reviewer` | Reviews code changes | `/maxsim:execute` |
+| `maxsim-spec-reviewer` | Reviews specifications | `/maxsim:init` |
+| `maxsim-plan-checker` | Validates plan completeness | `/maxsim:plan` (planning stage) |
 | `maxsim-project-researcher` | Researches project context | `/maxsim:init` |
-| `maxsim-research-synthesizer` | Synthesizes research findings | `/maxsim:plan-phase` |
+| `maxsim-research-synthesizer` | Synthesizes research findings | `/maxsim:plan` |
 | `maxsim-codebase-mapper` | Maps codebase structure | `/maxsim:init` |
-| `maxsim-integration-checker` | Checks integration points | `/maxsim:verify-phase` |
+| `maxsim-integration-checker` | Checks integration points | `/maxsim:execute` |
 
 ## Common Pitfalls
 
