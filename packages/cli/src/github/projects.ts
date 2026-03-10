@@ -24,18 +24,10 @@
 import { execFileSync } from 'node:child_process';
 
 import { getOctokit, getRepoInfo, withGhResult } from './client.js';
-import type { GhErrorCode, GhResult, IssueStatus } from './types.js';
+import type { GhResult, IssueStatus } from './types.js';
 import { DEFAULT_STATUS_OPTIONS } from './types.js';
-import { loadMapping, saveMapping, createEmptyMapping } from './mapping.js';
 
 // ---- Helpers ---------------------------------------------------------------
-
-/**
- * Re-wrap a failed GhResult for a different generic type.
- */
-function fail<T>(result: { ok: false; error: string; code: GhErrorCode }): GhResult<T> {
-  return { ok: false, error: result.error, code: result.code };
-}
 
 /**
  * Detect whether the repo owner is a user or organization.
