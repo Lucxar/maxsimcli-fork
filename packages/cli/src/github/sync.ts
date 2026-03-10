@@ -1,381 +1,259 @@
 /**
- * GitHub Sync — Detect external changes to tracked issues
+ * GitHub Sync — State verification from GitHub Issues
  *
- * Compares local mapping file (github-issues.json) against actual GitHub state.
- * Uses batched GraphQL queries for efficiency (avoids N+1 sequential calls).
+ * Reads phase state entirely from GitHub Issues (sub-issues API).
+ * GitHub Issues is the source of truth — no local file reads for state.
  *
- * CRITICAL: Never import octokit or any npm GitHub SDK.
+ * Key functions:
+ * - checkPhaseProgress: counts open/closed sub-issues for a phase
+ * - getPhaseState: derives lifecycle state from sub-issue counts
+ * - detectInterruptedPhase: identifies interrupted executions via mixed state
+ * - getAllPhasesProgress: overview of all phase issues with progress
+ *
+ * CRITICAL: No GraphQL anywhere in this file.
+ * CRITICAL: No imports from gh-legacy.ts.
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 
-import type { GhErrorCode, GhResult, IssueStatus } from './types.js';
-import { ghGraphQL, ghExec } from './gh-legacy.js';
-import { loadMapping } from './mapping.js';
-
-// ---- Helpers ---------------------------------------------------------------
-
-/**
- * Re-wrap a failed GhResult for a different generic type.
- */
-function fail<T>(result: { ok: false; error: string; code: GhErrorCode }): GhResult<T> {
-  return { ok: false, error: result.error, code: result.code };
-}
+import { getOctokit, getRepoInfo, withGhResult } from './client.js';
+import type { GhResult } from './types.js';
 
 // ---- Types -----------------------------------------------------------------
 
-export interface SyncChange {
-  issueNumber: number;
-  field: string;
-  localValue: string;
-  remoteValue: string;
+export interface PhaseProgress {
+  total: number;
+  completed: number;
+  inProgress: number;
+  remaining: number;
+  tasks: Array<{
+    number: number;
+    title: string;
+    state: 'open' | 'closed';
+  }>;
 }
 
-export interface SyncCheckResult {
-  inSync: boolean;
-  changes: SyncChange[];
-}
-
-export interface VerifyIssueStateResult {
-  verified: boolean;
-  actualState: string;
-}
-
-export interface HandleExternalCloseResult {
-  action: 'accepted' | 'reopened';
-  reason: string;
-}
-
-// ---- Batch GraphQL Issue Fetch ---------------------------------------------
-
-interface GraphQLIssueNode {
-  number: number;
-  state: string;
-  title: string;
-  labels: { nodes: Array<{ name: string }> };
-}
+// ---- Check Phase Progress --------------------------------------------------
 
 /**
- * Batch-fetch issue details via a single GraphQL query.
+ * Get the progress of a phase by counting open/closed sub-issues.
  *
- * Fetches up to 100 issues per query using node ID lookups.
- * Falls back to sequential `gh issue view` if GraphQL fails.
+ * Uses `octokit.rest.issues.listSubIssues()` with pagination to get all
+ * sub-issues of a phase tracking issue. Counts open vs closed to determine
+ * progress.
+ *
+ * @param phaseIssueNumber - The issue number of the phase tracking issue
  */
-async function batchFetchIssues(
-  repo: string,
-  issueNumbers: number[],
-): Promise<GhResult<Map<number, { state: string; title: string; labels: string[] }>>> {
-  if (issueNumbers.length === 0) {
-    return { ok: true, data: new Map() };
-  }
+export async function checkPhaseProgress(
+  phaseIssueNumber: number,
+): Promise<GhResult<PhaseProgress>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  // Split owner/repo
-  const [owner, name] = repo.split('/');
-  if (!owner || !name) {
-    return {
-      ok: false,
-      error: `Invalid repo format: ${repo}. Expected "owner/repo".`,
-      code: 'UNKNOWN',
-    };
-  }
+    // Fetch all sub-issues with pagination
+    const tasks: PhaseProgress['tasks'] = [];
+    let page = 1;
+    let hasMore = true;
 
-  // Build GraphQL query with aliases for each issue
-  // GitHub GraphQL limits: we query up to 100 issues at a time
-  const BATCH_SIZE = 100;
-  const resultMap = new Map<number, { state: string; title: string; labels: string[] }>();
+    while (hasMore) {
+      const response = await octokit.rest.issues.listSubIssues({
+        owner,
+        repo,
+        issue_number: phaseIssueNumber,
+        per_page: 100,
+        page,
+      });
 
-  for (let i = 0; i < issueNumbers.length; i += BATCH_SIZE) {
-    const batch = issueNumbers.slice(i, i + BATCH_SIZE);
-
-    const issueFragments = batch
-      .map(
-        (num, idx) =>
-          `issue_${idx}: issue(number: ${num}) { number state title labels(first: 20) { nodes { name } } }`,
-      )
-      .join('\n    ');
-
-    const query = `
-      query {
-        repository(owner: "${owner}", name: "${name}") {
-          ${issueFragments}
-        }
+      for (const issue of response.data) {
+        tasks.push({
+          number: issue.number,
+          title: issue.title,
+          state: issue.state as 'open' | 'closed',
+        });
       }
-    `;
 
-    const result = await ghGraphQL<{
-      repository: Record<string, GraphQLIssueNode | null>;
-    }>(query);
-
-    if (!result.ok) {
-      // Fall back to sequential fetching on GraphQL failure
-      return batchFetchIssuesSequential(issueNumbers);
+      // Check if there are more pages
+      hasMore = response.data.length === 100;
+      page++;
     }
 
-    const repoData = result.data.repository;
-    for (let idx = 0; idx < batch.length; idx++) {
-      const issueData = repoData[`issue_${idx}`];
-      if (issueData) {
-        resultMap.set(issueData.number, {
-          state: issueData.state.toLowerCase(),
-          title: issueData.title,
-          labels: issueData.labels.nodes.map(l => l.name),
+    const completed = tasks.filter(t => t.state === 'closed').length;
+    const remaining = tasks.filter(t => t.state === 'open').length;
+
+    return {
+      total: tasks.length,
+      completed,
+      inProgress: remaining, // open tasks are "in progress" or "to do"
+      remaining,
+      tasks,
+    };
+  });
+}
+
+// ---- Get Phase State -------------------------------------------------------
+
+/**
+ * Derive the lifecycle state of a phase from its sub-issue counts.
+ *
+ * State derivation:
+ * - If all sub-issues are closed -> 'done'
+ * - If some sub-issues are closed and some open -> 'in-progress'
+ * - If no sub-issues exist or all are open -> 'to-do'
+ *
+ * Note: 'in-review' is determined by the project board column, not sub-issue
+ * state. This function provides a quick approximation from sub-issue counts.
+ * For authoritative 'in-review' detection, check the project board.
+ *
+ * @param phaseIssueNumber - The issue number of the phase tracking issue
+ */
+export async function getPhaseState(
+  phaseIssueNumber: number,
+): Promise<GhResult<'to-do' | 'in-progress' | 'in-review' | 'done'>> {
+  const progressResult = await checkPhaseProgress(phaseIssueNumber);
+
+  if (!progressResult.ok) {
+    return progressResult;
+  }
+
+  const { total, completed } = progressResult.data;
+
+  if (total === 0) {
+    return { ok: true, data: 'to-do' };
+  }
+
+  if (completed === total) {
+    return { ok: true, data: 'done' };
+  }
+
+  if (completed > 0) {
+    return { ok: true, data: 'in-progress' };
+  }
+
+  return { ok: true, data: 'to-do' };
+}
+
+// ---- Detect Interrupted Phase ----------------------------------------------
+
+/**
+ * Detect whether a phase was interrupted during execution.
+ *
+ * CONTEXT.md decision: "Issue state is truth -- mix of open/closed sub-issues
+ * indicates interrupted execution."
+ *
+ * A phase is considered interrupted if it has a mix of open and closed
+ * sub-issues. This means some tasks completed but execution stopped before
+ * all tasks finished.
+ *
+ * Returns the issue numbers of completed (closed) and remaining (open) tasks
+ * for the resume logic (ARCH-05).
+ *
+ * @param phaseIssueNumber - The issue number of the phase tracking issue
+ */
+export async function detectInterruptedPhase(
+  phaseIssueNumber: number,
+): Promise<GhResult<{ interrupted: boolean; completedTasks: number[]; remainingTasks: number[] }>> {
+  const progressResult = await checkPhaseProgress(phaseIssueNumber);
+
+  if (!progressResult.ok) {
+    return progressResult;
+  }
+
+  const { tasks, completed, total } = progressResult.data;
+
+  // Interrupted = some completed AND some remaining (mix of open/closed)
+  const interrupted = completed > 0 && completed < total;
+
+  const completedTasks = tasks
+    .filter(t => t.state === 'closed')
+    .map(t => t.number);
+
+  const remainingTasks = tasks
+    .filter(t => t.state === 'open')
+    .map(t => t.number);
+
+  return {
+    ok: true,
+    data: {
+      interrupted,
+      completedTasks,
+      remainingTasks,
+    },
+  };
+}
+
+// ---- Get All Phases Progress -----------------------------------------------
+
+/**
+ * Get progress for all phases by listing issues with the 'phase' label.
+ *
+ * Uses `octokit.paginate()` to list all issues with label 'phase', then
+ * for each phase issue, fetches its sub-issue progress.
+ *
+ * Parses phase number from title pattern `[Phase XX]`.
+ * Returns sorted by phase number.
+ *
+ * Note: Uses sequential API calls for sub-issue progress to avoid
+ * rate limit issues with concurrent mutations (per plan constraint:
+ * "Do NOT use Promise.all for multiple API calls with mutations").
+ */
+export async function getAllPhasesProgress(): Promise<
+  GhResult<Array<{ phaseNumber: string; title: string; issueNumber: number; progress: PhaseProgress }>>
+> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
+
+    // List all issues with the 'phase' label using pagination
+    const phaseIssues = await octokit.paginate(
+      octokit.rest.issues.listForRepo,
+      {
+        owner,
+        repo,
+        labels: 'phase',
+        state: 'all',
+        per_page: 100,
+      },
+    );
+
+    // Parse phase number from title and build results
+    const results: Array<{
+      phaseNumber: string;
+      title: string;
+      issueNumber: number;
+      progress: PhaseProgress;
+    }> = [];
+
+    // Sequential API calls for sub-issue progress (per plan constraint)
+    for (const issue of phaseIssues) {
+      // Parse phase number from title: "[Phase 01] Phase Name" -> "01"
+      const phaseMatch = issue.title.match(/\[Phase\s+(\w+)\]/i);
+      if (!phaseMatch) {
+        continue; // Skip issues that don't match the phase title pattern
+      }
+
+      const phaseNumber = phaseMatch[1];
+      const progressResult = await checkPhaseProgress(issue.number);
+
+      if (progressResult.ok) {
+        results.push({
+          phaseNumber,
+          title: issue.title,
+          issueNumber: issue.number,
+          progress: progressResult.data,
         });
       }
     }
-  }
 
-  return { ok: true, data: resultMap };
-}
-
-/**
- * Sequential fallback: fetch issues one at a time via `gh issue view`.
- */
-async function batchFetchIssuesSequential(
-  issueNumbers: number[],
-): Promise<GhResult<Map<number, { state: string; title: string; labels: string[] }>>> {
-  const resultMap = new Map<number, { state: string; title: string; labels: string[] }>();
-
-  for (const num of issueNumbers) {
-    const result = await ghExec<{
-      state: string;
-      title: string;
-      labels: Array<{ name: string }>;
-    }>(['issue', 'view', String(num), '--json', 'state,title,labels'], {
-      parseJson: true,
+    // Sort by phase number
+    results.sort((a, b) => {
+      const numA = parseInt(a.phaseNumber, 10);
+      const numB = parseInt(b.phaseNumber, 10);
+      if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+        return numA - numB;
+      }
+      return a.phaseNumber.localeCompare(b.phaseNumber);
     });
 
-    if (result.ok) {
-      resultMap.set(num, {
-        state: result.data.state.toLowerCase(),
-        title: result.data.title,
-        labels: result.data.labels.map(l => l.name),
-      });
-    }
-    // Skip issues that fail to fetch (may have been deleted)
-  }
-
-  return { ok: true, data: resultMap };
-}
-
-// ---- Public API ------------------------------------------------------------
-
-/**
- * Compare local mapping file against GitHub reality.
- *
- * For each tracked issue (phases + todos), fetches current GitHub state
- * and compares against the local mapping. Reports discrepancies in
- * state, title, and labels.
- *
- * Uses batched GraphQL for efficiency (single query for up to 100 issues).
- */
-export async function syncCheck(
-  cwd: string,
-): Promise<GhResult<SyncCheckResult>> {
-  const mapping = loadMapping(cwd);
-  if (!mapping) {
-    return {
-      ok: false,
-      error: 'github-issues.json does not exist. Run project setup first.',
-      code: 'NOT_FOUND',
-    };
-  }
-
-  if (!mapping.repo) {
-    return {
-      ok: false,
-      error: 'No repo configured in github-issues.json.',
-      code: 'NOT_FOUND',
-    };
-  }
-
-  // Collect all tracked issue numbers with their local status
-  const trackedIssues: Array<{
-    issueNumber: number;
-    localStatus: IssueStatus;
-    source: string; // e.g., "phase 01, task 1.1" or "todo xyz"
-  }> = [];
-
-  // Phases
-  for (const [phaseNum, phase] of Object.entries(mapping.phases)) {
-    if (phase.tracking_issue.number > 0) {
-      trackedIssues.push({
-        issueNumber: phase.tracking_issue.number,
-        localStatus: phase.tracking_issue.status,
-        source: `phase ${phaseNum} tracking`,
-      });
-    }
-    for (const [taskId, task] of Object.entries(phase.tasks)) {
-      if (task.number > 0) {
-        trackedIssues.push({
-          issueNumber: task.number,
-          localStatus: task.status,
-          source: `phase ${phaseNum}, task ${taskId}`,
-        });
-      }
-    }
-  }
-
-  // Todos
-  if (mapping.todos) {
-    for (const [todoId, todo] of Object.entries(mapping.todos)) {
-      if (todo.number > 0) {
-        trackedIssues.push({
-          issueNumber: todo.number,
-          localStatus: todo.status,
-          source: `todo ${todoId}`,
-        });
-      }
-    }
-  }
-
-  if (trackedIssues.length === 0) {
-    return {
-      ok: true,
-      data: { inSync: true, changes: [] },
-    };
-  }
-
-  // Batch-fetch all issue states from GitHub
-  const issueNumbers = trackedIssues.map(t => t.issueNumber);
-  const fetchResult = await batchFetchIssues(mapping.repo, issueNumbers);
-  if (!fetchResult.ok) {
-    return fail(fetchResult);
-  }
-
-  const remoteStates = fetchResult.data;
-  const changes: SyncChange[] = [];
-
-  for (const tracked of trackedIssues) {
-    const remote = remoteStates.get(tracked.issueNumber);
-    if (!remote) {
-      // Issue not found on GitHub (may have been deleted)
-      changes.push({
-        issueNumber: tracked.issueNumber,
-        field: 'existence',
-        localValue: 'exists',
-        remoteValue: 'not found',
-      });
-      continue;
-    }
-
-    // Compare state: map GitHub state to expected local status
-    // GitHub states: "open" or "closed"
-    // Local statuses: "To Do", "In Progress", "In Review", "Done"
-    const isRemoteClosed = remote.state === 'closed';
-    const isLocalDone = tracked.localStatus === 'Done';
-
-    if (isRemoteClosed && !isLocalDone) {
-      changes.push({
-        issueNumber: tracked.issueNumber,
-        field: 'state',
-        localValue: tracked.localStatus,
-        remoteValue: 'closed (Done)',
-      });
-    } else if (!isRemoteClosed && isLocalDone) {
-      changes.push({
-        issueNumber: tracked.issueNumber,
-        field: 'state',
-        localValue: 'Done',
-        remoteValue: `open (${remote.state})`,
-      });
-    }
-  }
-
-  return {
-    ok: true,
-    data: {
-      inSync: changes.length === 0,
-      changes,
-    },
-  };
-}
-
-/**
- * Quick single-issue state check.
- *
- * Verifies whether an issue is in the expected state (open or closed).
- */
-export async function verifyIssueState(
-  issueNumber: number,
-  expectedState: 'open' | 'closed',
-): Promise<GhResult<VerifyIssueStateResult>> {
-  const result = await ghExec<{ state: string }>(
-    ['issue', 'view', String(issueNumber), '--json', 'state'],
-    { parseJson: true },
-  );
-
-  if (!result.ok) {
-    return fail(result);
-  }
-
-  const actualState = result.data.state.toLowerCase();
-
-  return {
-    ok: true,
-    data: {
-      verified: actualState === expectedState,
-      actualState,
-    },
-  };
-}
-
-/**
- * Handle an externally closed issue: provide data for the AI to decide.
- *
- * When sync detects an externally closed issue, this function gathers
- * the context needed for the AI to decide whether to accept the close
- * (if the code actually implements the task) or reopen it.
- *
- * Does NOT auto-decide — returns data for AI decision-making.
- */
-export async function handleExternalClose(
-  cwd: string,
-  issueNumber: number,
-): Promise<GhResult<{ action: 'accepted' | 'reopened'; reason: string }>> {
-  // Fetch the issue details and closing context
-  const issueResult = await ghExec<{
-    state: string;
-    stateReason: string;
-    title: string;
-    body: string;
-    closedBy: { login: string } | null;
-  }>(
-    [
-      'issue',
-      'view',
-      String(issueNumber),
-      '--json',
-      'state,stateReason,title,body,closedBy',
-    ],
-    { parseJson: true },
-  );
-
-  if (!issueResult.ok) {
-    return fail(issueResult);
-  }
-
-  const issue = issueResult.data;
-
-  if (issue.state.toLowerCase() !== 'closed') {
-    return {
-      ok: true,
-      data: {
-        action: 'reopened',
-        reason: `Issue #${issueNumber} is not closed (state: ${issue.state}). No action needed.`,
-      },
-    };
-  }
-
-  // Gather context about who closed it and why
-  const closedBy = issue.closedBy?.login ?? 'unknown';
-  const stateReason = issue.stateReason || 'completed';
-
-  // Return data for AI to decide
-  // The AI will check the codebase to determine if the task is truly complete
-  return {
-    ok: true,
-    data: {
-      action: 'accepted',
-      reason: `Issue #${issueNumber} "${issue.title}" was closed externally by ${closedBy} (reason: ${stateReason}). AI should verify code implements the task before accepting.`,
-    },
-  };
+    return results;
+  });
 }
