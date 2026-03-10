@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 4 (Prompt & Skill Architecture)
-**Plan:** 04-04 (Wave 2: Workflow updates)
-**Status:** Plan 04-03 complete, executing 04-04
+**Plan:** Phase 4 complete (all 5 plans done)
+**Status:** Phase 4 complete -- ready for next phase
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 15 |
+| Plans Complete | 16 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -51,6 +51,7 @@
 - [Phase 04]: 14 agents consolidated to 4 generic types (executor, planner, researcher, verifier) with skill preloading for shared protocols
 - [Phase 04]: builtInSkills array updated with 8 internal skills for installer/uninstaller cleanup
 - [Phase 04]: Orphan cleanup entries in hooks.ts (not patches.ts); MODEL_PROFILES uses highest-tier mapping per consolidated role; 4 additional workflow files beyond plan scope also updated
+- [Phase 04]: Integration verification found 8 template files with stale old agent names (debug.md, quick.md, model-profiles.md, context.md, prompt templates) -- all fixed to use 4-agent names
 
 ### Known Issues
 
@@ -77,9 +78,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 04-03 (Agent Consolidation)
-- **Outcome:** Created 4 generic agent definitions (executor, planner, researcher, verifier), deleted 14 old maxsim-* agents, rewrote AGENTS.md as 4-agent registry. Fixed builtInSkills sync guard.
-- **Next Step:** Execute Plan 04-04 (Workflow updates for 4-agent model)
+- **Activity:** Executed Plan 04-05 (Integration verification + orphan cleanup)
+- **Outcome:** All 5 Phase 4 success criteria verified with fresh evidence. Fixed 8 template files with stale old agent names. Orphan cleanup list confirmed comprehensive (14 old agents). Phase 4 complete.
+- **Next Step:** Next phase (Phase 5: Parallel Execution Model, or Phase 1/6 depending on priority)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -89,4 +90,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 04-03 complete)*
+*Last updated: 2026-03-10 (plan 04-05 complete, Phase 4 complete)*

@@ -11,7 +11,7 @@
 - [ ] **Phase 1: Infrastructure Cleanup** - Remove dashboard, purge dist/ from git, eliminate sync/async duplication, fix build
 - [ ] **Phase 2: GitHub Issues Foundation** - GitHub Issues as source of truth, gh CLI integration, local-only install, .planning/ restructure
 - [x] **Phase 3: Command Surface Simplification** - Replace ~35 commands with ~9 state-machine commands, remove old commands
-- [ ] **Phase 4: Prompt & Skill Architecture** - Skills-based progressive disclosure, custom agent definitions, hard gates, evidence verification
+- [x] **Phase 4: Prompt & Skill Architecture** - Skills-based progressive disclosure, custom agent definitions, hard gates, evidence verification
 - [ ] **Phase 5: Parallel Execution Model** - Worktree isolation, agent teams, two-stage review, batch execution, spec-driven methodology
 - [ ] **Phase 6: Hook System** - Statusline, GitHub sync reminder, update checker, remove context monitor
 
@@ -80,9 +80,9 @@
 **Plans**: 5 plans in 3 waves
   - [x] Plan 01 (Wave 1): Create rules files + 8 internal skills (verification-gates, handoff-contract, etc.) [PROMPT-01, PROMPT-04, PROMPT-05]
   - [x] Plan 02 (Wave 1): Rewrite 11 user-facing skills to match new architecture [PROMPT-01]
-  - [ ] Plan 03 (Wave 2): Create 4 new agents + AGENTS.md, delete 14 old agents [PROMPT-02, PROMPT-03, PROMPT-04, PROMPT-05]
-  - [ ] Plan 04 (Wave 2): Update workflow references + CLI types/model-profiles + installer rules support [PROMPT-02, PROMPT-03]
-  - [ ] Plan 05 (Wave 3): Integration verification + orphan cleanup [PROMPT-01, PROMPT-02, PROMPT-03, PROMPT-04, PROMPT-05]
+  - [x] Plan 03 (Wave 2): Create 4 new agents + AGENTS.md, delete 14 old agents [PROMPT-02, PROMPT-03, PROMPT-04, PROMPT-05]
+  - [x] Plan 04 (Wave 2): Update workflow references + CLI types/model-profiles + installer rules support [PROMPT-02, PROMPT-03]
+  - [x] Plan 05 (Wave 3): Integration verification + orphan cleanup [PROMPT-01, PROMPT-02, PROMPT-03, PROMPT-04, PROMPT-05]
 
 ### Phase 5: Parallel Execution Model
 **Goal**: MAXSIM can run multiple agents in parallel on separate worktrees with coordinated results
@@ -146,7 +146,7 @@ Unmapped: 0
 | 1. Infrastructure Cleanup | 0/3 | Planned | - |
 | 2. GitHub Issues Foundation | 4/4 | Complete | 2026-03-10 |
 | 3. Command Surface Simplification | 8/8 | Complete | 2026-03-10 |
-| 4. Prompt & Skill Architecture | 2/5 | In Progress | - |
+| 4. Prompt & Skill Architecture | 5/5 | Complete | 2026-03-10 |
 | 5. Parallel Execution Model | 0/? | Not started | - |
 | 6. Hook System | 0/? | Not started | - |
 
@@ -171,3 +171,7 @@ Unmapped: 0
 *Phase 04 planned: 2026-03-10*
 *Plan 04-01 complete: 2026-03-10*
 *Plan 04-02 complete: 2026-03-10*
+*Plan 04-03 complete: 2026-03-10*
+*Plan 04-04 complete: 2026-03-10*
+*Plan 04-05 complete: 2026-03-10*
+*Phase 04 complete: 2026-03-10*
