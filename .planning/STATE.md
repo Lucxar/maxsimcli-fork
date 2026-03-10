@@ -9,7 +9,7 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 3 (Command Surface Simplification)
-**Plan:** 03-06 (Delete old commands + obsolete workflows)
+**Plan:** 03-07 (Update cross-references for 9-command surface)
 **Status:** Complete
 
 ## Progress
@@ -17,7 +17,7 @@
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 1/6 |
-| Plans Complete | 10 |
+| Plans Complete | 11 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -43,6 +43,7 @@
 - [Phase 03]: Quick todo mode exits after action (no loop back to task mode) for clean UX separation
 - [Phase 03]: Milestone completion routes through /maxsim:init which handles the full lifecycle interactively
 - [Phase 03]: Clean break deletion -- 33 old command files and 21 obsolete workflow files removed, no redirects or aliases
+- [Phase 03]: All cross-references updated to 9-command surface; 35 files modified, zero old command names remain in templates/
 
 ### Known Issues
 
@@ -69,9 +70,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 03-06 (Delete old commands + obsolete workflows)
-- **Outcome:** Deleted 33 old command files and 21 obsolete workflow files. Exactly 9 command files remain. 26 workflow files kept (all still referenced).
-- **Next Step:** Continue Phase 03 Wave 4 plans (plan 03-07: update cross-references)
+- **Activity:** Executed Plan 03-07 (Update cross-references for 9-command surface)
+- **Outcome:** Updated 35 files across agents, workflows, references, and templates. Zero old command references remain in templates/.
+- **Next Step:** Continue Phase 03 Wave 4 plan 03-08 (Update installer and README)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -81,4 +82,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 03-06 complete)*
+*Last updated: 2026-03-10 (plan 03-07 complete)*
