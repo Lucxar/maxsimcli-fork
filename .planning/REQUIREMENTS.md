@@ -20,7 +20,7 @@ Lightweight requirements for rapid exploration.
 
 - [x] **CMD-01**: `/maxsim:init` -- unified initialization (new + existing projects)
 - [x] **CMD-02**: `/maxsim:plan [N]` -- state machine: discussion -> research -> planning
-- [ ] **CMD-03**: `/maxsim:execute [N]` -- state machine: execute -> verify, with native parallel agents
+- [x] **CMD-03**: `/maxsim:execute [N]` -- state machine: execute -> verify, with native parallel agents
 - [ ] **CMD-04**: `/maxsim:progress` -- status overview from GitHub Issues
 - [ ] **CMD-05**: `/maxsim:go` -- auto-detect and dispatch to the right command
 - [ ] **CMD-06**: `/maxsim:debug` -- systematic debugging with persistent state
@@ -81,7 +81,7 @@ Lightweight requirements for rapid exploration.
 | ARCH-05 | Phase 2: GitHub Issues Foundation | Pending |
 | CMD-01 | Phase 3: Command Surface Simplification | Complete |
 | CMD-02 | Phase 3: Command Surface Simplification | Complete |
-| CMD-03 | Phase 3: Command Surface Simplification | Pending |
+| CMD-03 | Phase 3: Command Surface Simplification | Complete |
 | CMD-04 | Phase 3: Command Surface Simplification | Pending |
 | CMD-05 | Phase 3: Command Surface Simplification | Pending |
 | CMD-06 | Phase 3: Command Surface Simplification | Pending |
