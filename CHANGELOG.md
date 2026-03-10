@@ -1,3 +1,16 @@
+# [4.8.0](https://github.com/maystudios/maxsimcli/compare/v4.7.1...v4.8.0) (2026-03-10)
+
+
+### Features
+
+* **02-01:** add Octokit client adapter, AuthError class, update types ([8872d8a](https://github.com/maystudios/maxsimcli/commit/8872d8afb55c685c4db1795d965b152d8471543d))
+* **02-01:** enforce local-only installation, reject --global flag ([2ca49e1](https://github.com/maystudios/maxsimcli/commit/2ca49e12b8e21095283439148c158f6c326910c0))
+* **02-02:** rewrite issues.ts with Octokit and native sub-issues ([4897cfe](https://github.com/maystudios/maxsimcli/commit/4897cfe2c1f5ab5bc7731ee2737d7803713ac467)), closes [#legacy](https://github.com/maystudios/maxsimcli/issues/legacy)
+* **02-02:** rewrite labels, milestones, mapping to use Octokit ([a8b830d](https://github.com/maystudios/maxsimcli/commit/a8b830d30acea76f028603b78f2e795fd129d80a)), closes [#legacy](https://github.com/maystudios/maxsimcli/issues/legacy)
+* **02-03:** rewrite projects.ts with Octokit REST API ([06ebc76](https://github.com/maystudios/maxsimcli/commit/06ebc7609a4d2cf08f5b899226b154de61f5a8b1))
+* **02-03:** rewrite sync.ts for GitHub-native state queries ([842a34d](https://github.com/maystudios/maxsimcli/commit/842a34ddab39706921ff98b575098bbc62aa7223))
+* **02-04:** wire MCP tools to Octokit adapter, remove legacy patterns ([429d05c](https://github.com/maystudios/maxsimcli/commit/429d05c2c81718fcc9ee5696bf9339948dee4b93))
+
 ## [4.7.1](https://github.com/maystudios/maxsimcli/compare/v4.7.0...v4.7.1) (2026-03-09)
 
 
