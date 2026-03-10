@@ -10,7 +10,7 @@
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 3 (Command Surface Simplification)
 **Plan:** 03-08 (Installer orphan cleanup + final verification)
-**Status:** Complete
+**Status:** Milestone complete
 
 ## Progress
 
