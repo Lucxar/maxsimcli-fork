@@ -348,7 +348,32 @@ Next: more plans → "Ready for {next-plan}" | last → "Phase complete, ready f
 
 After implementation is complete and SUMMARY.md is created, run the full review cycle before proceeding. All four stages must pass before the plan is considered done.
 
-**Stage 1: Spec Review** — Verify implementation matches plan spec.
+### Retry Counter Initialization
+
+```
+SPEC_ATTEMPTS=0
+CODE_ATTEMPTS=0
+SIMPLIFY_ATTEMPTS=0
+FINAL_ATTEMPTS=0
+MAX_REVIEW_ATTEMPTS=3
+REVIEW_ESCALATIONS=0
+REVIEW_ESCALATION_DETAILS=""
+REVIEW_CYCLE_START=$(date +%s)
+```
+
+---
+
+### Stage 1: Spec Review — Verify implementation matches plan spec.
+
+```
+SPEC_STAGE_START=$(date +%s)
+SPEC_RESULT="PENDING"
+```
+
+**Retry loop (max MAX_REVIEW_ATTEMPTS):**
+
+1. Increment `SPEC_ATTEMPTS`
+2. Spawn verifier:
 
 ```
 Task(
@@ -385,9 +410,45 @@ Task(
 )
 ```
 
-**If spec review FAILS:** Fix unmet requirements, re-run verification, update SUMMARY.md, then re-run spec review. Do not proceed until PASS.
+3. **If PASS:** Set `SPEC_RESULT="PASS"`, record `SPEC_STAGE_END=$(date +%s)`, proceed to Stage 2.
 
-**Stage 2: Code Review** — Check code quality, security, error handling.
+4. **If FAIL and SPEC_ATTEMPTS < MAX_REVIEW_ATTEMPTS:** Fix the unmet requirements identified by the verifier, re-stage and commit fixes (`fix({phase}-{plan}): address spec review findings`), update SUMMARY.md, then loop back to step 1.
+
+5. **If FAIL and SPEC_ATTEMPTS >= MAX_REVIEW_ATTEMPTS:** Escalate to user:
+
+```markdown
+## Review Escalation: Spec Review Failed After 3 Attempts
+
+**Stage:** Spec Review
+**Attempts:** 3/3
+**Last failure reason:** {failure details from verifier}
+
+The spec review has failed 3 times. This may indicate a fundamental mismatch between the plan spec and the implementation.
+
+**Options:**
+1. Fix manually and type "retry" to re-run spec review (resets attempt counter)
+2. Type "override" to skip spec review (will be flagged in SUMMARY.md)
+3. Type "abort" to stop execution
+```
+
+Wait for user response:
+- **"retry":** Reset `SPEC_ATTEMPTS=0`, loop back to step 1.
+- **"override":** Set `SPEC_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `SPEC_STAGE_END=$(date +%s)`, proceed to Stage 2.
+- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+
+---
+
+### Stage 2: Code Review — Check code quality, security, error handling.
+
+```
+CODE_STAGE_START=$(date +%s)
+CODE_RESULT="PENDING"
+```
+
+**Retry loop (max MAX_REVIEW_ATTEMPTS):**
+
+1. Increment `CODE_ATTEMPTS`
+2. Spawn verifier:
 
 ```
 Task(
@@ -415,11 +476,52 @@ Task(
 )
 ```
 
-**If code review is BLOCKED:** Fix all blocker and high-severity issues. Re-run code review. Do not proceed until APPROVED.
+3. **If APPROVED:** Set `CODE_RESULT="APPROVED"`, record `CODE_STAGE_END=$(date +%s)`, proceed to Stage 3.
 
-**Stage 3: Simplify** — Spawn 3 parallel reviewers to catch reuse opportunities, quality issues, and inefficiencies.
+4. **If BLOCKED and CODE_ATTEMPTS < MAX_REVIEW_ATTEMPTS:** Fix all blocker and high-severity issues, re-stage and commit fixes (`fix({phase}-{plan}): address code review findings`), then loop back to step 1.
 
-**Reviewer 1 — Code Reuse:**
+5. **If BLOCKED and CODE_ATTEMPTS >= MAX_REVIEW_ATTEMPTS:** Escalate to user:
+
+```markdown
+## Review Escalation: Code Review Failed After 3 Attempts
+
+**Stage:** Code Review
+**Attempts:** 3/3
+**Last failure reason:** {blocking issues from verifier}
+
+The code review has been blocked 3 times. Remaining issues may require architectural changes or user guidance.
+
+**Options:**
+1. Fix manually and type "retry" to re-run code review (resets attempt counter)
+2. Type "override" to skip code review (will be flagged in SUMMARY.md)
+3. Type "abort" to stop execution
+```
+
+Wait for user response:
+- **"retry":** Reset `CODE_ATTEMPTS=0`, loop back to step 1.
+- **"override":** Set `CODE_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `CODE_STAGE_END=$(date +%s)`, proceed to Stage 3.
+- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+
+---
+
+### Stage 3: Simplify — Config-gated, spawn 3 parallel reviewers.
+
+**Config gate check:**
+```bash
+SIMPLIFY_ENABLED=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs config-get review.simplify_review 2>/dev/null || echo "true")
+```
+
+**If `SIMPLIFY_ENABLED` is "false":** Skip Stage 3 and Stage 4 entirely. Log: "Simplify stage skipped (disabled in config)". Set `SIMPLIFY_RESULT="SKIPPED"`, `FINAL_RESULT="N/A"`. Proceed to review cycle tracking.
+
+**If `SIMPLIFY_ENABLED` is "true" (default):**
+
+```
+SIMPLIFY_STAGE_START=$(date +%s)
+SIMPLIFY_RESULT="PENDING"
+SIMPLIFY_ATTEMPTS=0
+```
+
+**Reviewer 1 -- Code Reuse:**
 
 ```
 Task(
@@ -449,7 +551,7 @@ Task(
 )
 ```
 
-**Reviewer 2 — Code Quality:**
+**Reviewer 2 -- Code Quality:**
 
 ```
 Task(
@@ -479,7 +581,7 @@ Task(
 )
 ```
 
-**Reviewer 3 — Efficiency:**
+**Reviewer 3 -- Efficiency:**
 
 ```
 Task(
@@ -512,10 +614,11 @@ Task(
 **Consolidation (after all 3 reviewers complete):**
 
 After all three reviewers report:
-- If ALL returned CLEAN: report CLEAN immediately, skip to next stage
+- If ALL returned CLEAN: Set `SIMPLIFY_RESULT="CLEAN"`, record `SIMPLIFY_STAGE_END=$(date +%s)`, skip Stage 4. Set `FINAL_RESULT="N/A"`.
 - If ANY returned ISSUES_FOUND:
-  1. Merge findings into deduplicated list
-  2. Spawn single executor to apply fixes:
+  1. Increment `SIMPLIFY_ATTEMPTS`
+  2. Merge findings into deduplicated list
+  3. Spawn single executor to apply fixes:
 
 ```
 Task(
@@ -543,11 +646,47 @@ Task(
 )
 ```
 
-**If simplify is BLOCKED:** Present architectural issues to user via checkpoint protocol. Do not proceed until resolved.
+4. **If FIXED:** Set `SIMPLIFY_RESULT="FIXED"`, record `SIMPLIFY_STAGE_END=$(date +%s)`, proceed to Stage 4.
 
-**Stage 4: Final Review** — If simplify made changes, one more code review pass.
+5. **If BLOCKED and SIMPLIFY_ATTEMPTS < MAX_REVIEW_ATTEMPTS:** Re-run the 3 reviewers to find alternative fixes, then loop.
 
-Run this stage ONLY if Stage 3 reported FIXED (i.e., simplify found and applied fixes).
+6. **If BLOCKED and SIMPLIFY_ATTEMPTS >= MAX_REVIEW_ATTEMPTS:** Escalate to user:
+
+```markdown
+## Review Escalation: Simplify Stage Blocked After 3 Attempts
+
+**Stage:** Simplify
+**Attempts:** 3/3
+**Last failure reason:** {architectural issues from executor}
+
+The simplify stage has been blocked 3 times. Remaining issues require architectural changes.
+
+**Options:**
+1. Fix manually and type "retry" to re-run simplify (resets attempt counter)
+2. Type "override" to skip simplify (will be flagged in SUMMARY.md)
+3. Type "abort" to stop execution
+```
+
+Wait for user response:
+- **"retry":** Reset `SIMPLIFY_ATTEMPTS=0`, re-run 3 reviewers.
+- **"override":** Set `SIMPLIFY_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `SIMPLIFY_STAGE_END=$(date +%s)`, skip Stage 4. Set `FINAL_RESULT="N/A"`.
+- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+
+---
+
+### Stage 4: Final Review — If simplify made changes, one more code review pass.
+
+Run this stage ONLY if Stage 3 reported FIXED (i.e., simplify found and applied fixes). If Stage 3 was CLEAN, SKIPPED, or OVERRIDDEN: set `FINAL_RESULT="N/A"`, skip to review cycle tracking.
+
+```
+FINAL_STAGE_START=$(date +%s)
+FINAL_RESULT="PENDING"
+```
+
+**Retry loop (max MAX_REVIEW_ATTEMPTS):**
+
+1. Increment `FINAL_ATTEMPTS`
+2. Spawn verifier:
 
 ```
 Task(
@@ -582,18 +721,64 @@ Task(
 )
 ```
 
-**If final review is BLOCKED:** Fix issues, re-run final review. Do not proceed until APPROVED.
+3. **If APPROVED:** Set `FINAL_RESULT="APPROVED"`, record `FINAL_STAGE_END=$(date +%s)`, proceed to review cycle tracking.
 
-**Review cycle tracking:** Record review results in SUMMARY.md under a `## Review Cycle` section:
+4. **If BLOCKED and FINAL_ATTEMPTS < MAX_REVIEW_ATTEMPTS:** Fix issues, re-stage and commit fixes (`fix({phase}-{plan}): address final review findings`), then loop back to step 1.
+
+5. **If BLOCKED and FINAL_ATTEMPTS >= MAX_REVIEW_ATTEMPTS:** Escalate to user:
+
+```markdown
+## Review Escalation: Final Review Blocked After 3 Attempts
+
+**Stage:** Final Review
+**Attempts:** 3/3
+**Last failure reason:** {blocking issues from verifier}
+
+The final review has been blocked 3 times after simplification changes.
+
+**Options:**
+1. Fix manually and type "retry" to re-run final review (resets attempt counter)
+2. Type "override" to skip final review (will be flagged in SUMMARY.md)
+3. Type "abort" to stop execution
+```
+
+Wait for user response:
+- **"retry":** Reset `FINAL_ATTEMPTS=0`, loop back to step 1.
+- **"override":** Set `FINAL_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `FINAL_STAGE_END=$(date +%s)`, proceed to review cycle tracking.
+- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+
+---
+
+### Review Cycle Tracking
+
+```
+REVIEW_CYCLE_END=$(date +%s)
+REVIEW_CYCLE_TOTAL=$(( REVIEW_CYCLE_END - REVIEW_CYCLE_START ))
+```
+
+Calculate per-stage durations:
+```
+SPEC_DURATION=$(( SPEC_STAGE_END - SPEC_STAGE_START ))
+CODE_DURATION=$(( CODE_STAGE_END - CODE_STAGE_START ))
+# Only if simplify ran:
+SIMPLIFY_DURATION=$(( SIMPLIFY_STAGE_END - SIMPLIFY_STAGE_START ))  # or "N/A" if skipped
+# Only if final review ran:
+FINAL_DURATION=$(( FINAL_STAGE_END - FINAL_STAGE_START ))  # or "N/A" if skipped
+```
+
+Record review results in SUMMARY.md under a `## Review Cycle` section:
 ```markdown
 ## Review Cycle
 
-| Stage | Result | Findings |
-|-------|--------|----------|
-| Spec Review | PASS | All requirements met |
-| Code Review | APPROVED | No blocking issues |
-| Simplify | FIXED | Extracted shared helper for X, removed unused import Y |
-| Final Review | APPROVED | Simplification changes verified |
+| Stage | Result | Attempts | Duration | Findings |
+|-------|--------|----------|----------|----------|
+| Spec Review | {PASS|FAIL|OVERRIDDEN} | {SPEC_ATTEMPTS}/3 | {SPEC_DURATION}s | {summary or "All requirements met"} |
+| Code Review | {APPROVED|BLOCKED|OVERRIDDEN} | {CODE_ATTEMPTS}/3 | {CODE_DURATION}s | {summary or "No blocking issues"} |
+| Simplify | {CLEAN|FIXED|BLOCKED|SKIPPED|OVERRIDDEN} | {SIMPLIFY_ATTEMPTS}/3 | {SIMPLIFY_DURATION}s | {summary or "N/A"} |
+| Final Review | {APPROVED|BLOCKED|SKIPPED|N/A|OVERRIDDEN} | {FINAL_ATTEMPTS}/3 | {FINAL_DURATION}s | {summary or "N/A"} |
+
+**Total review time:** {REVIEW_CYCLE_TOTAL}s
+**Escalations:** {REVIEW_ESCALATIONS} ({REVIEW_ESCALATION_DETAILS or "None"})
 ```
 
 Update the SUMMARY.md commit after the review cycle completes:
