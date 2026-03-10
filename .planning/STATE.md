@@ -10,7 +10,7 @@
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 2 (GitHub Issues Foundation)
 **Plan:** 02-04 (MCP Tools Integration & Legacy Removal)
-**Status:** Phase 02 complete (all 4 plans done)
+**Status:** Milestone complete
 
 ## Progress
 
