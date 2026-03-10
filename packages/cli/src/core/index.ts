@@ -77,6 +77,15 @@ export type {
   DriftSeverity,
   DriftDirection,
   DriftItemStatus,
+  WorktreeState,
+  WorktreeMode,
+  ExecutionMode,
+  WorktreeInfo,
+  WorktreeAssignment,
+  ParallelExecutionConfig,
+  ReviewConfig,
+  ReviewGateResult,
+  WaveExecutionResult,
 } from './types.js';
 
 // Runtime value exports from types
@@ -320,3 +329,19 @@ export {
   cmdInitRealign,
   listCodebaseDocs,
 } from './init.js';
+
+// Worktree exports
+export {
+  createWorktree,
+  listWorktrees,
+  cleanupWorktree,
+  cleanupAllWorktrees,
+  assignPlansToWorktrees,
+  decideExecutionMode,
+  validatePlanIndependence,
+  cmdWorktreeCreate,
+  cmdWorktreeList,
+  cmdWorktreeCleanup,
+  cmdDecideExecutionMode,
+  cmdValidatePlanIndependence,
+} from './worktree.js';

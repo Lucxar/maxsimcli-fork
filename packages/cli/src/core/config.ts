@@ -58,6 +58,10 @@ export function cmdConfigEnsureSection(cwd: string, raw: boolean): CmdResult {
       ...hardcoded.workflow,
       ...(userDefaults.workflow || {}),
     } as WorkflowConfig,
+    review: {
+      ...hardcoded.review,
+      ...((userDefaults as Record<string, unknown>).review as Record<string, unknown> || {}),
+    },
   };
 
   try {

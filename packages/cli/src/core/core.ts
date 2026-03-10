@@ -23,6 +23,8 @@ import type {
   GitResult,
   MilestoneInfo,
   AppConfig,
+  WorktreeMode,
+  ReviewConfig,
 } from './types.js';
 
 // ─── Model Profile Table ─────────────────────────────────────────────────────
@@ -282,6 +284,12 @@ export async function pathExistsInternal(p: string): Promise<boolean> {
 export async function loadConfig(cwd: string): Promise<AppConfig> {
   if (_configCache && _configCache.cwd === cwd) return _configCache.config;
   const cfgPath = configPath(cwd);
+  const reviewDefaults: ReviewConfig = {
+    spec_review: true,
+    code_review: true,
+    simplify_review: true,
+    retry_limit: 3,
+  };
   const defaults: AppConfig = {
     model_profile: 'balanced',
     commit_docs: true,
@@ -294,6 +302,9 @@ export async function loadConfig(cwd: string): Promise<AppConfig> {
     verifier: true,
     parallelization: true,
     brave_search: false,
+    worktree_mode: 'auto',
+    max_parallel_agents: 10,
+    review: reviewDefaults,
   };
 
   try {
@@ -333,6 +344,13 @@ export async function loadConfig(cwd: string): Promise<AppConfig> {
       parallelization,
       brave_search: (get('brave_search') as boolean | undefined) ?? defaults.brave_search,
       model_overrides: parsed['model_overrides'] as AppConfig['model_overrides'],
+      worktree_mode: (get('worktree_mode') as WorktreeMode | undefined) ?? defaults.worktree_mode,
+      max_parallel_agents: (get('max_parallel_agents') as number | undefined) ?? defaults.max_parallel_agents,
+      review: (() => {
+        const userReview = get('review') as Partial<ReviewConfig> | undefined;
+        if (!userReview || typeof userReview !== 'object') return reviewDefaults;
+        return { ...reviewDefaults, ...userReview };
+      })(),
     };
     _configCache = { cwd, config: result };
     return result;

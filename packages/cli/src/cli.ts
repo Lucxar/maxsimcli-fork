@@ -109,6 +109,11 @@ import {
   cmdDriftPreviousHash,
   cmdInitCheckDrift,
   cmdInitRealign,
+  cmdWorktreeCreate,
+  cmdWorktreeList,
+  cmdWorktreeCleanup,
+  cmdDecideExecutionMode,
+  cmdValidatePlanIndependence,
 } from './core/index.js';
 
 // ─── Arg parsing utilities ───────────────────────────────────────────────────
@@ -335,6 +340,18 @@ const handleDrift: Handler = async (args, cwd, raw) => {
   error('Unknown drift subcommand. Available: read-report, extract-requirements, extract-nogos, extract-conventions, write-report, previous-hash');
 };
 
+const handleWorktree: Handler = async (args, cwd, raw) => {
+  const sub = args[1];
+  const handlers: Record<string, () => CmdResult | Promise<CmdResult>> = {
+    'create': () => cmdWorktreeCreate(cwd, args[2], args[3], args[4]),
+    'list': () => cmdWorktreeList(cwd),
+    'cleanup': () => cmdWorktreeCleanup(cwd, args[2], hasFlag(args, 'all')),
+  };
+  const handler = sub ? handlers[sub] : undefined;
+  if (handler) return handleResult(await handler(), raw);
+  error('Unknown worktree subcommand. Available: create, list, cleanup');
+};
+
 const handleInit: Handler = async (args, cwd, raw) => {
   const workflow = args[1];
   const handlers: Record<string, () => CmdResult | Promise<CmdResult>> = {
@@ -404,6 +421,12 @@ const COMMANDS: Record<string, Handler> = {
   'milestone': handleMilestone,
   'validate': handleValidate,
   'drift': handleDrift,
+  'worktree': handleWorktree,
+  'decide-execution-mode': (args, _cwd, raw) => {
+    const f = getFlags(args, 'worktree-mode', 'flag-override');
+    handleResult(cmdDecideExecutionMode(args[1], args[2], f['worktree-mode'] ?? undefined, f['flag-override'] ?? undefined), raw);
+  },
+  'validate-plan-independence': (args, _cwd, raw) => handleResult(cmdValidatePlanIndependence(args[1]), raw),
   'progress': async (args, cwd, raw) => handleResult(await cmdProgressRender(cwd, args[1] || 'json', raw), raw),
   'todo': (args, cwd, raw) => {
     if (args[1] === 'complete') handleResult(cmdTodoComplete(cwd, args[2], raw), raw);

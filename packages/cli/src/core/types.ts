@@ -188,6 +188,9 @@ export interface PlanningConfig {
   workflow: WorkflowConfig;
   parallelization: boolean;
   brave_search: boolean;
+  worktree_mode: WorktreeMode;
+  max_parallel_agents: number;
+  review: ReviewConfig;
   [key: string]: unknown;
 }
 
@@ -212,6 +215,14 @@ export const PLANNING_CONFIG_DEFAULTS: PlanningConfig = {
   },
   parallelization: true,
   brave_search: false,
+  worktree_mode: 'auto',
+  max_parallel_agents: 10,
+  review: {
+    spec_review: true,
+    code_review: true,
+    simplify_review: true,
+    retry_limit: 3,
+  },
 };
 
 // ─── State interfaces ────────────────────────────────────────────────────────

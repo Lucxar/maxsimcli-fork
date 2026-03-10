@@ -42,6 +42,8 @@ import type {
   DebuggerAgentContext,
   CheckDriftContext,
   RealignContext,
+  WorktreeMode,
+  ReviewConfig,
 } from './types.js';
 
 // ─── Init result types ──────────────────────────────────────────────────────
@@ -93,6 +95,9 @@ export interface ExecutePhaseContext {
   state_path: string;
   roadmap_path: string;
   config_path: string;
+  worktree_mode: WorktreeMode;
+  max_parallel_agents: number;
+  review_config: ReviewConfig;
 }
 
 export interface PlanPhaseContext {
@@ -435,6 +440,14 @@ export async function cmdInitExecutePhase(cwd: string, phase: string | undefined
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     config_path: '.planning/config.json',
+    worktree_mode: config.worktree_mode ?? 'auto',
+    max_parallel_agents: config.max_parallel_agents ?? 10,
+    review_config: config.review ?? {
+      spec_review: true,
+      code_review: true,
+      simplify_review: true,
+      retry_limit: 3,
+    },
   };
   return cmdOk(result);
 }
