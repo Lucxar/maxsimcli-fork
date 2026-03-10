@@ -94,7 +94,12 @@
   3. Every completed plan undergoes spec-compliance review then code-quality review, retrying until both pass
   4. Batch execution is an option within `/maxsim:execute`, not a separate command
   5. The execute command enforces spec-driven development: plan must reference requirements, implementation must match plan
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+  - [ ] Plan 01 (Wave 1): CLI infrastructure -- worktree module, types, config, init context [EXEC-01, EXEC-04]
+  - [ ] Plan 02 (Wave 1): Review cycle enhancement -- retry counters, escalation, config-optional simplify [EXEC-03]
+  - [ ] Plan 03 (Wave 2): Execute workflow worktree integration -- batch/standard paths, lifecycle [EXEC-01, EXEC-04]
+  - [ ] Plan 04 (Wave 2): Spec-driven enforcement -- pre/post-execution gates, evidence tracking [EXEC-05]
+  - [ ] Plan 05 (Wave 3): Agent Teams integration + installer updates [EXEC-02]
 
 ### Phase 6: Hook System
 **Goal**: Hooks provide lightweight automation without interfering with user workflow
@@ -147,7 +152,7 @@ Unmapped: 0
 | 2. GitHub Issues Foundation | 4/4 | Complete | 2026-03-10 |
 | 3. Command Surface Simplification | 8/8 | Complete | 2026-03-10 |
 | 4. Prompt & Skill Architecture | 5/5 | Complete | 2026-03-10 |
-| 5. Parallel Execution Model | 0/? | Not started | - |
+| 5. Parallel Execution Model | 0/5 | Planned | - |
 | 6. Hook System | 0/? | Not started | - |
 
 ---
@@ -175,3 +180,4 @@ Unmapped: 0
 *Plan 04-04 complete: 2026-03-10*
 *Plan 04-05 complete: 2026-03-10*
 *Phase 04 complete: 2026-03-10*
+*Phase 05 planned: 2026-03-10*
