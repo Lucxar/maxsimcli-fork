@@ -2,9 +2,9 @@
 name: roadmap-writing
 description: >-
   Phased planning with dependency graphs, success criteria, and requirement
-  mapping. Produces roadmaps with observable truths as success criteria. Use
-  when creating project roadmaps, breaking features into phases, or structuring
-  multi-phase work.
+  mapping. Produces roadmaps with observable truths as success criteria.
+  Use when creating project roadmaps, breaking features into phases, or
+  structuring multi-phase work.
 ---
 
 # Roadmap Writing
