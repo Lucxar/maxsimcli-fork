@@ -2,7 +2,7 @@
  * GitHub Integration — Type definitions
  *
  * All types for the GitHub Issues/Projects v2 integration layer.
- * Used by gh.ts, mapping.ts, and downstream modules (issues, projects, etc.).
+ * Used by client.ts, gh-legacy.ts, mapping.ts, and downstream modules.
  */
 
 // ---- Error codes for gh CLI wrapper ----------------------------------------
@@ -32,8 +32,21 @@ export interface AuthStatus {
   username: string | null;
 }
 
-// ---- GitHub operation mode -------------------------------------------------
+// ---- Auth error (thrown by requireAuth) ------------------------------------
 
+export class AuthError extends Error {
+  constructor(
+    public readonly code: 'NOT_INSTALLED' | 'NOT_AUTHENTICATED' | 'SCOPE_MISSING',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+// ---- GitHub operation mode (DEPRECATED — kept for gh-legacy.ts compat) -----
+
+/** @deprecated Will be removed when gh-legacy.ts is deleted in Plan 03. */
 export type GitHubMode = 'full' | 'local-only';
 
 // ---- Issue status ----------------------------------------------------------
@@ -76,11 +89,9 @@ export interface IssueMappingFile {
 // ---- Label definitions -----------------------------------------------------
 
 export const MAXSIM_LABELS = [
-  { name: 'maxsim', color: '6f42c1', description: 'MAXSIM managed issue' },
-  { name: 'phase-task', color: '0075ca', description: 'MAXSIM phase task' },
-  { name: 'todo', color: 'fbca04', description: 'MAXSIM todo item' },
-  { name: 'imported', color: 'e4e669', description: 'Imported into MAXSIM tracking' },
-  { name: 'superseded', color: 'd73a4a', description: 'Superseded by newer plan' },
+  { name: 'phase', color: '6f42c1', description: 'MAXSIM phase issue' },
+  { name: 'task', color: '0075ca', description: 'MAXSIM task issue' },
+  { name: 'blocker', color: 'd73a4a', description: 'Blocker issue' },
 ] as const;
 
 // ---- Fibonacci story points ------------------------------------------------

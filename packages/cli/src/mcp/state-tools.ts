@@ -17,7 +17,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { statePath } from '../core/core.js';
 import { stateExtractField, stateReplaceField, appendToStateSection } from '../core/state.js';
 
-import { detectGitHubMode } from '../github/gh.js';
+import { detectGitHubMode } from '../github/gh-legacy.js';
 import { postComment } from '../github/issues.js';
 
 import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';

@@ -11,7 +11,7 @@
 
 import type { GhResult } from './types.js';
 import { MAXSIM_LABELS } from './types.js';
-import { ghExec } from './gh.js';
+import { ghExec } from './gh-legacy.js';
 
 // ---- Label Management ------------------------------------------------------
 

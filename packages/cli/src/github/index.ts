@@ -6,7 +6,8 @@
  */
 
 export * from './types.js';
-export * from './gh.js';
+export * from './client.js';
+export * from './gh-legacy.js';
 export * from './mapping.js';
 export * from './issues.js';
 export * from './projects.js';

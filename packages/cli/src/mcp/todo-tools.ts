@@ -18,7 +18,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { generateSlugInternal, todayISO, planningPath } from '../core/core.js';
 import { parseTodoFrontmatter } from '../core/commands.js';
 
-import { detectGitHubMode } from '../github/gh.js';
+import { detectGitHubMode } from '../github/gh-legacy.js';
 import { createTodoIssue, closeIssue } from '../github/issues.js';
 import { addItemToProject, moveItemToStatus } from '../github/projects.js';
 import { loadMapping, saveMapping, updateTodoMapping } from '../github/mapping.js';

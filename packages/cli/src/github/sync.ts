@@ -9,7 +9,7 @@
  */
 
 import type { GhErrorCode, GhResult, IssueStatus } from './types.js';
-import { ghGraphQL, ghExec } from './gh.js';
+import { ghGraphQL, ghExec } from './gh-legacy.js';
 import { loadMapping } from './mapping.js';
 
 // ---- Helpers ---------------------------------------------------------------

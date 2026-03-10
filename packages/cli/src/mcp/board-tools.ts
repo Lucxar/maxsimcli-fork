@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { detectGitHubMode, ghExec } from '../github/gh.js';
+import { detectGitHubMode, ghExec } from '../github/gh-legacy.js';
 import { setEstimate } from '../github/projects.js';
 import { loadMapping } from '../github/mapping.js';
 import { FIBONACCI_POINTS } from '../github/types.js';

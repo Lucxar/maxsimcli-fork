@@ -14,7 +14,7 @@
  */
 
 import type { GhErrorCode, GhResult } from './types.js';
-import { ghExec, ghGraphQL } from './gh.js';
+import { ghExec, ghGraphQL } from './gh-legacy.js';
 import { loadMapping, saveMapping, createEmptyMapping } from './mapping.js';
 
 // ---- Helpers ---------------------------------------------------------------

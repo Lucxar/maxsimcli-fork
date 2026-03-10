@@ -12,7 +12,7 @@
  */
 
 import type { GhErrorCode, GhResult } from './types.js';
-import { ghExec } from './gh.js';
+import { ghExec } from './gh-legacy.js';
 
 // ---- Helpers ---------------------------------------------------------------
 

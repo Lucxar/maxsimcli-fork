@@ -28,7 +28,7 @@ import {
   phaseCompleteCore,
 } from '../core/phase.js';
 
-import { detectGitHubMode } from '../github/gh.js';
+import { detectGitHubMode } from '../github/gh-legacy.js';
 import { closeIssue, postComment, updateParentTaskList } from '../github/issues.js';
 import { moveItemToStatus } from '../github/projects.js';
 import { closeMilestoneIfComplete } from '../github/milestones.js';
