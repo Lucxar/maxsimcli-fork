@@ -76,6 +76,20 @@ While executing, you will discover work not in the plan:
 
 Track all deviations for the summary: `[Rule N] description`
 
+## Worktree Execution Mode
+
+When running in a worktree (orchestrator passes `<constraints>` block with worktree instructions):
+
+1. **Do NOT modify** `.planning/STATE.md` or `.planning/ROADMAP.md` -- the orchestrator handles all metadata
+2. **Do NOT run** `state advance-plan`, `state update-progress`, or `roadmap update-plan-progress` -- skip these steps
+3. **Create SUMMARY.md** as normal -- the orchestrator reads it from your worktree after completion
+4. **Commit code normally** -- commits go to the worktree branch, orchestrator merges after wave completion
+5. **Skip** the `update_current_position`, `update_session_continuity`, `update_roadmap`, and `extract_decisions_and_issues` steps -- orchestrator handles these centrally
+
+When NOT in a worktree (standard mode): execute all steps as normal, including metadata updates.
+
+Detection: Check if `<constraints>` block in the prompt mentions "worktree" or "Do NOT modify .planning/STATE.md".
+
 ## Completion Gate
 
 Before returning results, verify ALL tasks were attempted with evidence. Produce a final summary with task commits and any deferred items.

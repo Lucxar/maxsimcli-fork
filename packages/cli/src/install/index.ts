@@ -462,14 +462,28 @@ async function installForClaude(
     );
   }
 
-  // Prompt for Agent Teams
+  // Agent Teams setup
+  const agentTeamsAlreadyEnabled = process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS === '1';
   let enableAgentTeams = false;
-  if (isInteractive) {
+
+  if (agentTeamsAlreadyEnabled) {
+    console.log(`  ${chalk.green('\u2713')} Agent Teams: enabled`);
+  } else if (isInteractive) {
     enableAgentTeams = await promptAgentTeams();
+  } else {
+    // Non-interactive: show guidance for enabling Agent Teams
+    console.log();
+    console.log(chalk.cyan('  Agent Teams') + chalk.dim(' (Recommended for Parallel Execution)'));
+    console.log(chalk.dim('  MAXSIM\'s parallel execution uses Agent Teams for coordinating multiple agents.'));
+    console.log(chalk.dim('  To enable, add to your environment:'));
+    console.log();
+    console.log(chalk.yellow('    export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1'));
+    console.log();
+    console.log(chalk.dim('  Or add to your shell profile (~/.bashrc, ~/.zshrc, etc.)'));
   }
 
   // Apply Agent Teams setting
-  if (enableAgentTeams && result.settings) {
+  if ((enableAgentTeams || agentTeamsAlreadyEnabled) && result.settings) {
     const env = (result.settings.env as Record<string, unknown>) ?? {};
     env['CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS'] = '1';
     result.settings.env = env;
