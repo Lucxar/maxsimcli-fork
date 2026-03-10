@@ -9,7 +9,7 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 6 (Hook System)
-**Plan:** 06-01 complete (Rewrite statusline + remove context monitor)
+**Plan:** 06-02 complete (Sync-reminder hook + update checker backup)
 **Status:** In progress
 
 ## Progress
@@ -17,7 +17,7 @@
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 21 |
+| Plans Complete | 22 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -63,6 +63,8 @@
 - [Phase 05]: Executor agent instructs Requirement Evidence population in SUMMARY.md
 - [Phase 05]: Agent Teams team_name used for wave-parallel agent grouping; orchestrator-mediated only, no peer-to-peer
 - [Phase 05]: Installer detects existing AGENT_TEAMS env var before prompting; non-interactive installs show export guidance
+- [Phase 06]: Sync reminder uses temp-file debounce keyed by session_id; PostToolUse matcher is Write|Edit
+- [Phase 06]: createBackupBeforeUpdate() exported from hooks but called by installer, not by the hook itself
 
 ### Known Issues
 
@@ -89,9 +91,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-11
-- **Activity:** Executed Plan 06-01 (Rewrite statusline + remove context monitor)
-- **Outcome:** Rewrote statusline with phase/milestone from gh API cache, deleted context monitor entirely, updated build/installer/tests. 2 tasks, 8 files modified.
-- **Next Step:** Execute Plan 06-02 (Add sync-reminder hook + update checker backup)
+- **Activity:** Executed Plan 06-02 (Sync-reminder hook + update checker backup)
+- **Outcome:** Created PostToolUse sync-reminder hook with debounce, added createBackupBeforeUpdate() to update checker, wired into build/installer/tests. 2 tasks, 8 files modified.
+- **Next Step:** Execute Plan 06-03 (if exists) or complete Phase 06
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -101,4 +103,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 05-05 complete)*
+*Last updated: 2026-03-11 (plan 06-02 complete)*
