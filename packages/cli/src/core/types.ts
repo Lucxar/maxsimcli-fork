@@ -142,6 +142,9 @@ export interface AppConfig {
   parallelization: boolean;
   brave_search: boolean;
   model_overrides?: Partial<Record<AgentType, ModelTier>>;
+  worktree_mode?: WorktreeMode;
+  max_parallel_agents?: number;
+  review?: Partial<ReviewConfig>;
 }
 
 // ─── Frontmatter interfaces ────────────────────────────────────────────────
@@ -484,6 +487,61 @@ export interface PhasePlanIndexResult {
   waves: Record<string, string[]>;
   incomplete: string[];
   has_checkpoints: boolean;
+}
+
+// ─── Worktree & Parallel Execution types ─────────────────────────────────────
+
+export type WorktreeState = 'active' | 'completed' | 'failed' | 'cleanup';
+export type WorktreeMode = 'auto' | 'always' | 'never';
+export type ExecutionMode = 'batch' | 'standard';
+
+export interface WorktreeInfo {
+  id: string;
+  path: string;
+  branch: string;
+  wave: number;
+  plan_id: string;
+  status: WorktreeState;
+  created_at: string;
+}
+
+export interface WorktreeAssignment {
+  plan_id: string;
+  worktree: WorktreeInfo;
+  wave: number;
+}
+
+export interface ParallelExecutionConfig {
+  enabled: boolean;
+  max_worktrees: number;
+  worktree_mode: WorktreeMode;
+  review: ReviewConfig;
+}
+
+export interface ReviewConfig {
+  spec_review: boolean;
+  code_review: boolean;
+  simplify_review: boolean;
+  retry_limit: number;
+}
+
+export interface ReviewGateResult {
+  stage: string;
+  passed: boolean;
+  attempt: number;
+  max_attempts: number;
+  findings: string[];
+  evidence: string[];
+}
+
+export interface WaveExecutionResult {
+  wave_num: number;
+  mode: ExecutionMode;
+  completed_plans: string[];
+  failed_plans: string[];
+  review_results: Record<string, ReviewGateResult[]>;
+  worktrees_used: string[];
+  duration_sec: number;
 }
 
 export interface PhasesListOptions {
