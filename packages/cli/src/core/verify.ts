@@ -731,8 +731,8 @@ export async function validateEvidenceCompleteness(
     return { valid: false, missing_evidence: reqIds, has_evidence: [] };
   }
 
-  // Find the ## Requirement Evidence section
-  const sectionMatch = content.match(/##\s*Requirement Evidence[\s\S]*?(?=\n##\s|\n---|\z)/);
+  // Find the ## Requirement Evidence section (up to next heading, horizontal rule, or end of file)
+  const sectionMatch = content.match(/##\s*Requirement Evidence[\s\S]*?(?=\n##\s|\n---\s*\n|$)/);
   if (!sectionMatch) {
     return { valid: false, missing_evidence: reqIds, has_evidence: [] };
   }
