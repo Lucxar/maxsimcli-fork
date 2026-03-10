@@ -307,6 +307,32 @@ export async function listPhaseSubIssues(
   });
 }
 
+// ---- Generic Comment --------------------------------------------------------
+
+/**
+ * Post a generic comment on a GitHub issue.
+ *
+ * Used by MCP tools for blocker linking, bounce feedback, etc.
+ */
+export async function postComment(
+  issueNumber: number,
+  body: string,
+): Promise<GhResult<{ commentId: number }>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
+
+    const response = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body,
+    });
+
+    return { commentId: response.data.id };
+  });
+}
+
 // ---- Completion Comment -----------------------------------------------------
 
 /**

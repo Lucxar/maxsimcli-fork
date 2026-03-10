@@ -1,13 +1,16 @@
 /**
- * Phase CRUD MCP Tools — Phase operations exposed as MCP tools
+ * Phase CRUD MCP Tools -- Phase operations exposed as MCP tools
  *
- * Integrates with GitHub: phase completion triggers sync check, issue close,
- * board move to Done, and milestone completion check. Find/list enrich
- * responses with GitHub issue data when available.
+ * Integrates with GitHub: phase completion triggers issue close and
+ * milestone completion check. Find/list enrich responses with GitHub
+ * issue data when available.
  *
- * CRITICAL: Never import output() or error() from core — they call process.exit().
- * CRITICAL: Never write to stdout — it is reserved for MCP JSON-RPC protocol.
- * CRITICAL: Never call process.exit() — the server must stay alive after every tool call.
+ * Uses the new Octokit-based adapter modules (client.ts, issues.ts,
+ * projects.ts, sync.ts) -- uses Octokit adapter exclusively.
+ *
+ * CRITICAL: Never import output() or error() from core -- they call process.exit().
+ * CRITICAL: Never write to stdout -- it is reserved for MCP JSON-RPC protocol.
+ * CRITICAL: Never call process.exit() -- the server must stay alive after every tool call.
  */
 
 import fs from 'node:fs';
@@ -28,13 +31,13 @@ import {
   phaseCompleteCore,
 } from '../core/phase.js';
 
-import { detectGitHubMode } from '../github/gh-legacy.js';
-import { closeIssue, postComment, updateParentTaskList } from '../github/issues.js';
-import { moveItemToStatus } from '../github/projects.js';
-import { closeMilestoneIfComplete } from '../github/milestones.js';
+import { requireAuth } from '../github/client.js';
+import { AuthError } from '../github/types.js';
+import { closeIssue, postComment } from '../github/issues.js';
+import { closeMilestone } from '../github/milestones.js';
 import { loadMapping, saveMapping } from '../github/mapping.js';
-import { syncCheck } from '../github/sync.js';
-import type { IssueMappingFile, IssueStatus } from '../github/types.js';
+import { checkPhaseProgress } from '../github/sync.js';
+import type { IssueMappingFile, IssueStatus, TaskIssueMapping } from '../github/types.js';
 
 import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';
 
@@ -42,7 +45,7 @@ import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';
  * Register all phase CRUD tools on the MCP server.
  */
 export function registerPhaseTools(server: McpServer): void {
-  // ── mcp_find_phase ──────────────────────────────────────────────────────────
+  // -- mcp_find_phase -----------------------------------------------------------
 
   server.tool(
     'mcp_find_phase',
@@ -122,7 +125,7 @@ export function registerPhaseTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_list_phases ─────────────────────────────────────────────────────────
+  // -- mcp_list_phases ----------------------------------------------------------
 
   server.tool(
     'mcp_list_phases',
@@ -174,30 +177,27 @@ export function registerPhaseTools(server: McpServer): void {
         const paginated = dirs.slice(offset, offset + limit);
         const has_more = offset + limit < total_count;
 
-        // Enrich with GitHub issue counts if in 'full' mode
+        // Enrich with GitHub issue counts from mapping (best-effort)
         let githubIssueCounts: Record<string, { open: number; closed: number }> | null = null;
         let githubWarning: string | undefined;
 
         try {
-          const mode = await detectGitHubMode();
-          if (mode === 'full') {
-            const mapping = loadMapping(cwd);
-            if (mapping && Object.keys(mapping.phases).length > 0) {
-              githubIssueCounts = {};
-              for (const [phaseNum, phaseData] of Object.entries(mapping.phases)) {
-                let open = 0;
-                let closed = 0;
-                for (const task of Object.values(phaseData.tasks)) {
-                  if (task.number > 0) {
-                    if (task.status === 'Done') {
-                      closed++;
-                    } else {
-                      open++;
-                    }
+          const mapping = loadMapping(cwd);
+          if (mapping && Object.keys(mapping.phases).length > 0) {
+            githubIssueCounts = {};
+            for (const [phaseNum, phaseData] of Object.entries(mapping.phases)) {
+              let open = 0;
+              let closed = 0;
+              for (const task of Object.values(phaseData.tasks)) {
+                if (task.number > 0) {
+                  if (task.status === 'Done') {
+                    closed++;
+                  } else {
+                    open++;
                   }
                 }
-                githubIssueCounts[phaseNum] = { open, closed };
               }
+              githubIssueCounts[phaseNum] = { open, closed };
             }
           }
         } catch (e) {
@@ -223,7 +223,7 @@ export function registerPhaseTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_create_phase ────────────────────────────────────────────────────────
+  // -- mcp_create_phase ---------------------------------------------------------
 
   server.tool(
     'mcp_create_phase',
@@ -244,7 +244,7 @@ export function registerPhaseTools(server: McpServer): void {
 
         const result = await phaseAddCore(cwd, name, { includeStubs: true });
 
-        // No GitHub action needed on phase creation — issues are created
+        // No GitHub action needed on phase creation -- issues are created
         // on plan finalization (eager creation), not phase creation.
 
         return mcpSuccess(
@@ -263,7 +263,7 @@ export function registerPhaseTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_insert_phase ────────────────────────────────────────────────────────
+  // -- mcp_insert_phase ---------------------------------------------------------
 
   server.tool(
     'mcp_insert_phase',
@@ -301,7 +301,7 @@ export function registerPhaseTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_complete_phase ──────────────────────────────────────────────────────
+  // -- mcp_complete_phase -------------------------------------------------------
 
   server.tool(
     'mcp_complete_phase',
@@ -316,103 +316,67 @@ export function registerPhaseTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        // BEFORE completing locally: run sync check (AC-09)
-        let syncDiscrepancies: Array<{ issueNumber: number; field: string; localValue: string; remoteValue: string }> = [];
-        let githubWarning: string | undefined;
-
-        try {
-          const mode = await detectGitHubMode();
-          if (mode === 'full') {
-            const syncResult = await syncCheck(cwd);
-            if (syncResult.ok && !syncResult.data.inSync) {
-              syncDiscrepancies = syncResult.data.changes;
-            }
-          }
-        } catch (e) {
-          githubWarning = `Sync check failed: ${(e as Error).message}`;
-        }
-
         // Complete locally
         const result = await phaseCompleteCore(cwd, phase);
 
-        // AFTER completing locally: GitHub operations
+        // AFTER completing locally: GitHub operations (best-effort)
         let githubClosed = false;
         let milestoneClosed = false;
+        let githubWarning: string | undefined;
 
         try {
-          const mode = await detectGitHubMode();
-          if (mode === 'full') {
-            const mapping = loadMapping(cwd);
-            if (mapping) {
-              const phaseMapping = mapping.phases[phase];
-              if (phaseMapping) {
-                // Close the parent tracking issue
-                if (phaseMapping.tracking_issue.number > 0) {
-                  const closeResult = await closeIssue(phaseMapping.tracking_issue.number, 'completed');
-                  if (closeResult.ok) {
-                    githubClosed = true;
-                    phaseMapping.tracking_issue.status = 'Done';
+          requireAuth();
 
-                    // Move to "Done" on the board
-                    if (
-                      phaseMapping.tracking_issue.item_id &&
-                      mapping.status_field_id &&
-                      mapping.status_options['Done']
-                    ) {
-                      await moveItemToStatus(
-                        mapping.project_id,
-                        phaseMapping.tracking_issue.item_id,
-                        mapping.status_field_id,
-                        mapping.status_options['Done'],
-                      );
-                    }
+          const mapping = loadMapping(cwd);
+          if (mapping) {
+            const phaseMapping = mapping.phases[phase];
+            if (phaseMapping) {
+              // Close the parent tracking issue
+              if (phaseMapping.tracking_issue.number > 0) {
+                const closeResult = await closeIssue(
+                  phaseMapping.tracking_issue.number,
+                  `Phase ${phase} completed`,
+                );
+                if (closeResult.ok) {
+                  githubClosed = true;
+                  phaseMapping.tracking_issue.status = 'Done';
+                }
+              }
+
+              // Close any remaining open task issues for this phase
+              for (const [_taskId, task] of Object.entries(phaseMapping.tasks)) {
+                if (task.number > 0 && task.status !== 'Done') {
+                  const taskCloseResult = await closeIssue(
+                    task.number,
+                    `Phase ${phase} completed -- closing remaining task`,
+                  );
+                  if (taskCloseResult.ok) {
+                    task.status = 'Done';
                   }
                 }
+              }
 
-                // Close any remaining open task issues for this phase
-                for (const [_taskId, task] of Object.entries(phaseMapping.tasks)) {
-                  if (task.number > 0 && task.status !== 'Done') {
-                    const taskCloseResult = await closeIssue(task.number, 'completed');
-                    if (taskCloseResult.ok) {
-                      task.status = 'Done';
+              saveMapping(cwd, mapping);
 
-                      // Move task to "Done" on board
-                      if (task.item_id && mapping.status_field_id && mapping.status_options['Done']) {
-                        await moveItemToStatus(
-                          mapping.project_id,
-                          task.item_id,
-                          mapping.status_field_id,
-                          mapping.status_options['Done'],
-                        );
-                      }
-
-                      // Update parent tracking issue checkbox
-                      if (phaseMapping.tracking_issue.number > 0) {
-                        await updateParentTaskList(
-                          phaseMapping.tracking_issue.number,
-                          task.number,
-                          true,
-                        );
-                      }
-                    }
-                  }
-                }
-
-                saveMapping(cwd, mapping);
-
-                // Check if milestone should be closed (all issues done)
-                if (mapping.milestone_id > 0) {
-                  const msResult = await closeMilestoneIfComplete(mapping.milestone_id);
-                  if (msResult.ok) {
-                    milestoneClosed = msResult.data.closed;
-                  }
+              // Check if milestone should be closed (all phase issues done)
+              if (mapping.milestone_id > 0) {
+                // Check if all phases are done by examining all phase tracking issues
+                const allDone = Object.values(mapping.phases).every(
+                  p => p.tracking_issue.status === 'Done',
+                );
+                if (allDone) {
+                  const msResult = await closeMilestone(mapping.milestone_id);
+                  milestoneClosed = msResult.ok;
                 }
               }
             }
           }
         } catch (e) {
-          githubWarning = (githubWarning ? githubWarning + '; ' : '') +
-            `GitHub completion operations failed: ${(e as Error).message}`;
+          if (e instanceof AuthError) {
+            // Auth not available -- skip GitHub operations silently
+          } else {
+            githubWarning = `GitHub completion operations failed: ${(e as Error).message}`;
+          }
         }
 
         return mcpSuccess(
@@ -426,7 +390,6 @@ export function registerPhaseTools(server: McpServer): void {
             date: result.date,
             roadmap_updated: result.roadmap_updated,
             state_updated: result.state_updated,
-            sync_discrepancies: syncDiscrepancies.length > 0 ? syncDiscrepancies : null,
             github_closed: githubClosed,
             milestone_closed: milestoneClosed,
             ...(githubWarning ? { github_warning: githubWarning } : {}),
@@ -439,7 +402,7 @@ export function registerPhaseTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_bounce_issue ────────────────────────────────────────────────────────
+  // -- mcp_bounce_issue ---------------------------------------------------------
 
   server.tool(
     'mcp_bounce_issue',
@@ -450,47 +413,24 @@ export function registerPhaseTools(server: McpServer): void {
     },
     async ({ issue_number, reason }) => {
       try {
+        try {
+          requireAuth();
+        } catch (e) {
+          if (e instanceof AuthError) {
+            return mcpError(
+              `GitHub auth required: ${e.message}`,
+              'Authentication required',
+            );
+          }
+          throw e;
+        }
+
         const cwd = detectProjectRoot();
         if (!cwd) {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const mode = await detectGitHubMode();
-
-        if (mode === 'local-only') {
-          // In local-only mode, update local mapping only
-          const mapping = loadMapping(cwd);
-          if (mapping) {
-            const updated = updateLocalMappingStatus(mapping, issue_number, 'In Progress');
-            if (updated) {
-              saveMapping(cwd, mapping);
-              return mcpSuccess(
-                {
-                  mode: 'local-only',
-                  issue_number,
-                  status: 'In Progress',
-                  local_updated: true,
-                  reason,
-                },
-                `Local-only: issue #${issue_number} bounced to In Progress (reason recorded locally)`,
-              );
-            }
-          }
-          return mcpSuccess(
-            {
-              mode: 'local-only',
-              issue_number,
-              reason,
-              note: 'Bounce recorded locally. GitHub operations skipped.',
-            },
-            `Local-only: bounce for issue #${issue_number} recorded`,
-          );
-        }
-
-        // Full mode: move on board + post comment
-        const mapping = loadMapping(cwd);
         let githubWarning: string | undefined;
-        let moved = false;
         let commented = false;
 
         // Post reviewer feedback comment
@@ -505,44 +445,18 @@ export function registerPhaseTools(server: McpServer): void {
           githubWarning = `Comment failed: ${(e as Error).message}`;
         }
 
-        // Move to "In Progress" on the board
-        try {
-          if (mapping) {
-            const issueEntry = findIssueInMapping(mapping, issue_number);
-            if (
-              issueEntry?.item_id &&
-              mapping.status_field_id &&
-              mapping.status_options['In Progress']
-            ) {
-              const moveResult = await moveItemToStatus(
-                mapping.project_id,
-                issueEntry.item_id,
-                mapping.status_field_id,
-                mapping.status_options['In Progress'],
-              );
-              moved = moveResult.ok;
-              if (!moveResult.ok) {
-                githubWarning = (githubWarning ? githubWarning + '; ' : '') +
-                  `Board move failed: ${moveResult.error}`;
-              }
-            }
-
-            // Update local mapping status
-            updateLocalMappingStatus(mapping, issue_number, 'In Progress');
-            saveMapping(cwd, mapping);
-          }
-        } catch (e) {
-          githubWarning = (githubWarning ? githubWarning + '; ' : '') +
-            `Board move failed: ${(e as Error).message}`;
+        // Update local mapping status (best-effort)
+        const mapping = loadMapping(cwd);
+        if (mapping) {
+          updateLocalMappingStatus(mapping, issue_number, 'In Progress');
+          saveMapping(cwd, mapping);
         }
 
         return mcpSuccess(
           {
-            mode: 'full',
             issue_number,
             status: 'In Progress',
             commented,
-            moved,
             reason,
             ...(githubWarning ? { github_warning: githubWarning } : {}),
           },
@@ -555,9 +469,7 @@ export function registerPhaseTools(server: McpServer): void {
   );
 }
 
-// ---- Internal Helpers ──────────────────────────────────────────────────────
-
-import type { TaskIssueMapping } from '../github/types.js';
+// ---- Internal Helpers -------------------------------------------------------
 
 /**
  * Find an issue entry in the mapping file (searches phases and todos).

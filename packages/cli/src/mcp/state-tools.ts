@@ -1,12 +1,16 @@
 /**
- * State Management MCP Tools — STATE.md operations exposed as MCP tools
+ * State Management MCP Tools -- STATE.md operations + GitHub state queries
+ *
+ * Local project context (config, requirements, decisions, blockers) stays in
+ * .planning/ files (ARCH-02). Progress/state queries read from GitHub Issues
+ * (ARCH-01) via the sync module.
  *
  * Integrates with GitHub: blocker add/resolve uses best-effort GitHub
  * issue linking when blocker text references issue numbers.
  *
- * CRITICAL: Never import output() or error() from core — they call process.exit().
- * CRITICAL: Never write to stdout — it is reserved for MCP JSON-RPC protocol.
- * CRITICAL: Never call process.exit() — the server must stay alive after every tool call.
+ * CRITICAL: Never import output() or error() from core -- they call process.exit().
+ * CRITICAL: Never write to stdout -- it is reserved for MCP JSON-RPC protocol.
+ * CRITICAL: Never call process.exit() -- the server must stay alive after every tool call.
  */
 
 import fs from 'node:fs';
@@ -17,8 +21,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { statePath } from '../core/core.js';
 import { stateExtractField, stateReplaceField, appendToStateSection } from '../core/state.js';
 
-import { detectGitHubMode } from '../github/gh-legacy.js';
-import { postComment } from '../github/issues.js';
+import { requireAuth } from '../github/client.js';
+import { AuthError } from '../github/types.js';
+import { postPlanComment } from '../github/issues.js';
+import { checkPhaseProgress, getAllPhasesProgress, detectInterruptedPhase } from '../github/sync.js';
 
 import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';
 
@@ -43,14 +49,24 @@ function extractIssueNumbers(text: string): number[] {
 }
 
 /**
+ * Return a structured MCP auth error response with setup instructions.
+ */
+function mcpAuthError(e: AuthError) {
+  return mcpError(
+    `GitHub auth required: ${e.message}`,
+    'Authentication required',
+  );
+}
+
+/**
  * Register all state management tools on the MCP server.
  */
 export function registerStateTools(server: McpServer): void {
-  // ── mcp_get_state ───────────────────────────────────────────────────────────
+  // -- mcp_get_state ------------------------------------------------------------
 
   server.tool(
     'mcp_get_state',
-    'Read STATE.md content — full file, a specific **field:** value, or a ## section.',
+    'Read STATE.md content -- full file, a specific **field:** value, or a ## section.',
     {
       field: z
         .string()
@@ -108,7 +124,7 @@ export function registerStateTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_update_state ────────────────────────────────────────────────────────
+  // -- mcp_update_state ---------------------------------------------------------
 
   server.tool(
     'mcp_update_state',
@@ -151,7 +167,7 @@ export function registerStateTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_add_decision ────────────────────────────────────────────────────────
+  // -- mcp_add_decision ---------------------------------------------------------
 
   server.tool(
     'mcp_add_decision',
@@ -199,7 +215,7 @@ export function registerStateTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_add_blocker ─────────────────────────────────────────────────────────
+  // -- mcp_add_blocker ----------------------------------------------------------
 
   server.tool(
     'mcp_add_blocker',
@@ -235,28 +251,30 @@ export function registerStateTools(server: McpServer): void {
 
         fs.writeFileSync(stPath, updated, 'utf-8');
 
-        // GitHub integration: best-effort dependency linking
+        // GitHub integration: best-effort issue commenting
         let githubLinked: number[] = [];
         let githubWarning: string | undefined;
 
         try {
-          const mode = await detectGitHubMode();
-          if (mode === 'full') {
-            const issueNumbers = extractIssueNumbers(text);
-            if (issueNumbers.length > 0) {
-              for (const issueNum of issueNumbers) {
-                const commentResult = await postComment(
-                  issueNum,
-                  `**Blocker added in MAXSIM:**\n\n${text}\n\n---\n*Posted by MAXSIM blocker tracking*`,
-                );
-                if (commentResult.ok) {
-                  githubLinked.push(issueNum);
-                }
+          requireAuth();
+          const issueNumbers = extractIssueNumbers(text);
+          if (issueNumbers.length > 0) {
+            for (const issueNum of issueNumbers) {
+              const commentResult = await postPlanComment(
+                issueNum,
+                'blocker',
+                `**Blocker added in MAXSIM:**\n\n${text}`,
+              );
+              if (commentResult.ok) {
+                githubLinked.push(issueNum);
               }
             }
           }
         } catch (e) {
-          githubWarning = `GitHub linking failed: ${(e as Error).message}`;
+          if (!(e instanceof AuthError)) {
+            githubWarning = `GitHub linking failed: ${(e as Error).message}`;
+          }
+          // Auth errors are silently ignored for best-effort linking
         }
 
         return mcpSuccess(
@@ -274,7 +292,7 @@ export function registerStateTools(server: McpServer): void {
     },
   );
 
-  // ── mcp_resolve_blocker ─────────────────────────────────────────────────────
+  // -- mcp_resolve_blocker ------------------------------------------------------
 
   server.tool(
     'mcp_resolve_blocker',
@@ -340,25 +358,26 @@ export function registerStateTools(server: McpServer): void {
         let githubWarning: string | undefined;
 
         try {
-          const mode = await detectGitHubMode();
-          if (mode === 'full') {
-            // Extract issue numbers from the matched blocker text
-            const allText = matchingLines.join(' ') + ' ' + text;
-            const issueNumbers = extractIssueNumbers(allText);
-            if (issueNumbers.length > 0) {
-              for (const issueNum of issueNumbers) {
-                const commentResult = await postComment(
-                  issueNum,
-                  `**Blocker resolved in MAXSIM:**\n\nResolved blocker matching: "${text}"\n\n---\n*Posted by MAXSIM blocker tracking*`,
-                );
-                if (commentResult.ok) {
-                  githubCommented.push(issueNum);
-                }
+          requireAuth();
+          const allText = matchingLines.join(' ') + ' ' + text;
+          const issueNumbers = extractIssueNumbers(allText);
+          if (issueNumbers.length > 0) {
+            for (const issueNum of issueNumbers) {
+              const commentResult = await postPlanComment(
+                issueNum,
+                'resolved',
+                `**Blocker resolved in MAXSIM:**\n\nResolved blocker matching: "${text}"`,
+              );
+              if (commentResult.ok) {
+                githubCommented.push(issueNum);
               }
             }
           }
         } catch (e) {
-          githubWarning = `GitHub comment failed: ${(e as Error).message}`;
+          if (!(e instanceof AuthError)) {
+            githubWarning = `GitHub comment failed: ${(e as Error).message}`;
+          }
+          // Auth errors are silently ignored for best-effort linking
         }
 
         return mcpSuccess(
@@ -369,6 +388,136 @@ export function registerStateTools(server: McpServer): void {
             ...(githubWarning ? { github_warning: githubWarning } : {}),
           },
           `Blocker resolved${githubCommented.length > 0 ? ` (commented on ${githubCommented.map(n => `#${n}`).join(', ')})` : ''}`,
+        );
+      } catch (e) {
+        return mcpError((e as Error).message, 'Operation failed');
+      }
+    },
+  );
+
+  // -- mcp_get_phase_progress ---------------------------------------------------
+
+  server.tool(
+    'mcp_get_phase_progress',
+    'Get progress of a phase by counting open/closed sub-issues on GitHub.',
+    {
+      phase_issue_number: z.number().describe('Phase issue number on GitHub'),
+    },
+    async ({ phase_issue_number }) => {
+      try {
+        try {
+          requireAuth();
+        } catch (e) {
+          if (e instanceof AuthError) {
+            return mcpAuthError(e);
+          }
+          throw e;
+        }
+
+        const result = await checkPhaseProgress(phase_issue_number);
+        if (!result.ok) {
+          return mcpError(`Progress check failed: ${result.error}`, 'Check failed');
+        }
+
+        const progress = result.data;
+
+        return mcpSuccess(
+          {
+            phase_issue_number,
+            total: progress.total,
+            completed: progress.completed,
+            in_progress: progress.inProgress,
+            remaining: progress.remaining,
+            tasks: progress.tasks,
+          },
+          `Phase #${phase_issue_number}: ${progress.completed}/${progress.total} tasks done`,
+        );
+      } catch (e) {
+        return mcpError((e as Error).message, 'Operation failed');
+      }
+    },
+  );
+
+  // -- mcp_get_all_progress -----------------------------------------------------
+
+  server.tool(
+    'mcp_get_all_progress',
+    'Get progress overview for all phases from GitHub Issues.',
+    {},
+    async () => {
+      try {
+        try {
+          requireAuth();
+        } catch (e) {
+          if (e instanceof AuthError) {
+            return mcpAuthError(e);
+          }
+          throw e;
+        }
+
+        const result = await getAllPhasesProgress();
+        if (!result.ok) {
+          return mcpError(`All progress check failed: ${result.error}`, 'Check failed');
+        }
+
+        const phases = result.data;
+
+        return mcpSuccess(
+          {
+            phases: phases.map(p => ({
+              phase_number: p.phaseNumber,
+              title: p.title,
+              issue_number: p.issueNumber,
+              total: p.progress.total,
+              completed: p.progress.completed,
+              remaining: p.progress.remaining,
+            })),
+            count: phases.length,
+          },
+          `${phases.length} phases found`,
+        );
+      } catch (e) {
+        return mcpError((e as Error).message, 'Operation failed');
+      }
+    },
+  );
+
+  // -- mcp_detect_interrupted ---------------------------------------------------
+
+  server.tool(
+    'mcp_detect_interrupted',
+    'Detect whether a phase was interrupted (mix of open/closed sub-issues).',
+    {
+      phase_issue_number: z.number().describe('Phase issue number on GitHub'),
+    },
+    async ({ phase_issue_number }) => {
+      try {
+        try {
+          requireAuth();
+        } catch (e) {
+          if (e instanceof AuthError) {
+            return mcpAuthError(e);
+          }
+          throw e;
+        }
+
+        const result = await detectInterruptedPhase(phase_issue_number);
+        if (!result.ok) {
+          return mcpError(`Interruption check failed: ${result.error}`, 'Check failed');
+        }
+
+        const data = result.data;
+
+        return mcpSuccess(
+          {
+            phase_issue_number,
+            interrupted: data.interrupted,
+            completed_tasks: data.completedTasks,
+            remaining_tasks: data.remainingTasks,
+          },
+          data.interrupted
+            ? `Phase #${phase_issue_number} interrupted: ${data.completedTasks.length} done, ${data.remainingTasks.length} remaining`
+            : `Phase #${phase_issue_number} not interrupted`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');
