@@ -3,21 +3,21 @@
 ## Project Reference
 
 **Core Value:** Consistent, high-quality AI-assisted development at any project scale
-**Current Focus:** Phase 2 -- GitHub Issues Foundation
+**Current Focus:** Phase 3 -- Command Surface Simplification
 
 ## Current Position
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
-**Phase:** 2 (GitHub Issues Foundation)
-**Plan:** 02-04 (MCP Tools Integration & Legacy Removal)
-**Status:** Milestone complete
+**Phase:** 3 (Command Surface Simplification)
+**Plan:** 03-02 (Unified /maxsim:init Command)
+**Status:** Executing
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 1/6 |
-| Plans Complete | 4 |
+| Plans Complete | 5 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -63,9 +63,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 02-04 (MCP Tools Integration & Legacy Removal)
-- **Outcome:** All MCP tools rewired to Octokit adapter; gh-legacy.ts deleted (302 lines); zero legacy references remain; state tools query GitHub for progress; 212/212 tests pass
-- **Next Step:** Phase 02 complete -- proceed to Phase 03 (Command Surface Simplification)
+- **Activity:** Executed Plan 03-02 (Unified /maxsim:init Command)
+- **Outcome:** Created init.md command template and thin router workflow (7.7KB) detecting 4 scenarios and delegating to existing sub-workflows
+- **Next Step:** Continue Phase 03 Wave 1 plans (03-01 parallel)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -75,4 +75,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 02-04 complete, phase 02 complete)*
+*Last updated: 2026-03-10 (plan 03-02 complete)*
