@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 5 (Parallel Execution Model)
-**Plan:** 05-04 complete (spec-driven enforcement gates)
-**Status:** In progress
+**Plan:** 05-05 complete (Agent Teams coordination + worktree-aware executor)
+**Status:** Phase 5 all plans complete
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 20 |
+| Plans Complete | 21 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -61,6 +61,8 @@
 - [Phase 05]: Pre-execution gate G1 (requirement existence, hard gate) and G2 (requirement status, warning) added to execute-plan.md
 - [Phase 05]: Post-execution gate G6 (evidence completeness) validates SUMMARY.md has evidence for each requirement
 - [Phase 05]: Executor agent instructs Requirement Evidence population in SUMMARY.md
+- [Phase 05]: Agent Teams team_name used for wave-parallel agent grouping; orchestrator-mediated only, no peer-to-peer
+- [Phase 05]: Installer detects existing AGENT_TEAMS env var before prompting; non-interactive installs show export guidance
 
 ### Known Issues
 
@@ -87,9 +89,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 05-04 (Spec-driven enforcement gates)
-- **Outcome:** Added 3 requirement validation functions to verify.ts, 3 CLI commands, pre-execution gates G1/G2 and post-execution gate G6 in execute-plan.md, executor agent Requirement Evidence instructions. 2 tasks + 1 fix, 5 files modified.
-- **Next Step:** Continue Phase 5 Wave 3 plan (05-05)
+- **Activity:** Executed Plan 05-05 (Agent Teams coordination + worktree-aware executor)
+- **Outcome:** Added team_name to Task() spawns in batch and standard paths, Agent Teams documentation block, inter-wave handoff context, executor Worktree Execution Mode section, installer AGENT_TEAMS env check. 2 tasks, 3 files modified.
+- **Next Step:** Phase 5 verification (all 5 plans complete)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -99,4 +101,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 05-04 complete)*
+*Last updated: 2026-03-10 (plan 05-05 complete)*

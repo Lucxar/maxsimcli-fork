@@ -99,7 +99,7 @@
   - [x] Plan 02 (Wave 1): Review cycle enhancement -- retry counters, escalation, config-optional simplify [EXEC-03]
   - [x] Plan 03 (Wave 2): Execute workflow worktree integration -- batch/standard paths, lifecycle [EXEC-01, EXEC-04]
   - [x] Plan 04 (Wave 2): Spec-driven enforcement -- pre/post-execution gates, evidence tracking [EXEC-05]
-  - [ ] Plan 05 (Wave 3): Agent Teams integration + installer updates [EXEC-02]
+  - [x] Plan 05 (Wave 3): Agent Teams integration + installer updates [EXEC-02]
 
 ### Phase 6: Hook System
 **Goal**: Hooks provide lightweight automation without interfering with user workflow
@@ -152,7 +152,7 @@ Unmapped: 0
 | 2. GitHub Issues Foundation | 4/4 | Complete | 2026-03-10 |
 | 3. Command Surface Simplification | 8/8 | Complete | 2026-03-10 |
 | 4. Prompt & Skill Architecture | 5/5 | Complete | 2026-03-10 |
-| 5. Parallel Execution Model | 0/5 | Planned | - |
+| 5. Parallel Execution Model | 5/5 | Complete | 2026-03-10 |
 | 6. Hook System | 0/? | Not started | - |
 
 ---
