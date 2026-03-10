@@ -1,8 +1,12 @@
 /**
- * GitHub Issues Mapping — Persistence layer for github-issues.json
+ * GitHub Issue Mapping — Local performance cache
+ *
+ * IMPORTANT: This file (.planning/github-issues.json) is a CACHE that can be
+ * rebuilt from GitHub Issues at any time via rebuildMappingFromGitHub().
+ * GitHub Issues are the single source of truth (ARCH-01).
  *
  * Manages the `.planning/github-issues.json` file that maps MAXSIM tasks/todos
- * to their corresponding GitHub issue numbers, node IDs, and project item IDs.
+ * to their corresponding GitHub issue numbers, internal IDs, and project item IDs.
  *
  * All file operations use synchronous fs (matching the pattern in existing core modules).
  * Uses planningPath() from core to construct file paths.
@@ -14,7 +18,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { planningPath } from '../core/core.js';
-import type { IssueMappingFile, PhaseMapping, TaskIssueMapping } from './types.js';
+import type { GhResult, IssueMappingFile, PhaseMapping, TaskIssueMapping } from './types.js';
+import { getOctokit, getRepoInfo, withGhResult } from './client.js';
 
 // ---- Constants -------------------------------------------------------------
 
@@ -29,10 +34,10 @@ function mappingFilePath(cwd: string): string {
   return planningPath(cwd, MAPPING_FILENAME);
 }
 
-// ---- Public API ------------------------------------------------------------
+// ---- Public API: Local file I/O --------------------------------------------
 
 /**
- * Load and parse the mapping file.
+ * Load and parse the mapping file (local cache).
  *
  * Returns null if the file does not exist.
  * Throws on malformed JSON or invalid structure (missing required fields).
@@ -49,10 +54,10 @@ export function loadMapping(cwd: string): IssueMappingFile | null {
   const raw = fs.readFileSync(filePath, 'utf-8');
   const parsed = JSON.parse(raw) as Record<string, unknown>;
 
-  // Validate basic structure — must have project_number and repo
-  if (typeof parsed.project_number !== 'number' || typeof parsed.repo !== 'string') {
+  // Validate basic structure — must have repo
+  if (typeof parsed.repo !== 'string') {
     throw new Error(
-      `Invalid github-issues.json: missing required fields 'project_number' (number) and 'repo' (string)`,
+      `Invalid github-issues.json: missing required field 'repo' (string)`,
     );
   }
 
@@ -95,7 +100,7 @@ export function updateTaskMapping(
   // Create phase entry if missing
   if (!mapping.phases[phaseNum]) {
     mapping.phases[phaseNum] = {
-      tracking_issue: { number: 0, node_id: '', item_id: '', status: 'To Do' },
+      tracking_issue: { number: 0, id: 0, node_id: '', item_id: '', status: 'To Do' },
       plan: '',
       tasks: {},
     } satisfies PhaseMapping;
@@ -103,7 +108,7 @@ export function updateTaskMapping(
 
   // Merge with existing task data (if any)
   const existing = mapping.phases[phaseNum].tasks[taskId];
-  const defaults: TaskIssueMapping = { number: 0, node_id: '', item_id: '', status: 'To Do' };
+  const defaults: TaskIssueMapping = { number: 0, id: 0, node_id: '', item_id: '', status: 'To Do' };
   mapping.phases[phaseNum].tasks[taskId] = Object.assign(defaults, existing, data);
 
   saveMapping(cwd, mapping);
@@ -134,7 +139,7 @@ export function updateTodoMapping(
 
   // Merge with existing todo data (if any)
   const existing = mapping.todos[todoId];
-  const defaults: TaskIssueMapping = { number: 0, node_id: '', item_id: '', status: 'To Do' };
+  const defaults: TaskIssueMapping = { number: 0, id: 0, node_id: '', item_id: '', status: 'To Do' };
   mapping.todos[todoId] = Object.assign(defaults, existing, data);
 
   saveMapping(cwd, mapping);
@@ -190,4 +195,103 @@ export function getIssueForTodo(cwd: string, todoId: string): TaskIssueMapping |
   if (!mapping) return null;
 
   return mapping.todos?.[todoId] ?? null;
+}
+
+// ---- Rebuild from GitHub (cache rebuild) ------------------------------------
+
+/**
+ * Rebuild the mapping cache from GitHub Issues.
+ *
+ * This function is the escape hatch: if the local cache is lost, stale, or
+ * corrupted, it can always be rebuilt from GitHub (the single source of truth).
+ *
+ * Strategy:
+ * 1. List all Issues with label 'phase' using Octokit pagination
+ * 2. For each phase issue, list its sub-issues
+ * 3. Reconstruct the mapping from GitHub state
+ * 4. Save to disk and return
+ *
+ * @param cwd - The project root directory
+ * @returns The rebuilt mapping file
+ */
+export async function rebuildMappingFromGitHub(
+  cwd: string,
+): Promise<GhResult<IssueMappingFile>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
+
+    // Start with the existing mapping if available (to preserve project board info)
+    // or create an empty one
+    const existing = loadMapping(cwd);
+    const mapping = existing ?? createEmptyMapping(`${owner}/${repo}`);
+
+    // Clear existing phase mappings — we're rebuilding from scratch
+    mapping.phases = {};
+    mapping.repo = `${owner}/${repo}`;
+
+    // List all issues with the 'phase' label using pagination
+    const phaseIssues = await octokit.paginate(octokit.rest.issues.listForRepo, {
+      owner,
+      repo,
+      labels: 'phase',
+      state: 'all',
+      per_page: 100,
+    });
+
+    for (const phaseIssue of phaseIssues) {
+      // Extract phase number from title: "[Phase XX] Name"
+      const titleMatch = phaseIssue.title.match(/^\[Phase\s+(\S+)\]/);
+      if (!titleMatch) continue;
+
+      const phaseNum = titleMatch[1];
+
+      // Create phase mapping entry
+      const phaseMapping: PhaseMapping = {
+        tracking_issue: {
+          number: phaseIssue.number,
+          id: phaseIssue.id,
+          node_id: phaseIssue.node_id ?? '',
+          item_id: '',
+          status: phaseIssue.state === 'closed' ? 'Done' : 'To Do',
+        },
+        plan: '',
+        tasks: {},
+      };
+
+      // List sub-issues for this phase issue
+      try {
+        const subIssues = await (octokit.rest.issues as any).listSubIssues({
+          owner,
+          repo,
+          issue_number: phaseIssue.number,
+        });
+
+        for (const subIssue of subIssues.data as any[]) {
+          // Extract task ID from title: "[PXX] Title" — use the issue number as key
+          const taskTitleMatch = (subIssue.title as string).match(/^\[P\S+\]\s/);
+          const taskKey = taskTitleMatch
+            ? `task-${subIssue.number}`
+            : `issue-${subIssue.number}`;
+
+          phaseMapping.tasks[taskKey] = {
+            number: subIssue.number as number,
+            id: subIssue.id as number,
+            node_id: (subIssue.node_id as string) ?? '',
+            item_id: '',
+            status: (subIssue.state as string) === 'closed' ? 'Done' : 'To Do',
+          };
+        }
+      } catch {
+        // Sub-issues API may not be available — continue without sub-issues
+      }
+
+      mapping.phases[phaseNum] = phaseMapping;
+    }
+
+    // Save the rebuilt mapping to disk
+    saveMapping(cwd, mapping);
+
+    return mapping;
+  });
 }

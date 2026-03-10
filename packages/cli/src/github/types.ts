@@ -57,6 +57,8 @@ export type IssueStatus = 'To Do' | 'In Progress' | 'In Review' | 'Done';
 
 export interface TaskIssueMapping {
   number: number;
+  /** Internal numeric ID used for sub-issue linking (NOT the human-readable number). */
+  id: number;
   node_id: string;
   item_id: string;
   status: IssueStatus;
