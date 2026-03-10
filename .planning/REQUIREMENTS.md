@@ -26,7 +26,7 @@ Lightweight requirements for rapid exploration.
 - [ ] **CMD-06**: `/maxsim:debug` -- systematic debugging with persistent state
 - [x] **CMD-07**: `/maxsim:quick` -- ad-hoc task with atomic commits
 - [x] **CMD-08**: `/maxsim:settings` -- configuration management
-- [ ] **CMD-09**: Remove all other commands (~26 commands eliminated)
+- [x] **CMD-09**: Remove all other commands (~26 commands eliminated)
 
 ### Execution
 
@@ -87,7 +87,7 @@ Lightweight requirements for rapid exploration.
 | CMD-06 | Phase 3: Command Surface Simplification | Pending |
 | CMD-07 | Phase 3: Command Surface Simplification | Complete |
 | CMD-08 | Phase 3: Command Surface Simplification | Complete |
-| CMD-09 | Phase 3: Command Surface Simplification | Pending |
+| CMD-09 | Phase 3: Command Surface Simplification | Complete |
 | EXEC-01 | Phase 5: Parallel Execution Model | Pending |
 | EXEC-02 | Phase 5: Parallel Execution Model | Pending |
 | EXEC-03 | Phase 5: Parallel Execution Model | Pending |

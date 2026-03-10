@@ -62,8 +62,8 @@
   - [x] Plan 02 (Wave 1): Create /maxsim:init command + thin router workflow [CMD-01]
   - [x] Plan 03 (Wave 2): Create /maxsim:execute command + auto-verify workflow [CMD-03]
   - [x] Plan 04 (Wave 2): Create /maxsim:go command + auto-detect workflow, rewrite /maxsim:help [CMD-05]
-  - [ ] Plan 05 (Wave 3): Enhance /maxsim:quick, /maxsim:progress, /maxsim:settings [CMD-04, CMD-07, CMD-08]
-  - [ ] Plan 06 (Wave 4): Delete ~29 old command files + obsolete workflow files [CMD-09]
+  - [x] Plan 05 (Wave 3): Enhance /maxsim:quick, /maxsim:progress, /maxsim:settings [CMD-04, CMD-07, CMD-08]
+  - [x] Plan 06 (Wave 4): Delete ~29 old command files + obsolete workflow files [CMD-09]
   - [ ] Plan 07 (Wave 4): Update cross-references in skills, agents, workflows, references [CMD-06, CMD-09]
   - [ ] Plan 08 (Wave 4): Installer orphan cleanup + final verification [CMD-09]
 
@@ -140,7 +140,7 @@ Unmapped: 0
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Cleanup | 0/3 | Planned | - |
 | 2. GitHub Issues Foundation | 4/4 | Complete | 2026-03-10 |
-| 3. Command Surface Simplification | 4/8 | In Progress | - |
+| 3. Command Surface Simplification | 6/8 | In Progress | - |
 | 4. Prompt & Skill Architecture | 0/? | Not started | - |
 | 5. Parallel Execution Model | 0/? | Not started | - |
 | 6. Hook System | 0/? | Not started | - |
@@ -158,3 +158,5 @@ Unmapped: 0
 *Plan 03-02 complete: 2026-03-10*
 *Plan 03-03 complete: 2026-03-10*
 *Plan 03-04 complete: 2026-03-10*
+*Plan 03-05 complete: 2026-03-10*
+*Plan 03-06 complete: 2026-03-10*

@@ -9,7 +9,7 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 3 (Command Surface Simplification)
-**Plan:** 03-05 (Enhance kept commands)
+**Plan:** 03-06 (Delete old commands + obsolete workflows)
 **Status:** Complete
 
 ## Progress
@@ -17,7 +17,7 @@
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 1/6 |
-| Plans Complete | 9 |
+| Plans Complete | 10 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -42,6 +42,7 @@
 - [Phase 03]: Go workflow uses structured CLI tools (state-snapshot, roadmap analyze) instead of raw file parsing for reliable state detection
 - [Phase 03]: Quick todo mode exits after action (no loop back to task mode) for clean UX separation
 - [Phase 03]: Milestone completion routes through /maxsim:init which handles the full lifecycle interactively
+- [Phase 03]: Clean break deletion -- 33 old command files and 21 obsolete workflow files removed, no redirects or aliases
 
 ### Known Issues
 
@@ -59,7 +60,7 @@ None currently.
 
 ### Key Metrics
 
-- Commands: ~35 current, target ~9
+- Commands: 9 (target achieved, down from ~35)
 - Agents: 15 current, to be consolidated
 - Skills: 11 current, to be expanded with better triggers
 - Dashboard: removing entirely (52K-line server + React frontend)
@@ -68,9 +69,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 03-05 (Enhance kept commands)
-- **Outcome:** Enhanced /maxsim:quick with todo capture mode (list, capture, complete, triage), /maxsim:progress with GitHub Issues cross-validation and milestone completion offer, /maxsim:settings with integrated profile management.
-- **Next Step:** Continue Phase 03 Wave 3 plans (plan 03-06: delete old commands)
+- **Activity:** Executed Plan 03-06 (Delete old commands + obsolete workflows)
+- **Outcome:** Deleted 33 old command files and 21 obsolete workflow files. Exactly 9 command files remain. 26 workflow files kept (all still referenced).
+- **Next Step:** Continue Phase 03 Wave 4 plans (plan 03-07: update cross-references)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -80,4 +81,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 03-05 complete)*
+*Last updated: 2026-03-10 (plan 03-06 complete)*
