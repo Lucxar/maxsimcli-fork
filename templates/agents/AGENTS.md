@@ -1,113 +1,85 @@
-# AGENTS.md — Agent-Skill Registry
+# AGENTS.md -- Agent Registry
 
-Maps MAXSIM agents to the skills they auto-load and enforce during execution. Skills are behavioral rules loaded once at agent startup from `SKILL.md` in each skill directory.
+4 generic agents replace 14 specialized agents. Specialization comes from orchestrator spawn prompts and skill preloading -- agents themselves are role-generic.
 
-### Auto-Trigger Skills
+## Agent Registry
 
-Skills with `alwaysApply: true` load automatically at conversation start:
+| Agent | Role | Tools | Preloaded Skills | On-Demand Skills |
+|-------|------|-------|-----------------|-----------------|
+| `executor` | Implements plans with atomic commits and deviation handling | Read, Write, Edit, Bash, Grep, Glob | handoff-contract, evidence-collection, commit-conventions | tool-priority-guide, agent-system-map |
+| `planner` | Creates PLAN.md files with task breakdown and goal-backward verification | Read, Write, Bash, Grep, Glob | handoff-contract, input-validation | research-methodology, agent-system-map |
+| `researcher` | Investigates domains with source evaluation and confidence levels | Read, Bash, Grep, Glob, WebFetch | handoff-contract, evidence-collection | research-methodology, tool-priority-guide |
+| `verifier` | Verifies work against specifications with fresh evidence and hard gates | Read, Bash, Grep, Glob | verification-gates, evidence-collection, handoff-contract | agent-system-map, tool-priority-guide |
 
-| Skill | Purpose |
-|-------|---------|
-| `using-maxsim` | Routes all work through MAXSIM commands |
+## Consolidation Map
 
-## Registry
+Which old agents map to which new agent:
 
-| Agent | Skills | Role |
-|-------|--------|------|
-| `maxsim-executor` | `tdd`, `verification-before-completion`, `using-maxsim`, `maxsim-simplify` | Implements plan tasks with TDD, verified completion, and simplification |
-| `maxsim-debugger` | `systematic-debugging`, `verification-before-completion` | Investigates bugs via reproduce-hypothesize-isolate-verify-fix cycle |
-| `maxsim-verifier` | `verification-before-completion` | Checks phase goal achievement with fresh evidence |
-| `maxsim-planner` | `using-maxsim`, `brainstorming` | Creates executable PLAN.md files for phases |
-| `maxsim-plan-checker` | `verification-before-completion` | Verifies plans achieve phase goal before execution |
-| `maxsim-code-reviewer` | `verification-before-completion`, `code-review` | Reviews implementation for code quality with evidence |
-| `maxsim-spec-reviewer` | `verification-before-completion` | Reviews implementation for spec compliance |
-| `maxsim-roadmapper` | `using-maxsim`, `brainstorming`, `roadmap-writing` | Creates project roadmaps with phase breakdown and requirement mapping |
-| `maxsim-phase-researcher` | `memory-management` | Researches phase implementation domain for planning context |
-| `maxsim-project-researcher` | `memory-management` | Researches project domain ecosystem during init |
-| `maxsim-research-synthesizer` | `memory-management` | Synthesizes parallel research outputs into unified findings |
-| `maxsim-codebase-mapper` | `memory-management` | Maps codebase structure, patterns, and conventions |
-| `maxsim-integration-checker` | `verification-before-completion` | Validates cross-component integration with tested evidence |
-| `maxsim-drift-checker` | `verification-before-completion`, `memory-management` | Compares .planning/ spec against codebase, produces DRIFT-REPORT.md |
+| New Agent | Replaces |
+|-----------|----------|
+| `executor` | maxsim-executor |
+| `planner` | maxsim-planner, maxsim-roadmapper, maxsim-plan-checker |
+| `researcher` | maxsim-phase-researcher, maxsim-project-researcher, maxsim-research-synthesizer, maxsim-codebase-mapper |
+| `verifier` | maxsim-verifier, maxsim-code-reviewer, maxsim-spec-reviewer, maxsim-debugger, maxsim-integration-checker, maxsim-drift-checker |
 
-## Skill Reference
+## Orchestrator-Agent Communication
 
-| Skill | Directory | Purpose |
-|-------|-----------|---------|
-| `systematic-debugging` | `skills/systematic-debugging/` | Root cause investigation before fixes |
-| `tdd` | `skills/tdd/` | Failing test before implementation |
-| `verification-before-completion` | `skills/verification-before-completion/` | Evidence before completion claims |
-| `using-maxsim` | `skills/using-maxsim/` | Workflow routing and structure (alwaysApply) |
-| `memory-management` | `skills/memory-management/` | Pattern and error persistence |
-| `brainstorming` | `skills/brainstorming/` | Multi-approach exploration before design |
-| `roadmap-writing` | `skills/roadmap-writing/` | Phased planning with success criteria |
-| `maxsim-simplify` | `skills/maxsim-simplify/` | Maintainability optimization pass (duplication, dead code, complexity) |
-| `code-review` | `skills/code-review/` | Correctness gate (security, interfaces, errors, test coverage) |
-| `sdd` | `skills/sdd/` | Orchestration strategy: spec-driven dispatch with fresh agent per task |
-| `maxsim-batch` | `skills/maxsim-batch/` | Orchestration strategy: parallel worktree execution with one PR per unit |
-
-## Agent Coherence Conventions
-
-### System Map Maintenance
-
-When adding a new agent, update the `<agent_system_map>` table in ALL existing agent prompts. The map is ~15 lines and inlined in each agent for zero-latency access. This is a manual step -- there is no shared partial file.
-
-**Checklist for adding a new agent:**
-1. Create agent prompt in `templates/agents/maxsim-{name}.md`
-2. Add entry to `<agent_system_map>` table in every existing agent prompt
-3. Add entry to this registry (AGENTS.md)
-4. Add `AgentType` entry in `packages/cli/src/core/types.ts`
-5. Add model mapping in `MODEL_PROFILES` in `packages/cli/src/core/core.ts`
-
-### Required Sections
-
-Every agent prompt MUST have these sections in order:
-
-1. **Frontmatter** (with `needs` field declaring context requirements)
-2. **`<agent_system_map>`** (13-agent table, identical in every agent)
-3. **`<role>`** (agent-specific role description)
-4. **`<upstream_input>`** (what this agent receives and from whom)
-5. **`<downstream_consumer>`** (what this agent produces and for whom)
-6. **`<input_validation>`** (hard blocking on missing critical inputs)
-7. *...agent-specific sections...*
-8. **`<deferred_items>`** (protocol for logging out-of-scope work)
-9. **`<structured_returns>`** or equivalent output section (with minimum handoff contract)
-
-### Needs Vocabulary
-
-The `needs` field in agent YAML frontmatter declares what context the agent requires. The CLI reads this for auto-assembly.
-
-| Need Key | Maps To | Description |
-|----------|---------|-------------|
-| `phase_dir` | Phase directory path + artifacts | Current phase directory with plans, summaries, context |
-| `roadmap` | `.planning/ROADMAP.md` | Project roadmap with phase structure and success criteria |
-| `state` | `.planning/STATE.md` | Accumulated decisions, blockers, metrics, session continuity |
-| `requirements` | `.planning/REQUIREMENTS.md` | Versioned requirements with phase assignments |
-| `config` | `.planning/config.json` | Model profile, workflow flags, branching strategy |
-| `conventions` | `.planning/CONVENTIONS.md` | Project coding conventions and patterns |
-| `codebase_docs` | `.planning/codebase/*.md` | All codebase analysis documents (STACK, ARCH, etc.) |
-| `project` | `.planning/PROJECT.md` | Project vision and tech stack decisions |
-| `inline` | All context passed in prompt | Agent receives all context inline from spawning agent (no file reads needed) |
-
-### Handoff Contract
-
-Every agent structured return MUST include these four sections (the minimum handoff contract):
+Orchestrators spawn agents with structured natural-language prompts:
 
 ```markdown
-### Key Decisions
-- {Decisions made during execution}
+## Task
+[What the agent should do -- specific, actionable]
 
-### Artifacts
-- Created: {file_path}
-- Modified: {file_path}
+## Context
+[Phase, plan, prior work, constraints]
 
-### Status
-{complete | blocked | partial}
-{If blocked: what blocks it}
-{If partial: what remains}
+## Files to Read
+- [file paths the agent should load first]
 
-### Deferred Items
-- [{category}] {description}
-{Or: "None"}
+## Suggested Skills
+- [skills the orchestrator recommends the agent invoke on-demand]
+
+## Success Criteria
+- [measurable criteria for the agent to verify before returning]
 ```
 
-This contract ensures no context is lost between agent transitions. The orchestrator reads these sections to update STATE.md and determine next steps.
+**Key principles:**
+- Orchestrator carries specialization context -- agents are generic
+- Subagents CANNOT spawn other subagents -- orchestrator mediates all agent-to-agent communication
+- Orchestrator can add tools beyond agent's base set at spawn time
+- Agents return results using the handoff-contract format
+
+## Skill Categories
+
+| Category | Skills | Purpose |
+|----------|--------|---------|
+| Protocol | handoff-contract, verification-gates, input-validation | Structural patterns for how agents operate |
+| Methodology | evidence-collection, research-methodology | Domain knowledge for how to do specific work |
+| Convention | commit-conventions | Project standards and rules |
+| Reference | agent-system-map, tool-priority-guide | Lookup data and system knowledge |
+
+All internal skills use `user-invocable: false` -- only agents auto-invoke them based on description matching.
+
+## Handoff Contract
+
+Every agent return MUST include these sections (enforced by the handoff-contract skill):
+
+| Section | Content |
+|---------|---------|
+| Key Decisions | Decisions made during execution that affect downstream work |
+| Artifacts | Files created or modified (absolute paths from project root) |
+| Status | `complete`, `blocked`, or `partial` with details |
+| Deferred Items | Work discovered but not implemented, categorized |
+
+## Model Selection
+
+Config `model_profile` (quality/balanced/budget) provides baseline model per agent type. Orchestrator can override per-spawn for complex tasks.
+
+| Agent | quality | balanced | budget |
+|-------|---------|----------|--------|
+| executor | opus | sonnet | sonnet |
+| planner | opus | sonnet | haiku |
+| researcher | opus | sonnet | haiku |
+| verifier | sonnet | sonnet | haiku |
+
+Model is set via `model: inherit` in agent frontmatter (uses session model) or explicit override in orchestrator spawn.
