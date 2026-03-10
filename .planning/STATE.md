@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 2 (GitHub Issues Foundation)
-**Plan:** 02-01 (Octokit Adapter & Local-Only Install)
-**Status:** Plan 02-01 complete
+**Plan:** 02-02 (Issue CRUD Rewrite with Octokit)
+**Status:** Plan 02-02 complete
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 1/6 |
-| Plans Complete | 1 |
+| Plans Complete | 2 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -61,9 +61,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 02-01 (Octokit Adapter & Local-Only Install)
-- **Outcome:** Octokit client adapter created with auth gate, types updated with AuthError, gh.ts renamed to gh-legacy.ts, installer enforces local-only
-- **Next Step:** Execute Plan 02-02 (Issue CRUD rewrite using Octokit client)
+- **Activity:** Executed Plan 02-02 (Issue CRUD Rewrite with Octokit and Native Sub-Issues)
+- **Outcome:** issues.ts, labels.ts, milestones.ts, mapping.ts rewritten to use Octokit; native sub-issues API integrated; mapping documented as rebuildable cache
+- **Next Step:** Execute Plan 02-04 (MCP tools integration, legacy removal, clean barrel export)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -73,4 +73,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 02-01 complete)*
+*Last updated: 2026-03-10 (plan 02-02 complete)*
