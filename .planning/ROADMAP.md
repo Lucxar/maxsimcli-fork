@@ -110,7 +110,9 @@
   2. Modifying files in `.planning/` triggers a reminder to sync changes to GitHub Issues
   3. The update checker compares local installed version against npm registry and replaces files cleanly on update
   4. The context monitor hook is removed from templates and install -- no references remain
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
+  - [ ] Plan 01 (Wave 1): Rewrite statusline + remove context monitor [HOOK-01, HOOK-04]
+  - [ ] Plan 02 (Wave 2): Add sync-reminder hook + update checker backup [HOOK-02, HOOK-03]
 
 ## Dependency Graph
 
@@ -153,7 +155,7 @@ Unmapped: 0
 | 3. Command Surface Simplification | 8/8 | Complete | 2026-03-10 |
 | 4. Prompt & Skill Architecture | 5/5 | Complete | 2026-03-10 |
 | 5. Parallel Execution Model | 5/5 | Complete | 2026-03-10 |
-| 6. Hook System | 0/? | Not started | - |
+| 6. Hook System | 0/2 | Planned | - |
 
 ---
 *Roadmap created: 2026-03-09*
@@ -181,3 +183,4 @@ Unmapped: 0
 *Plan 04-05 complete: 2026-03-10*
 *Phase 04 complete: 2026-03-10*
 *Phase 05 planned: 2026-03-10*
+*Phase 06 planned: 2026-03-10*
