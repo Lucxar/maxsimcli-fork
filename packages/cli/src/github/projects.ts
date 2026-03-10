@@ -2,7 +2,7 @@
  * GitHub Projects v2 — Board management via Octokit REST API
  *
  * Manages GitHub Projects v2 boards for MAXSIM task tracking.
- * Uses Octokit REST API for all operations — no GraphQL, no gh-legacy imports.
+ * Uses Octokit REST API for all operations -- no GraphQL.
  *
  * One project board per repo (not per milestone). 4 columns:
  * To Do, In Progress, In Review, Done.
@@ -17,7 +17,7 @@
  * - PATCH /users/{username}/projectsV2/{project_number}/items/{item_id} — update item
  *
  * CRITICAL: No GraphQL anywhere in this file.
- * CRITICAL: No imports from gh-legacy.ts.
+ * CRITICAL: All operations use client.ts (Octokit adapter) exclusively.
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 

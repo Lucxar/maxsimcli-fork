@@ -4,7 +4,7 @@
  * Manages MAXSIM-specific labels (phase, task, blocker) on the GitHub repository.
  * Creates labels if they do not exist, updates them if color/description differ.
  *
- * CRITICAL: Never import from gh-legacy.js — use client.ts exclusively.
+ * CRITICAL: All operations use client.ts (Octokit adapter) exclusively.
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 

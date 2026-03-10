@@ -4,7 +4,7 @@
  * Manages GitHub milestones for MAXSIM milestone grouping.
  * One milestone per MAXSIM milestone. Uses Octokit REST API.
  *
- * CRITICAL: Never import from gh-legacy.js — use client.ts exclusively.
+ * CRITICAL: All operations use client.ts (Octokit adapter) exclusively.
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 

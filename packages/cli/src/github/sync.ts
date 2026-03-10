@@ -11,7 +11,7 @@
  * - getAllPhasesProgress: overview of all phase issues with progress
  *
  * CRITICAL: No GraphQL anywhere in this file.
- * CRITICAL: No imports from gh-legacy.ts.
+ * CRITICAL: All operations use client.ts (Octokit adapter) exclusively.
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 

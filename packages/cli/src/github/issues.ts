@@ -7,7 +7,7 @@
  *
  * CRITICAL: Uses `child.data.id` (internal numeric ID) for sub-issue linking,
  *   NOT `child.data.number` (human-readable number).
- * CRITICAL: Never import from gh-legacy.js — use client.ts exclusively.
+ * CRITICAL: All operations use client.ts (Octokit adapter) exclusively.
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 

@@ -1,8 +1,8 @@
 /**
- * GitHub Integration — Type definitions
+ * GitHub Integration -- Type definitions
  *
  * All types for the GitHub Issues/Projects v2 integration layer.
- * Used by client.ts, gh-legacy.ts, mapping.ts, and downstream modules.
+ * Used by client.ts, mapping.ts, issues.ts, projects.ts, and downstream modules.
  */
 
 // ---- Error codes for gh CLI wrapper ----------------------------------------
@@ -43,11 +43,6 @@ export class AuthError extends Error {
     this.name = 'AuthError';
   }
 }
-
-// ---- GitHub operation mode (DEPRECATED — kept for gh-legacy.ts compat) -----
-
-/** @deprecated Will be removed when gh-legacy.ts is deleted in Plan 03. */
-export type GitHubMode = 'full' | 'local-only';
 
 // ---- Issue status ----------------------------------------------------------
 
