@@ -30,6 +30,7 @@ import {
   handleStatusline,
   finishInstall,
 } from './hooks.js';
+import { createBackupBeforeUpdate } from '../hooks/maxsim-check-update.js';
 import { writeManifest, readManifest, MANIFEST_NAME } from './manifest.js';
 import { saveLocalPatches, reportLocalPatches } from './patches.js';
 import {
@@ -131,6 +132,11 @@ async function install(): Promise<InstallResult> {
     } else if (isAlreadyCurrent) {
       console.log(`  ${chalk.dim(`Version ${pkg.version} already installed -- upgrading in place`)}`);
     }
+  }
+
+  // Create backup of current install before overwriting
+  if (existingManifest !== null) {
+    createBackupBeforeUpdate(process.cwd());
   }
 
   // Save any locally modified MAXSIM files before they get wiped

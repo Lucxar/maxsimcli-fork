@@ -4,7 +4,7 @@
 
 /**
  * Read all stdin as a string, then invoke callback with parsed JSON.
- * Used by context-monitor and statusline hooks.
+ * Used by statusline and sync-reminder hooks.
  */
 export function readStdinJson<T>(callback: (data: T) => void): void {
   let input = '';

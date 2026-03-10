@@ -6,7 +6,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readStdinJson, CLAUDE_DIR } from './shared';
 
 export interface StatuslineInput {
@@ -104,15 +104,11 @@ try {
 }
 `;
 
-    const child = execFile(
-      process.execPath,
-      ['-e', script],
-      {
-        timeout: 15000,
-        windowsHide: true,
-      },
-    );
-    // Detach: unref so parent does not wait
+    const child = spawn(process.execPath, ['-e', script], {
+      stdio: 'ignore',
+      windowsHide: true,
+      detached: true,
+    });
     child.unref();
   } catch {
     // Silent fail -- never break statusline
