@@ -9,14 +9,15 @@ allowed-tools:
 ---
 
 <objective>
-Interactive configuration of MAXSIM workflow agents and model profile via multi-question prompt.
+Interactive configuration of MAXSIM workflow agents, model profile, and pipeline settings via multi-question prompt. Includes integrated profile management with model assignment details per tier.
 
 Routes to the settings workflow which handles:
 - Config existence ensuring
 - Current settings reading and parsing
-- Interactive 5-question prompt (model, research, plan_checker, verifier, branching)
+- Interactive prompt (model profile, research, plan_checker, verifier, auto-advance, nyquist, branching)
+- Profile description showing actual model assignments per profile tier
 - Config merging and writing
-- Confirmation display with quick command references
+- Confirmation display
 </objective>
 
 <execution_context>

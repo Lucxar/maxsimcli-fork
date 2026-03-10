@@ -1,5 +1,5 @@
 <purpose>
-Interactive configuration of MAXSIM workflow agents (research, plan_checker, verifier) and model profile selection via multi-question prompt. Updates .planning/config.json with user preferences. Optionally saves settings as global defaults (~/.maxsim/defaults.json) for future projects.
+Interactive configuration of MAXSIM workflow agents (research, plan_checker, verifier) and model profile selection via multi-question prompt. Includes integrated profile management with detailed model assignment descriptions per tier. Updates .planning/config.json with user preferences. Optionally saves settings as global defaults (~/.maxsim/defaults.json) for future projects.
 </purpose>
 
 <required_reading>
@@ -30,9 +30,9 @@ cat .planning/config.json
 ```
 
 Parse current values (default to `true` if not present):
-- `workflow.research` — spawn researcher during plan-phase
-- `workflow.plan_checker` — spawn plan checker during plan-phase
-- `workflow.verifier` — spawn verifier during execute-phase
+- `workflow.research` — spawn researcher during /maxsim:plan
+- `workflow.plan_checker` — spawn plan checker during /maxsim:plan
+- `workflow.verifier` — spawn verifier during /maxsim:execute
 - `workflow.nyquist_validation` — validation architecture research during plan-phase
 - `model_profile` — which model each agent uses (default: `balanced`)
 - `git.branching_strategy` — branching approach (default: `"none"`)
@@ -45,12 +45,12 @@ Use AskUserQuestion with current values pre-selected:
 AskUserQuestion([
   {
     question: "Which model profile for agents?",
-    header: "Model",
+    header: "Model Profile",
     multiSelect: false,
     options: [
-      { label: "Quality", description: "Opus everywhere except verification (highest cost)" },
-      { label: "Balanced (Recommended)", description: "Opus for planning, Sonnet for execution/verification" },
-      { label: "Budget", description: "Sonnet for writing, Haiku for research/verification (lowest cost)" }
+      { label: "Quality", description: "Opus for planning/execution/debugging, Sonnet for verification. Best results, highest cost." },
+      { label: "Balanced (Recommended)", description: "Opus for planning, Sonnet for execution/verification. Good balance of quality and cost." },
+      { label: "Budget", description: "Sonnet for planning/execution, Haiku for research/verification. Lowest cost, good for rapid iteration." }
     ]
   },
   {
@@ -197,13 +197,17 @@ Display:
 | Git Branching        | {None/Per Phase/Per Milestone} |
 | Saved as Defaults    | {Yes/No} |
 
-These settings apply to future /maxsim:plan-phase and /maxsim:execute-phase runs.
+These settings apply to future /maxsim:plan and /maxsim:execute runs.
 
-Quick commands:
-- /maxsim:set-profile <profile> — switch model profile
-- /maxsim:plan-phase --research — force research
-- /maxsim:plan-phase --skip-research — skip research
-- /maxsim:plan-phase --skip-verify — skip plan check
+Profile Details ({quality/balanced/budget}):
+| Agent Role | Model |
+|------------|-------|
+| Planner | {model from MODEL_PROFILES} |
+| Executor | {model from MODEL_PROFILES} |
+| Researcher | {model from MODEL_PROFILES} |
+| Verifier | {model from MODEL_PROFILES} |
+
+Re-run /maxsim:settings anytime to change these.
 ```
 </step>
 

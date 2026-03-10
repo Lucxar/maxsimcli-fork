@@ -1,17 +1,18 @@
 ---
 name: maxsim:progress
-description: Check project progress, show context, and route to next action (execute or plan)
+description: Check project progress, milestone status, and route to next action
 allowed-tools:
   - Read
   - Bash
   - Grep
   - Glob
+  - Task
   - SlashCommand
 ---
 <objective>
-Check project progress, summarize recent work and what's ahead, then intelligently route to the next action - either executing an existing plan or creating the next one.
+Check project progress, milestone status, and offer milestone completion when all phases are done. Shows GitHub Issues-based progress alongside local ROADMAP.md progress for cross-validation.
 
-Provides situational awareness before continuing work.
+Provides situational awareness before continuing work, detects phase gaps, and intelligently routes to the next action.
 </objective>
 
 <execution_context>

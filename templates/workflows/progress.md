@@ -1,5 +1,5 @@
 <purpose>
-Check project progress, summarize recent work and what's ahead, then intelligently route to the next action — either executing an existing plan or creating the next one. Provides situational awareness before continuing work.
+Check project progress, milestone status, and offer milestone completion when all phases are done. Shows GitHub Issues-based progress alongside local ROADMAP.md progress for cross-validation. Detects phase gaps and intelligently routes to the next action.
 </purpose>
 
 <required_reading>
@@ -22,18 +22,18 @@ If `project_exists` is false (no `.planning/` directory):
 ```
 No planning structure found.
 
-Run /maxsim:new-project to start a new project.
+Run /maxsim:init to start a new project.
 ```
 
 Exit.
 
-If missing STATE.md: suggest `/maxsim:new-project`.
+If missing STATE.md: suggest `/maxsim:init`.
 
 **If ROADMAP.md missing but PROJECT.md exists:**
 
 This means a milestone was completed and archived. Go to **Route F** (between milestones).
 
-If missing both ROADMAP.md and PROJECT.md: suggest `/maxsim:new-project`.
+If missing both ROADMAP.md and PROJECT.md: suggest `/maxsim:init`.
 </step>
 
 <step name="load">
@@ -89,9 +89,12 @@ Use this instead of manually reading/parsing ROADMAP.md.
 ```bash
 # Get formatted progress bar
 PROGRESS_BAR=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs progress phase-bars --raw)
+
+# Get GitHub Issues-based progress (best-effort, may fail if gh not authenticated)
+GH_PROGRESS=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs mcp_get_all_progress 2>/dev/null || echo '{"error": "GitHub not available"}')
 ```
 
-Present:
+Present (include GitHub Issues progress if available for cross-validation):
 
 ```
 # [Project Name]
@@ -116,8 +119,19 @@ CONTEXT: [✓ if has_context | - if not]
 - [extract from $STATE.blockers[]]
 - [e.g. jq -r '.blockers[].text' from state-snapshot]
 
+## GitHub Issues Progress
+(If GH_PROGRESS available and not error)
+- Phase completion status from GitHub Issues
+- Cross-validate with local ROADMAP.md progress
+- Highlight any discrepancies between local and GitHub state
+
+## Issues Detected
+(Only show if gaps found during analysis)
+- Phase [N]: [issue description, e.g., "Verification failed (2 truths unmet)"]
+- Phase [M]: [issue description, e.g., "Plan exists but not executed"]
+
 ## Pending Todos
-- [count] pending — /maxsim:check-todos to review
+- [count] pending — /maxsim:quick --todo to review
 
 ## Active Debug Sessions
 - [count] active — /maxsim:debug to continue
@@ -187,7 +201,7 @@ Read its `<objective>` section.
 
 **{phase}-{plan}: [Plan Name]** — [objective summary from PLAN.md]
 
-`/maxsim:execute-phase {phase}`
+`/maxsim:execute {phase}`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -210,7 +224,7 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 **Phase {N}: {Name}** — {Goal from ROADMAP.md}
 <sub>✓ Context gathered, ready to plan</sub>
 
-`/maxsim:plan-phase {phase-number}`
+`/maxsim:plan {phase-number}`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -225,16 +239,11 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 ## ▶ Next Up
 
 **Phase {N}: {Name}** — {Goal from ROADMAP.md}
+<sub>No context yet — /maxsim:plan will start with discussion</sub>
 
-`/maxsim:discuss-phase {phase}` — gather context and clarify approach
+`/maxsim:plan {phase}`
 
 <sub>`/clear` first → fresh context window</sub>
-
----
-
-**Also available:**
-- `/maxsim:plan-phase {phase}` — skip discussion, plan directly
-- `/maxsim:list-phase-assumptions {phase}` — see Claude's assumptions
 
 ---
 ```
@@ -252,15 +261,14 @@ UAT.md exists with gaps (diagnosed issues). User needs to plan fixes.
 
 **{phase_num}-UAT.md** has {N} gaps requiring fixes.
 
-`/maxsim:plan-phase {phase} --gaps`
+`/maxsim:plan {phase} --gaps`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/maxsim:execute-phase {phase}` — execute phase plans
-- `/maxsim:verify-work {phase}` — run more UAT testing
+- `/maxsim:execute {phase}` — execute phase plans (includes verification)
 
 ---
 ```
@@ -299,15 +307,9 @@ Read ROADMAP.md to get the next phase's name and goal.
 
 **Phase {Z+1}: {Name}** — {Goal from ROADMAP.md}
 
-`/maxsim:discuss-phase {Z+1}` — gather context and clarify approach
+`/maxsim:plan {Z+1}` — starts with discussion, then plans
 
 <sub>`/clear` first → fresh context window</sub>
-
----
-
-**Also available:**
-- `/maxsim:plan-phase {Z+1}` — skip discussion, plan directly
-- `/maxsim:verify-work {Z}` — user acceptance test before continuing
 
 ---
 ```
@@ -316,28 +318,26 @@ Read ROADMAP.md to get the next phase's name and goal.
 
 **Route D: Milestone complete**
 
+All phases are done. Offer milestone completion interactively:
+
 ```
 ---
 
-## 🎉 Milestone Complete
+## Milestone Complete!
 
-All {N} phases finished!
+All {N} phases are complete. Ready to wrap up?
 
-## ▶ Next Up
-
-**Complete Milestone** — archive and prepare for next
-
-`/maxsim:complete-milestone`
+1. Complete milestone (archive, create release notes) → `/maxsim:init` (detects milestone completion)
+2. Start new milestone → `/maxsim:init` (starts new milestone flow)
+3. Just show me the progress (stay on this screen)
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
-
-**Also available:**
-- `/maxsim:verify-work` — user acceptance test before completing milestone
-
----
 ```
+
+If user chooses option 1 or 2: route to `/maxsim:init` which handles milestone lifecycle interactively.
+If user chooses option 3: display progress report only, no routing.
 
 ---
 
@@ -358,7 +358,7 @@ Ready to plan the next milestone.
 
 **Start Next Milestone** — questioning → research → requirements → roadmap
 
-`/maxsim:new-milestone`
+`/maxsim:init`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -370,10 +370,11 @@ Ready to plan the next milestone.
 <step name="edge_cases">
 **Handle edge cases:**
 
-- Phase complete but next phase not planned → offer `/maxsim:plan-phase [next]`
-- All work complete → offer milestone completion
+- Phase complete but next phase not planned → offer `/maxsim:plan [next]`
+- All work complete → offer milestone completion via `/maxsim:init`
 - Blockers present → highlight before offering to continue
-- Handoff file exists → mention it, offer `/maxsim:resume-work`
+- Phase gaps detected → surface in Issues Detected section
+- Handoff file exists → mention it, offer `/maxsim:go`
   </step>
 
 </process>
@@ -381,9 +382,12 @@ Ready to plan the next milestone.
 <success_criteria>
 
 - [ ] Rich context provided (recent work, decisions, issues)
+- [ ] GitHub Issues progress shown (cross-validated with local ROADMAP)
+- [ ] Phase gaps detected and surfaced in Issues Detected section
 - [ ] Current position clear with visual progress
 - [ ] What's next clearly explained
-- [ ] Smart routing: /maxsim:execute-phase if plans exist, /maxsim:plan-phase if not
+- [ ] Smart routing: /maxsim:execute if plans exist, /maxsim:plan if not
+- [ ] Milestone completion offered when all phases done
 - [ ] User confirms before any action
 - [ ] Seamless handoff to appropriate maxsim command
       </success_criteria>
