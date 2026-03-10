@@ -12,6 +12,16 @@ Execute all plans in a phase using wave-based parallel execution. Orchestrator s
 Orchestrator coordinates, not executes. Each subagent loads the full execute-plan context. Orchestrator: discover plans → analyze deps → group waves → spawn agents → handle checkpoints → collect results.
 </core_principle>
 
+<agent_teams>
+**Agent Teams Model:** MAXSIM uses Agent Teams for grouping parallel agents, NOT for peer-to-peer communication.
+
+- `team_name` groups agents in a wave so Claude Code can track them as a unit
+- All coordination routes through the orchestrator (this workflow)
+- Subagents CANNOT spawn other subagents — only the orchestrator spawns agents
+- Inter-wave handoff: orchestrator passes wave N results as context to wave N+1 agents
+- Status tracking: orchestrator maintains a progress table per wave
+</agent_teams>
+
 <required_reading>
 Read STATE.md before any operation to load project context.
 
@@ -169,6 +179,7 @@ For each wave:
      subagent_type="executor",
      model="{executor_model}",
      isolation="worktree",
+     team_name="maxsim-phase-{PHASE_NUMBER}-wave-{WAVE_NUM}",
      prompt="
        <objective>
        Execute plan {plan_number} of phase {phase_number}-{phase_name}.
@@ -243,7 +254,20 @@ For each wave:
    node ~/.claude/maxsim/bin/maxsim-tools.cjs worktree-cleanup --all
    ```
 
-7. **Proceed to next wave.**
+7. **Prepare inter-wave handoff context (for waves after Wave 1):**
+
+   When spawning agents for the next wave, include a brief context block so they can reference prior wave outputs without reading full SUMMARYs:
+
+   ```
+   <prior_wave_results>
+   Wave {N-1} completed:
+   {For each plan in prior wave: plan ID, one-liner from SUMMARY.md, key files created/modified}
+   </prior_wave_results>
+   ```
+
+   Add this block to the `<objective>` section of the next wave's Task() prompts.
+
+8. **Proceed to next wave.**
 
 **STANDARD PATH (when EXECUTION_MODE == "standard"):**
 
@@ -281,10 +305,13 @@ For each wave:
    Pass paths only — executors read files themselves with their fresh 200k context.
    This keeps orchestrator context lean (~10-15%).
 
+   When the wave has multiple plans (parallel execution), add `team_name` to group agents:
+
    ```
    Task(
      subagent_type="executor",
      model="{executor_model}",
+     team_name="maxsim-phase-{PHASE_NUMBER}-wave-{WAVE_NUM}",  // only for multi-plan waves
      prompt="
        <objective>
        Execute plan {plan_number} of phase {phase_number}-{phase_name}.
@@ -369,7 +396,20 @@ For each wave:
 
 6. **Execute checkpoint plans between waves** — see `<checkpoint_handling>`.
 
-7. **Proceed to next wave.**
+7. **Prepare inter-wave handoff context (for waves after Wave 1):**
+
+   When spawning agents for the next wave, include a brief context block so they can reference prior wave outputs without reading full SUMMARYs:
+
+   ```
+   <prior_wave_results>
+   Wave {N-1} completed:
+   {For each plan in prior wave: plan ID, one-liner from SUMMARY.md, key files created/modified}
+   </prior_wave_results>
+   ```
+
+   Add this block to the `<objective>` section of the next wave's Task() prompts.
+
+8. **Proceed to next wave.**
 </step>
 
 <step name="checkpoint_handling">
