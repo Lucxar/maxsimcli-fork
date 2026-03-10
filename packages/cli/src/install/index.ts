@@ -6,7 +6,7 @@ import fsExtra from 'fs-extra';
 import chalk from 'chalk';
 import figlet from 'figlet';
 import ora from 'ora';
-import { select, confirm } from '@inquirer/prompts';
+import { confirm } from '@inquirer/prompts';
 import minimist from 'minimist';
 
 import {
@@ -15,7 +15,6 @@ import {
 import {
   pkg,
   templatesRoot,
-  getGlobalDir,
   getDirName,
   verifyInstalled,
   verifyFileInstalled,
@@ -41,11 +40,10 @@ import { uninstall } from './uninstall.js';
 // Parse args
 const args = process.argv.slice(2);
 const argv = minimist(args, {
-  boolean: ['global', 'local', 'claude', 'uninstall', 'help', 'version', 'force-statusline', 'network'],
+  boolean: ['local', 'claude', 'uninstall', 'help', 'version', 'force-statusline', 'network'],
   string: ['config-dir'],
-  alias: { g: 'global', l: 'local', u: 'uninstall', h: 'help', c: 'config-dir' },
+  alias: { l: 'local', u: 'uninstall', h: 'help', c: 'config-dir' },
 });
-const hasGlobal = !!argv['global'];
 const hasLocal = !!argv['local'];
 const hasUninstall = !!argv['uninstall'];
 
@@ -80,6 +78,14 @@ for (const flag of deprecatedFlags) {
   }
 }
 
+// Reject --global flag (no longer supported in v5.0+)
+if (argv['global'] || argv['g']) {
+  console.error(chalk.red('Error: Global install is no longer supported.'));
+  console.error('MAXSIM v5.0+ installs locally to .claude/ in your project directory.');
+  console.error('Run: npx maxsimcli --local');
+  process.exit(1);
+}
+
 // Show version if requested (before banner for clean output)
 if (hasVersion) {
   console.log(pkg.version);
@@ -91,28 +97,22 @@ console.log(banner);
 // Show help if requested
 if (hasHelp) {
   console.log(
-    `  ${chalk.yellow('Usage:')} npx maxsimcli [options]\n\n  ${chalk.yellow('Options:')}\n    ${chalk.cyan('-g, --global')}              Install globally (to config directory)\n    ${chalk.cyan('-l, --local')}               Install locally (to current directory)\n    ${chalk.cyan('-u, --uninstall')}           Uninstall MAXSIM (remove all MAXSIM files)\n    ${chalk.cyan('-c, --config-dir <path>')}   Specify custom config directory\n    ${chalk.cyan('-h, --help')}                Show this help message\n    ${chalk.cyan('--force-statusline')}        Replace existing statusline config\n\n  ${chalk.yellow('Examples:')}\n    ${chalk.dim('# Interactive install (prompts for location)')}\n    npx maxsimcli\n\n    ${chalk.dim('# Install globally')}\n    npx maxsimcli --global\n\n    ${chalk.dim('# Install to current project only')}\n    npx maxsimcli --local\n\n    ${chalk.dim('# Install to custom config directory')}\n    npx maxsimcli --global --config-dir ~/.claude-work\n\n    ${chalk.dim('# Uninstall MAXSIM globally')}\n    npx maxsimcli --global --uninstall\n\n  ${chalk.yellow('Notes:')}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over the CLAUDE_CONFIG_DIR environment variable.\n`,
+    `  ${chalk.yellow('Usage:')} npx maxsimcli [options]\n\n  ${chalk.yellow('Options:')}\n    ${chalk.cyan('-l, --local')}               Install to current project directory (default)\n    ${chalk.cyan('-u, --uninstall')}           Uninstall MAXSIM (remove all MAXSIM files)\n    ${chalk.cyan('-c, --config-dir <path>')}   Specify custom local directory name\n    ${chalk.cyan('-h, --help')}                Show this help message\n    ${chalk.cyan('--force-statusline')}        Replace existing statusline config\n\n  ${chalk.yellow('Examples:')}\n    ${chalk.dim('# Install to current project')}\n    npx maxsimcli\n\n    ${chalk.dim('# Explicit local install')}\n    npx maxsimcli --local\n\n    ${chalk.dim('# Uninstall MAXSIM')}\n    npx maxsimcli --local --uninstall\n\n  ${chalk.yellow('Notes:')}\n    MAXSIM installs to .claude/ in your project directory.\n    The --config-dir option specifies a custom directory name (relative to CWD).\n`,
   );
   process.exit(0);
 }
 
-async function install(
-  isGlobal: boolean,
-): Promise<InstallResult> {
+async function install(): Promise<InstallResult> {
   const dirName = getDirName();
   const src = templatesRoot;
 
-  const targetDir = isGlobal
-    ? getGlobalDir(explicitConfigDir)
+  const targetDir = explicitConfigDir
+    ? path.resolve(process.cwd(), explicitConfigDir)
     : path.join(process.cwd(), dirName);
 
-  const locationLabel = isGlobal
-    ? targetDir.replace(os.homedir(), '~')
-    : targetDir.replace(process.cwd(), '.');
+  const locationLabel = targetDir.replace(process.cwd(), '.');
 
-  const pathPrefix = isGlobal
-    ? `${targetDir.replace(/\\/g, '/')}/`
-    : `./${dirName}/`;
+  const pathPrefix = `./${dirName}/`;
 
   console.log(
     `  Installing for ${chalk.cyan('Claude Code')} to ${chalk.cyan(locationLabel)}\n`,
@@ -120,16 +120,16 @@ async function install(
 
   const failures: string[] = [];
 
-  // Detect prior install via manifest — used for re-run safety
+  // Detect prior install via manifest -- used for re-run safety
   const existingManifest = readManifest(targetDir);
   const isAlreadyCurrent = existingManifest !== null && existingManifest.version === pkg.version;
 
   if (existingManifest !== null) {
     const { complete, missing } = verifyInstallComplete(targetDir, existingManifest);
     if (!complete) {
-      console.log(`  ${chalk.yellow('!')} Previous install (v${existingManifest.version}) is incomplete — ${missing.length} missing file(s). Re-installing.`);
+      console.log(`  ${chalk.yellow('!')} Previous install (v${existingManifest.version}) is incomplete -- ${missing.length} missing file(s). Re-installing.`);
     } else if (isAlreadyCurrent) {
-      console.log(`  ${chalk.dim(`Version ${pkg.version} already installed — upgrading in place`)}`);
+      console.log(`  ${chalk.dim(`Version ${pkg.version} already installed -- upgrading in place`)}`);
     }
   }
 
@@ -319,7 +319,7 @@ async function install(
     fs.copyFileSync(toolSrc, toolDest);
     console.log(`  ${chalk.green('\u2713')} Installed maxsim-tools.cjs`);
   } else {
-    console.warn(`  ${chalk.yellow('!')} cli.cjs not found at ${toolSrc} — maxsim-tools.cjs not installed`);
+    console.warn(`  ${chalk.yellow('!')} cli.cjs not found at ${toolSrc} -- maxsim-tools.cjs not installed`);
     failures.push('maxsim-tools.cjs');
   }
 
@@ -331,16 +331,14 @@ async function install(
     fs.copyFileSync(mcpSrc, mcpDest);
     console.log(`  ${chalk.green('\u2713')} Installed mcp-server.cjs`);
   } else {
-    console.warn(`  ${chalk.yellow('!')} mcp-server.cjs not found — MCP server not installed`);
+    console.warn(`  ${chalk.yellow('!')} mcp-server.cjs not found -- MCP server not installed`);
   }
 
-  // Install hooks
-  installHookFiles(targetDir, isGlobal, failures);
+  // Install hooks (always local mode)
+  installHookFiles(targetDir, false, failures);
 
   // Write .mcp.json for Claude Code MCP server auto-discovery
-  const mcpJsonPath = isGlobal
-    ? path.join(targetDir, '..', '.mcp.json')
-    : path.join(process.cwd(), '.mcp.json');
+  const mcpJsonPath = path.join(process.cwd(), '.mcp.json');
   let mcpConfig: Record<string, unknown> = {};
   let skipMcpConfig = false;
 
@@ -351,7 +349,7 @@ async function install(
     try {
       mcpConfig = JSON.parse(fs.readFileSync(mcpJsonPath, 'utf-8'));
     } catch {
-      // Corrupted .mcp.json — warn user
+      // Corrupted .mcp.json -- warn user
       console.warn(`  ${chalk.yellow('!')} .mcp.json is corrupted (invalid JSON). Backup saved to .mcp.json.bak`);
       let startFresh = true;
       try {
@@ -360,7 +358,7 @@ async function install(
           default: true,
         });
       } catch {
-        // Non-interactive — default to starting fresh
+        // Non-interactive -- default to starting fresh
       }
       if (!startFresh) {
         console.log(`  ${chalk.yellow('!')} Skipping .mcp.json configuration`);
@@ -398,40 +396,10 @@ async function install(
   // Report any backed-up local patches
   reportLocalPatches(targetDir);
 
-  // Configure statusline and hooks in settings.json
-  const { settingsPath, settings, statuslineCommand } = configureSettingsHooks(targetDir, isGlobal);
+  // Configure statusline and hooks in settings.json (always local mode)
+  const { settingsPath, settings, statuslineCommand } = configureSettingsHooks(targetDir, false);
 
   return { settingsPath, settings, statuslineCommand };
-}
-
-/**
- * Prompt for install location
- */
-async function promptLocation(): Promise<boolean> {
-  if (!process.stdin.isTTY) {
-    console.log(
-      chalk.yellow('Non-interactive terminal detected, defaulting to global install') + '\n',
-    );
-    return true; // isGlobal
-  }
-
-  const globalPath = getGlobalDir(explicitConfigDir).replace(os.homedir(), '~');
-
-  const choice = await select<'global' | 'local'>({
-    message: 'Where would you like to install?',
-    choices: [
-      {
-        name: 'Global  ' + chalk.dim(`(${globalPath})`) + '  — available in all projects',
-        value: 'global',
-      },
-      {
-        name: 'Local   ' + chalk.dim('(./.claude)') + '  — this project only',
-        value: 'local',
-      },
-    ],
-  });
-
-  return choice === 'global';
 }
 
 /**
@@ -451,13 +419,12 @@ async function promptAgentTeams(): Promise<boolean> {
 }
 
 /**
- * Install MAXSIM for Claude Code
+ * Install MAXSIM for Claude Code (always local)
  */
 async function installForClaude(
-  isGlobal: boolean,
   isInteractive: boolean,
 ): Promise<void> {
-  const result = await install(isGlobal);
+  const result = await install();
 
   let shouldInstallStatusline = false;
   if (result.settings) {
@@ -486,12 +453,12 @@ async function installForClaude(
     result.settings,
     result.statuslineCommand,
     shouldInstallStatusline,
-    isGlobal,
+    false, // always local
   );
 }
 
 // Main logic
-// Subcommand routing — intercept before install flow
+// Subcommand routing -- intercept before install flow
 const subcommand = argv._[0];
 
 (async () => {
@@ -522,34 +489,20 @@ const subcommand = argv._[0];
     return;
   }
 
-  if (hasGlobal && hasLocal) {
-    console.error(chalk.yellow('Cannot specify both --global and --local'));
-    process.exit(1);
-  } else if (explicitConfigDir && hasLocal) {
-    console.error(chalk.yellow('Cannot use --config-dir with --local'));
-    process.exit(1);
-  } else if (hasUninstall) {
-    if (!hasGlobal && !hasLocal) {
-      console.error(chalk.yellow('--uninstall requires --global or --local'));
+  if (hasUninstall) {
+    if (!hasLocal) {
+      console.error(chalk.yellow('--uninstall requires --local'));
       process.exit(1);
     }
-    uninstall(hasGlobal, explicitConfigDir);
-  } else if (hasGlobal || hasLocal) {
-    await installForClaude(hasGlobal, false);
+    uninstall(false, explicitConfigDir);
   } else {
-    if (!process.stdin.isTTY) {
-      console.log(
-        chalk.yellow('Non-interactive terminal detected, defaulting to global install') + '\n',
-      );
-      await installForClaude(true, false);
-    } else {
-      const isGlobal = await promptLocation();
-      await installForClaude(isGlobal, true);
-    }
+    // Always install locally (interactive or not)
+    const isInteractive = process.stdin.isTTY === true;
+    await installForClaude(isInteractive);
   }
 })().catch((err: unknown) => {
   if (err instanceof Error && err.message.includes('User force closed')) {
-    // User pressed Ctrl+C during an @inquirer/prompts prompt — exit cleanly
+    // User pressed Ctrl+C during an @inquirer/prompts prompt -- exit cleanly
     console.log('\n' + chalk.yellow('Installation cancelled') + '\n');
     process.exit(0);
   }

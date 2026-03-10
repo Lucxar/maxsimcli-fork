@@ -20,6 +20,10 @@ export const builtInSkills = ['tdd', 'systematic-debugging', 'verification-befor
 /**
  * Get the global config directory for Claude Code.
  * Priority: explicitDir > CLAUDE_CONFIG_DIR env > ~/.claude
+ *
+ * @deprecated Global install is no longer supported in v5.0+.
+ * Kept for uninstall.ts (cleaning up old global installs) and adapters.ts.
+ * TODO: Remove when global install cleanup path is no longer needed.
  */
 export function getGlobalDir(explicitDir: string | null = null): string {
   if (explicitDir) {
@@ -34,6 +38,9 @@ export function getGlobalDir(explicitDir: string | null = null): string {
 /**
  * Get the config directory path relative to home for hook templating.
  * Used for path.join(homeDir, '<configDir>', ...) replacement in hooks.
+ *
+ * @deprecated Global install is no longer supported in v5.0+.
+ * TODO: Remove when hooks.ts no longer needs global/local distinction.
  */
 export function getConfigDirFromHome(_isGlobal: boolean): string {
   return "'.claude'";
