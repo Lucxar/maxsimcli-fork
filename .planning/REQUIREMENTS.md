@@ -34,7 +34,7 @@ Lightweight requirements for rapid exploration.
 - [ ] **EXEC-02**: Agent Teams for multi-agent coordination and communication
 - [x] **EXEC-03**: Two-stage review loop: spec compliance -> code quality, with retry until clean
 - [x] **EXEC-04**: Batch execution integrated into execute command (not separate)
-- [ ] **EXEC-05**: Spec-driven development as core methodology
+- [x] **EXEC-05**: Spec-driven development as core methodology
 
 ### Prompt Architecture
 
@@ -92,7 +92,7 @@ Lightweight requirements for rapid exploration.
 | EXEC-02 | Phase 5: Parallel Execution Model | Pending |
 | EXEC-03 | Phase 5: Parallel Execution Model | Complete |
 | EXEC-04 | Phase 5: Parallel Execution Model | Complete |
-| EXEC-05 | Phase 5: Parallel Execution Model | Pending |
+| EXEC-05 | Phase 5: Parallel Execution Model | Complete |
 | PROMPT-01 | Phase 4: Prompt & Skill Architecture | Complete |
 | PROMPT-02 | Phase 4: Prompt & Skill Architecture | Complete |
 | PROMPT-03 | Phase 4: Prompt & Skill Architecture | Complete |

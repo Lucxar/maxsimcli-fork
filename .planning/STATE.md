@@ -9,7 +9,7 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 5 (Parallel Execution Model)
-**Plan:** 05-03 complete (worktree batch execution integration)
+**Plan:** 05-04 complete (spec-driven enforcement gates)
 **Status:** In progress
 
 ## Progress
@@ -17,7 +17,7 @@
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 19 |
+| Plans Complete | 20 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -58,6 +58,9 @@
 - [Phase 05]: Worktree commands as sub-handler (worktree create/list/cleanup); decide-execution-mode and validate-plan-independence as top-level commands
 - [Phase 05]: Review sub-config deep-merged in loadConfig so partial user overrides work without losing defaults
 - [Phase 05]: Batch execution path gated by EXECUTION_MODE variable; worktree cleanup after each wave; agents constrained from metadata modification
+- [Phase 05]: Pre-execution gate G1 (requirement existence, hard gate) and G2 (requirement status, warning) added to execute-plan.md
+- [Phase 05]: Post-execution gate G6 (evidence completeness) validates SUMMARY.md has evidence for each requirement
+- [Phase 05]: Executor agent instructs Requirement Evidence population in SUMMARY.md
 
 ### Known Issues
 
@@ -84,9 +87,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 05-03 (Worktree batch execution integration into execute-phase workflow)
-- **Outcome:** Added decide_execution_mode step and dual-path execute_waves (batch/standard) to execute-phase.md. Updated execute.md workflow and command with --worktrees/--no-worktrees flag support. 2 tasks, 3 files modified.
-- **Next Step:** Continue Phase 5 Wave 2 plans (05-04, 05-05)
+- **Activity:** Executed Plan 05-04 (Spec-driven enforcement gates)
+- **Outcome:** Added 3 requirement validation functions to verify.ts, 3 CLI commands, pre-execution gates G1/G2 and post-execution gate G6 in execute-plan.md, executor agent Requirement Evidence instructions. 2 tasks + 1 fix, 5 files modified.
+- **Next Step:** Continue Phase 5 Wave 3 plan (05-05)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -96,4 +99,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 05-03 complete)*
+*Last updated: 2026-03-10 (plan 05-04 complete)*

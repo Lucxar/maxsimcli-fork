@@ -95,10 +95,10 @@
   4. Batch execution is an option within `/maxsim:execute`, not a separate command
   5. The execute command enforces spec-driven development: plan must reference requirements, implementation must match plan
 **Plans**: 5 plans in 3 waves
-  - [ ] Plan 01 (Wave 1): CLI infrastructure -- worktree module, types, config, init context [EXEC-01, EXEC-04]
-  - [ ] Plan 02 (Wave 1): Review cycle enhancement -- retry counters, escalation, config-optional simplify [EXEC-03]
-  - [ ] Plan 03 (Wave 2): Execute workflow worktree integration -- batch/standard paths, lifecycle [EXEC-01, EXEC-04]
-  - [ ] Plan 04 (Wave 2): Spec-driven enforcement -- pre/post-execution gates, evidence tracking [EXEC-05]
+  - [x] Plan 01 (Wave 1): CLI infrastructure -- worktree module, types, config, init context [EXEC-01, EXEC-04]
+  - [x] Plan 02 (Wave 1): Review cycle enhancement -- retry counters, escalation, config-optional simplify [EXEC-03]
+  - [x] Plan 03 (Wave 2): Execute workflow worktree integration -- batch/standard paths, lifecycle [EXEC-01, EXEC-04]
+  - [x] Plan 04 (Wave 2): Spec-driven enforcement -- pre/post-execution gates, evidence tracking [EXEC-05]
   - [ ] Plan 05 (Wave 3): Agent Teams integration + installer updates [EXEC-02]
 
 ### Phase 6: Hook System
