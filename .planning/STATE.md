@@ -50,6 +50,7 @@
 - [Phase 04]: Agent-system-map documents orchestrator-mediated pattern; subagents cannot spawn subagents in Claude Code
 - [Phase 04]: 14 agents consolidated to 4 generic types (executor, planner, researcher, verifier) with skill preloading for shared protocols
 - [Phase 04]: builtInSkills array updated with 8 internal skills for installer/uninstaller cleanup
+- [Phase 04]: Orphan cleanup entries in hooks.ts (not patches.ts); MODEL_PROFILES uses highest-tier mapping per consolidated role; 4 additional workflow files beyond plan scope also updated
 
 ### Known Issues
 
