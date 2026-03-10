@@ -29,6 +29,13 @@ INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init execute-phase "${PHASE_AR
 
 Parse JSON for: `executor_model`, `verifier_model`, `commit_docs`, `parallelization`, `branching_strategy`, `branch_name`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `plans`, `incomplete_plans`, `plan_count`, `incomplete_count`, `state_exists`, `roadmap_exists`, `phase_req_ids`.
 
+Also extract parallel execution fields:
+```
+WORKTREE_MODE (from init JSON worktree_mode — "auto", "always", or "never")
+MAX_PARALLEL_AGENTS (from init JSON max_parallel_agents — default 10)
+REVIEW_CONFIG (from init JSON review_config — spec_review, code_review, simplify_review, retry_limit)
+```
+
 **If `phase_found` is false:** Error — phase directory not found.
 **If `plan_count` is 0:** Error — no plans found in phase.
 **If `state_exists` is false but `.planning/` exists:** Offer reconstruct or continue.
@@ -92,8 +99,153 @@ Report:
 ```
 </step>
 
+<step name="decide_execution_mode">
+After discovering plans and grouping by wave, determine whether to use batch (worktree) or standard execution.
+
+```bash
+# Parse --worktrees / --no-worktrees flags from $ARGUMENTS
+FLAG_OVERRIDE=""
+if echo "$ARGUMENTS" | grep -q "\-\-worktrees"; then FLAG_OVERRIDE="worktrees"; fi
+if echo "$ARGUMENTS" | grep -q "\-\-no-worktrees"; then FLAG_OVERRIDE="no-worktrees"; fi
+
+# Call CLI decision function
+MODE_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs decide-execution-mode \
+  "${INCOMPLETE_PLAN_COUNT}" "${WAVE_COUNT}" \
+  --worktree-mode "${WORKTREE_MODE}" \
+  ${FLAG_OVERRIDE:+--flag-override "$FLAG_OVERRIDE"})
+EXECUTION_MODE=$(echo "$MODE_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).mode))")
+```
+
+Display decision:
+```
+**Execution Mode:** {Batch (worktree isolation) | Standard}
+{If batch: "Will create {N} worktrees for parallel plan execution"}
+{If standard and parallelization true: "Parallel within waves, sequential across waves"}
+{If standard and parallelization false: "Sequential execution"}
+```
+
+**If batch mode, validate plan independence:**
+```bash
+# Build plans JSON from PLAN_INDEX data
+VALID=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs validate-plan-independence "$PLANS_JSON")
+```
+If conflicts found: report conflicts, fall back to standard mode with warning.
+</step>
+
 <step name="execute_waves">
-Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`, sequential if `false`.
+Execute each wave in sequence. The execution path depends on `EXECUTION_MODE` from the decide_execution_mode step.
+
+**BATCH PATH (when EXECUTION_MODE == "batch"):**
+
+For each wave:
+
+1. **Create worktrees for all plans in the wave:**
+   ```bash
+   for PLAN_ID in $WAVE_PLANS; do
+     WT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs worktree-create "${PHASE_NUMBER}" "$PLAN_ID" "$WAVE_NUM")
+     # Parse WT JSON for path and branch
+   done
+   ```
+
+2. **Describe what is being built (BEFORE spawning):**
+
+   Read each plan's `<objective>`. Extract what is being built and why.
+
+   ```
+   ---
+   ## Wave {N} (Batch Mode)
+
+   **{Plan ID}: {Plan Name}**
+   {2-3 sentences: what this builds, technical approach, why it matters}
+
+   Spawning {count} isolated agent(s) in worktrees...
+   ---
+   ```
+
+3. **Spawn executor agents with worktree isolation:**
+
+   ```
+   Task(
+     subagent_type="executor",
+     model="{executor_model}",
+     isolation="worktree",
+     prompt="
+       <objective>
+       Execute plan {plan_number} of phase {phase_number}-{phase_name}.
+       Commit each task atomically. Create SUMMARY.md.
+       IMPORTANT: Do NOT update STATE.md or ROADMAP.md — the orchestrator handles metadata.
+       </objective>
+
+       <execution_context>
+       @./workflows/execute-plan.md
+       @./templates/summary.md
+       @./references/checkpoints.md
+       </execution_context>
+
+       <files_to_read>
+       Read these files at execution start using the Read tool:
+       - {phase_dir}/{plan_file} (Plan)
+       - .planning/STATE.md (State — READ ONLY, do not modify)
+       - .planning/config.json (Config, if exists)
+       - ./CLAUDE.md (Project instructions, if exists)
+       </files_to_read>
+
+       <constraints>
+       - You are running in a worktree. Do NOT modify .planning/STATE.md or .planning/ROADMAP.md.
+       - Only create SUMMARY.md and commit task code.
+       - The orchestrator will handle metadata updates after all agents complete.
+       </constraints>
+
+       <success_criteria>
+       - [ ] All tasks executed
+       - [ ] Each task committed individually
+       - [ ] SUMMARY.md created in plan directory
+       </success_criteria>
+     ",
+     run_in_background=true
+   )
+   ```
+
+4. **Track progress with status table** (update as agents complete):
+   ```
+   | Plan | Agent | Status | Duration |
+   |------|-------|--------|----------|
+   | 05-01 | agent-abc | Running... | 2m |
+   | 05-02 | agent-def | Complete | 5m |
+   ```
+
+5. **After all agents in wave complete, collect results:**
+   - Read each SUMMARY.md from the worktree paths
+   - Run spot-checks (same as standard path: files exist, commits present, review cycle check)
+   - Orchestrator performs batch metadata updates:
+     ```bash
+     for PLAN_ID in $COMPLETED_PLANS; do
+       node ~/.claude/maxsim/bin/maxsim-tools.cjs state advance-plan
+       node ~/.claude/maxsim/bin/maxsim-tools.cjs state update-progress
+     done
+     node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap update-plan-progress "${PHASE_NUMBER}"
+     ```
+   - Report:
+     ```
+     ---
+     ## Wave {N} Complete (Batch)
+
+     **{Plan ID}: {Plan Name}**
+     {What was built — from SUMMARY.md}
+     {Notable deviations, if any}
+
+     {If more waves: what this enables for next wave}
+     ---
+     ```
+
+6. **Cleanup worktrees after wave completes:**
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs worktree-cleanup --all
+   ```
+
+7. **Proceed to next wave.**
+
+**STANDARD PATH (when EXECUTION_MODE == "standard"):**
 
 **For each wave:**
 
@@ -270,6 +422,8 @@ After all waves:
 ```markdown
 ## Phase {X}: {Name} Execution Complete
 
+**Execution Mode:** {Batch (worktree) | Standard}
+**Worktrees Used:** {N} (batch only — omit for standard mode)
 **Waves:** {N} | **Plans:** {M}/{total} complete
 
 | Wave | Plans | Status |
