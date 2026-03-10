@@ -81,18 +81,10 @@ export interface ModelProfileEntry {
 }
 
 export type AgentType =
-  | 'maxsim-planner'
-  | 'maxsim-roadmapper'
-  | 'maxsim-executor'
-  | 'maxsim-phase-researcher'
-  | 'maxsim-project-researcher'
-  | 'maxsim-research-synthesizer'
-  | 'maxsim-debugger'
-  | 'maxsim-codebase-mapper'
-  | 'maxsim-verifier'
-  | 'maxsim-plan-checker'
-  | 'maxsim-integration-checker'
-  | 'maxsim-drift-checker';
+  | 'executor'
+  | 'planner'
+  | 'researcher'
+  | 'verifier';
 
 export type ModelProfiles = Record<AgentType, ModelProfileEntry>;
 

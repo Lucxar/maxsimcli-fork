@@ -56,6 +56,22 @@ export function cleanupOrphanedFiles(configDir: string): void {
     'commands/maxsim/update.md',
     'commands/maxsim/verify-work.md',
 
+    // v5.x: Old agent files (Phase 4 - Agent Consolidation: 14 agents -> 4 generic types)
+    'agents/maxsim-code-reviewer.md',
+    'agents/maxsim-codebase-mapper.md',
+    'agents/maxsim-debugger.md',
+    'agents/maxsim-drift-checker.md',
+    'agents/maxsim-executor.md',
+    'agents/maxsim-integration-checker.md',
+    'agents/maxsim-phase-researcher.md',
+    'agents/maxsim-plan-checker.md',
+    'agents/maxsim-planner.md',
+    'agents/maxsim-project-researcher.md',
+    'agents/maxsim-research-synthesizer.md',
+    'agents/maxsim-roadmapper.md',
+    'agents/maxsim-spec-reviewer.md',
+    'agents/maxsim-verifier.md',
+
     // v5.0: Removed workflow files (Phase 3)
     'maxsim/workflows/add-phase.md',
     'maxsim/workflows/add-tests.md',

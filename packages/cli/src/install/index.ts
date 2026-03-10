@@ -264,6 +264,33 @@ async function install(): Promise<InstallResult> {
     }
   }
 
+  // Copy rules to rules/ directory
+  const rulesSrc = path.join(src, 'rules');
+  if (fs.existsSync(rulesSrc)) {
+    spinner = ora({ text: 'Installing rules...', color: 'cyan' }).start();
+    const rulesDest = path.join(targetDir, 'rules');
+    fs.mkdirSync(rulesDest, { recursive: true });
+
+    // Copy MAXSIM rules (overwrite existing MAXSIM rules, preserve user rules)
+    const ruleEntries = fs.readdirSync(rulesSrc, { withFileTypes: true });
+    for (const entry of ruleEntries) {
+      if (entry.isFile() && entry.name.endsWith('.md')) {
+        let content = fs.readFileSync(path.join(rulesSrc, entry.name), 'utf8');
+        const dirRegex = /~\/\.claude\//g;
+        content = content.replace(dirRegex, pathPrefix);
+        fs.writeFileSync(path.join(rulesDest, entry.name), content);
+      }
+    }
+
+    const installedRuleFiles = fs.readdirSync(rulesDest).filter(f => f.endsWith('.md')).length;
+    if (installedRuleFiles > 0) {
+      spinner.succeed(chalk.green('\u2713') + ` Installed ${installedRuleFiles} rules to rules/`);
+    } else {
+      spinner.fail('Failed to install rules');
+      failures.push('rules');
+    }
+  }
+
   // Copy CHANGELOG.md
   const changelogSrc = path.join(src, '..', 'CHANGELOG.md');
   const changelogDest = path.join(targetDir, 'maxsim', 'CHANGELOG.md');
