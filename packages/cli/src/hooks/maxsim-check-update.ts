@@ -77,6 +77,61 @@ export function checkForUpdate(options: CheckForUpdateOptions): void {
   child.unref();
 }
 
+/**
+ * Create a backup of the current MAXSIM installation before an update.
+ * Called by the installer (not by the SessionStart hook).
+ *
+ * @param cwd - The project working directory containing .claude/
+ * @returns The backup directory path on success, null on failure.
+ */
+export function createBackupBeforeUpdate(cwd: string): string | null {
+  try {
+    const sourceDir = path.join(cwd, CLAUDE_DIR);
+    const backupDir = path.join(sourceDir, 'maxsim-backup');
+
+    fs.mkdirSync(backupDir, { recursive: true });
+
+    // Key directories to back up
+    const dirsToBackup = [
+      'commands/maxsim',
+      'maxsim',
+      'hooks',
+      'agents',
+      'skills',
+    ];
+
+    for (const relDir of dirsToBackup) {
+      const src = path.join(sourceDir, relDir);
+      if (!fs.existsSync(src)) continue;
+
+      const dest = path.join(backupDir, relDir);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.cpSync(src, dest, { recursive: true });
+    }
+
+    // Write backup metadata
+    let version = 'unknown';
+    const versionFile = path.join(sourceDir, 'maxsim', 'VERSION');
+    if (fs.existsSync(versionFile)) {
+      version = fs.readFileSync(versionFile, 'utf8').trim();
+    }
+
+    fs.writeFileSync(
+      path.join(backupDir, 'backup-meta.json'),
+      JSON.stringify(
+        { created: new Date().toISOString(), version },
+        null,
+        2,
+      ),
+    );
+
+    return backupDir;
+  } catch {
+    // Backup failure should not block the update
+    return null;
+  }
+}
+
 // Standalone entry
 if (require.main === module) {
   checkForUpdate({ homeDir: os.homedir(), cwd: process.cwd() });
