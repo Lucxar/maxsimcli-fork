@@ -9,7 +9,7 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 5 (Parallel Execution Model)
-**Plan:** 05-02 complete (review cycle enhancement)
+**Plan:** 05-01 complete (worktree CLI infrastructure)
 **Status:** In progress
 
 ## Progress
@@ -17,7 +17,7 @@
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 17 |
+| Plans Complete | 18 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -55,6 +55,8 @@
 - [Phase 05]: Review cycle retry counters (max 3 per stage) with escalation-to-user protocol added to execute-plan.md
 - [Phase 05]: Simplify stage config-gated via review.simplify_review setting (defaults to true)
 - [Phase 05]: SUMMARY.md template enhanced with Review Cycle (Attempts/Duration/Findings) and Requirement Evidence sections
+- [Phase 05]: Worktree commands as sub-handler (worktree create/list/cleanup); decide-execution-mode and validate-plan-independence as top-level commands
+- [Phase 05]: Review sub-config deep-merged in loadConfig so partial user overrides work without losing defaults
 
 ### Known Issues
 
@@ -81,9 +83,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 05-02 (Review cycle enhancement with retry counters and escalation)
-- **Outcome:** Added formal retry counters (max 3 per stage), escalation protocol, config-optional simplify, and enhanced SUMMARY.md reporting to execute-plan.md review cycle. 2 tasks, 2 files modified.
-- **Next Step:** Continue Phase 5 remaining plans (05-01, 05-03, 05-04, 05-05)
+- **Activity:** Executed Plan 05-01 (Worktree CLI infrastructure and parallel execution types)
+- **Outcome:** Created worktree.ts module (411 lines, 7 core functions), added 8 new types to types.ts, extended config/init/CLI with worktree and review settings. 2 tasks, 7 files changed. Foundation for Wave 2 workflow integration.
+- **Next Step:** Continue Phase 5 Wave 2 plans (05-03, 05-04, 05-05)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -93,4 +95,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 05-02 complete)*
+*Last updated: 2026-03-10 (plan 05-01 complete)*

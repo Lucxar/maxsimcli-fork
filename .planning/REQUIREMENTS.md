@@ -30,10 +30,10 @@ Lightweight requirements for rapid exploration.
 
 ### Execution
 
-- [ ] **EXEC-01**: Native parallel execution with worktree isolation (up to 30 agents)
+- [x] **EXEC-01**: Native parallel execution with worktree isolation (up to 30 agents)
 - [ ] **EXEC-02**: Agent Teams for multi-agent coordination and communication
 - [x] **EXEC-03**: Two-stage review loop: spec compliance -> code quality, with retry until clean
-- [ ] **EXEC-04**: Batch execution integrated into execute command (not separate)
+- [x] **EXEC-04**: Batch execution integrated into execute command (not separate)
 - [ ] **EXEC-05**: Spec-driven development as core methodology
 
 ### Prompt Architecture
@@ -88,10 +88,10 @@ Lightweight requirements for rapid exploration.
 | CMD-07 | Phase 3: Command Surface Simplification | Complete |
 | CMD-08 | Phase 3: Command Surface Simplification | Complete |
 | CMD-09 | Phase 3: Command Surface Simplification | Complete |
-| EXEC-01 | Phase 5: Parallel Execution Model | Pending |
+| EXEC-01 | Phase 5: Parallel Execution Model | Complete |
 | EXEC-02 | Phase 5: Parallel Execution Model | Pending |
 | EXEC-03 | Phase 5: Parallel Execution Model | Complete |
-| EXEC-04 | Phase 5: Parallel Execution Model | Pending |
+| EXEC-04 | Phase 5: Parallel Execution Model | Complete |
 | EXEC-05 | Phase 5: Parallel Execution Model | Pending |
 | PROMPT-01 | Phase 4: Prompt & Skill Architecture | Complete |
 | PROMPT-02 | Phase 4: Prompt & Skill Architecture | Complete |
