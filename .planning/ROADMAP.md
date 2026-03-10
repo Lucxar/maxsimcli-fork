@@ -46,7 +46,7 @@
   - [x] Plan 01 (Wave 1): Octokit adapter, auth gate, build config, local-only install [ARCH-03, ARCH-04]
   - [x] Plan 02 (Wave 2): Issue & sub-issue CRUD, labels, milestones via Octokit [ARCH-01, ARCH-05]
   - [x] Plan 03 (Wave 2): Projects v2 board & sync module via Octokit REST [ARCH-01, ARCH-05]
-  - [ ] Plan 04 (Wave 3): MCP tools integration, legacy removal, clean barrel export [ARCH-01, ARCH-02, ARCH-05]
+  - [x] Plan 04 (Wave 3): MCP tools integration, legacy removal, clean barrel export [ARCH-01, ARCH-02, ARCH-05]
 
 ### Phase 3: Command Surface Simplification
 **Goal**: Users interact with MAXSIM through ~9 clear commands instead of ~35, each backed by state-machine logic
@@ -131,7 +131,7 @@ Unmapped: 0
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Cleanup | 0/3 | Planned | - |
-| 2. GitHub Issues Foundation | 3/4 | In Progress | - |
+| 2. GitHub Issues Foundation | 4/4 | Complete | 2026-03-10 |
 | 3. Command Surface Simplification | 0/? | Not started | - |
 | 4. Prompt & Skill Architecture | 0/? | Not started | - |
 | 5. Parallel Execution Model | 0/? | Not started | - |
@@ -143,3 +143,5 @@ Unmapped: 0
 *Plan 02-01 complete: 2026-03-10*
 *Plan 02-02 complete: 2026-03-10*
 *Plan 02-03 complete: 2026-03-10*
+*Plan 02-04 complete: 2026-03-10*
+*Phase 02 complete: 2026-03-10*

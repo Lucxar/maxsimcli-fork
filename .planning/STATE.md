@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 2 (GitHub Issues Foundation)
-**Plan:** 02-03 (Projects v2 Board & Sync Module via Octokit REST)
-**Status:** Plan 02-03 complete
+**Plan:** 02-04 (MCP Tools Integration & Legacy Removal)
+**Status:** Phase 02 complete (all 4 plans done)
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 1/6 |
-| Plans Complete | 3 |
+| Plans Complete | 4 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -35,6 +35,8 @@
 8. Clean break, no v4.x migration
 9. Quality model profile for v5.0 planning
 10. Prototype stage, breaking changes OK
+11. MCP tools use requireAuth() gate (no graceful degradation to local-only)
+12. Todo storage stays in .planning/todos/ for now (GitHub Issues migration deferred)
 
 ### Known Issues
 
@@ -61,9 +63,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 02-03 (Projects v2 Board & Sync Module via Octokit REST)
-- **Outcome:** projects.ts rewritten with Octokit REST Projects v2 API (typed endpoints); sync.ts rewritten with native sub-issues API for state verification; gh CLI bridge used only for project creation
-- **Next Step:** Execute Plan 02-04 (MCP tools integration, legacy removal, clean barrel export)
+- **Activity:** Executed Plan 02-04 (MCP Tools Integration & Legacy Removal)
+- **Outcome:** All MCP tools rewired to Octokit adapter; gh-legacy.ts deleted (302 lines); zero legacy references remain; state tools query GitHub for progress; 212/212 tests pass
+- **Next Step:** Phase 02 complete -- proceed to Phase 03 (Command Surface Simplification)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -73,4 +75,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 02-03 complete)*
+*Last updated: 2026-03-10 (plan 02-04 complete, phase 02 complete)*
