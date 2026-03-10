@@ -1,5 +1,5 @@
 <purpose>
-Validate built features through conversational testing with persistent state. Creates UAT.md that tracks test progress, survives /clear, and feeds gaps into /maxsim:plan-phase --gaps.
+Validate built features through conversational testing with persistent state. Creates UAT.md that tracks test progress, survives /clear, and feeds gaps into /maxsim:plan --gaps.
 
 User tests, Claude records. One test at a time. Plain text responses.
 </purpose>
@@ -73,7 +73,7 @@ If no, continue to `create_uat_file`.
 ```
 No active UAT sessions.
 
-Provide a phase number to start testing (e.g., /maxsim:verify-work 4)
+Provide a phase number to start testing (e.g., /maxsim:execute 4)
 ```
 
 **If no active sessions AND $ARGUMENTS provided:**
@@ -334,8 +334,8 @@ Present summary:
 ```
 All tests passed. Ready to continue.
 
-- `/maxsim:plan-phase {next}` — Plan next phase
-- `/maxsim:execute-phase {next}` — Execute next phase
+- `/maxsim:plan {next}` — Plan next phase
+- `/maxsim:execute {next}` — Execute next phase
 ```
 </step>
 
@@ -391,7 +391,7 @@ Task(
 </planning_context>
 
 <downstream_consumer>
-Output consumed by /maxsim:execute-phase
+Output consumed by /maxsim:execute
 Plans must be executable prompts.
 </downstream_consumer>
 """,
@@ -500,7 +500,7 @@ Display: `Max iterations reached. {N} issues remain.`
 Offer options:
 1. Force proceed (execute despite issues)
 2. Provide guidance (user gives direction, retry)
-3. Abandon (exit, user runs /maxsim:plan-phase manually)
+3. Abandon (exit, user runs /maxsim:plan manually)
 
 Wait for user response.
 </step>
@@ -528,7 +528,7 @@ Plans verified and ready for execution.
 
 **Execute fixes** — run fix plans
 
-`/clear` then `/maxsim:execute-phase {phase} --gaps-only`
+`/clear` then `/maxsim:execute {phase} --gaps-only`
 
 ───────────────────────────────────────────────────────────────
 ```
@@ -582,5 +582,5 @@ Default to **major** if unclear. User can correct if needed.
 - [ ] If issues: maxsim-planner creates fix plans (gap_closure mode)
 - [ ] If issues: maxsim-plan-checker verifies fix plans
 - [ ] If issues: revision loop until plans pass (max 3 iterations)
-- [ ] Ready for `/maxsim:execute-phase --gaps-only` when complete
+- [ ] Ready for `/maxsim:execute --gaps-only` when complete
 </success_criteria>

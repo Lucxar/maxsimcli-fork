@@ -1,6 +1,6 @@
 <sanity_check>
 Before executing any step in this workflow, verify:
-1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:new-project` first.
+1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:init` first.
 2. `.planning/ROADMAP.md` exists — if not, stop and tell the user to initialize the project.
 </sanity_check>
 

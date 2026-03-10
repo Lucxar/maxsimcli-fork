@@ -675,9 +675,9 @@ ls -1 .planning/phases/[current-phase-dir]/*-SUMMARY.md 2>/dev/null | wc -l
 
 | Condition | Route | Action |
 |-----------|-------|--------|
-| summaries < plans | **A: More plans** | Find next PLAN without SUMMARY. Yolo: auto-continue. Interactive: show next plan, suggest `/maxsim:execute-phase {phase}` + `/maxsim:verify-work`. STOP here. |
-| summaries = plans, current < highest phase | **B: Phase done** | Show completion, suggest `/maxsim:plan-phase {Z+1}` + `/maxsim:verify-work {Z}` + `/maxsim:discuss-phase {Z+1}` |
-| summaries = plans, current = highest phase | **C: Milestone done** | Show banner, suggest `/maxsim:complete-milestone` + `/maxsim:verify-work` + `/maxsim:add-phase` |
+| summaries < plans | **A: More plans** | Find next PLAN without SUMMARY. Yolo: auto-continue. Interactive: show next plan, suggest `/maxsim:execute {phase}`. STOP here. |
+| summaries = plans, current < highest phase | **B: Phase done** | Show completion, suggest `/maxsim:plan {Z+1}`. |
+| summaries = plans, current = highest phase | **C: Milestone done** | Show banner, suggest `/maxsim:progress`. |
 
 All routes: `/clear` first for fresh context.
 </step>

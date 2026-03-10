@@ -1,6 +1,6 @@
 <sanity_check>
 Before executing any step in this workflow, verify:
-1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:new-project` first.
+1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:init` first.
 2. `.planning/ROADMAP.md` exists — if not, stop and tell the user to initialize the project.
 </sanity_check>
 
@@ -404,9 +404,9 @@ ls -1 .planning/phases/${PHASE_DIR_NAME}/*-SUMMARY.md 2>/dev/null | wc -l
 
 | Condition | Route | Action |
 |-----------|-------|--------|
-| summaries < plans | **A: More plans** | Find next incomplete plan. Show next plan, suggest `/maxsim:sdd {phase}` to continue. |
-| summaries = plans, more phases exist | **B: Phase done** | Show completion, suggest `/maxsim:verify-work {phase}` then `/maxsim:plan-phase {next}`. |
-| summaries = plans, last phase | **C: Milestone done** | Show banner, suggest `/maxsim:complete-milestone` + `/maxsim:verify-work`. |
+| summaries < plans | **A: More plans** | Find next incomplete plan. Show next plan, suggest `/maxsim:execute {phase}` (SDD mode) to continue. |
+| summaries = plans, more phases exist | **B: Phase done** | Show completion, suggest `/maxsim:execute {phase}` (verification) then `/maxsim:plan {next}`. |
+| summaries = plans, last phase | **C: Milestone done** | Show banner, suggest `/maxsim:progress` (milestone completion) + `/maxsim:execute` (verification). |
 
 All routes: recommend `/clear` first for fresh context.
 </step>
@@ -422,5 +422,5 @@ All routes: recommend `/clear` first for fresh context.
 </failure_handling>
 
 <resumption>
-Re-run `/maxsim:sdd {phase}` — discover_plans finds completed SUMMARYs, skips them, resumes from first incomplete plan. Within a plan, completed tasks (those with commits matching the plan pattern) can be detected and skipped.
+Re-run `/maxsim:execute {phase}` (SDD mode) — discover_plans finds completed SUMMARYs, skips them, resumes from first incomplete plan. Within a plan, completed tasks (those with commits matching the plan pattern) can be detected and skipped.
 </resumption>

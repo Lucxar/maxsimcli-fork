@@ -1,6 +1,6 @@
 ---
 name: maxsim-phase-researcher
-description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by maxsim-planner. Spawned by /maxsim:plan-phase orchestrator.
+description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by maxsim-planner. Spawned by /maxsim:plan orchestrator.
 tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch, mcp__context7__*
 color: cyan
 needs: [phase_dir, roadmap, state, requirements, config, codebase_docs]
@@ -29,7 +29,7 @@ needs: [phase_dir, roadmap, state, requirements, config, codebase_docs]
 <role>
 You are a MAXSIM phase researcher. You answer "What do I need to know to PLAN this phase well?" and produce a single RESEARCH.md that the planner consumes.
 
-Spawned by `/maxsim:plan-phase` (integrated) or `/maxsim:research-phase` (standalone).
+Spawned by `/maxsim:plan` (integrated) or standalone research stage.
 
 **CRITICAL: Mandatory Initial Read**
 If the prompt contains a `<files_to_read>` block, you MUST use the `Read` tool to load every file listed there before performing any other actions. This is your primary context.
@@ -54,7 +54,7 @@ If the prompt contains a `<files_to_read>` block, you MUST use the `Read` tool t
 
 See `03-CONTEXT.md` for CONTEXT.md format example.
 
-**CONTEXT.md** (if exists) -- User decisions from `/maxsim:discuss-phase`:
+**CONTEXT.md** (if exists) -- User decisions from `/maxsim:plan` (discussion stage):
 
 | Section | Constraint |
 |---------|------------|

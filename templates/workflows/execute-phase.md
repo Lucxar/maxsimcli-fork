@@ -1,6 +1,6 @@
 <sanity_check>
 Before executing any step in this workflow, verify:
-1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:new-project` first.
+1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:init` first.
 2. `.planning/ROADMAP.md` exists — if not, stop and tell the user to initialize the project.
 </sanity_check>
 
@@ -380,7 +380,7 @@ grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
 |--------|--------|
 | `passed` | → update_roadmap |
 | `human_needed` | Present items for human testing, get approval or feedback |
-| `gaps_found` | Present gap summary, offer `/maxsim:plan-phase {phase} --gaps` |
+| `gaps_found` | Present gap summary, offer `/maxsim:plan {phase} --gaps` |
 
 **If human_needed:**
 ```
@@ -406,15 +406,15 @@ All automated checks passed. {N} items need human testing:
 ---
 ## ▶ Next Up
 
-`/maxsim:plan-phase {X} --gaps`
+`/maxsim:plan {X} --gaps`
 
 <sub>`/clear` first → fresh context window</sub>
 
 Also: `cat {phase_dir}/{phase_num}-VERIFICATION.md` — full report
-Also: `/maxsim:verify-work {X}` — manual testing first
+Also: `/maxsim:execute {X}` (includes verification) — manual testing first
 ```
 
-Gap closure cycle: `/maxsim:plan-phase {X} --gaps` reads VERIFICATION.md → creates gap plans with `gap_closure: true` → user runs `/maxsim:execute-phase {X} --gaps-only` → verifier re-runs.
+Gap closure cycle: `/maxsim:plan {X} --gaps` reads VERIFICATION.md → creates gap plans with `gap_closure: true` → user runs `/maxsim:execute {X} --gaps-only` → verifier re-runs.
 </step>
 
 <step name="update_roadmap">
@@ -449,7 +449,7 @@ mcp__maxsim-dashboard__submit_lifecycle_event(
 
 <step name="offer_next">
 
-**Exception:** If `gaps_found`, the `verify_phase_goal` step already presents the gap-closure path (`/maxsim:plan-phase {X} --gaps`). No additional routing needed — skip auto-advance.
+**Exception:** If `gaps_found`, the `verify_phase_goal` step already presents the gap-closure path (`/maxsim:plan {X} --gaps`). No additional routing needed — skip auto-advance.
 
 **No-transition check (spawned by auto-advance chain):**
 
@@ -515,7 +515,7 @@ Orchestrator: ~10-15% context. Subagents: fresh 200k each. No polling (Task bloc
 </failure_handling>
 
 <resumption>
-Re-run `/maxsim:execute-phase {phase}` → discover_plans finds completed SUMMARYs → skips them → resumes from first incomplete plan → continues wave execution.
+Re-run `/maxsim:execute {phase}` → discover_plans finds completed SUMMARYs → skips them → resumes from first incomplete plan → continues wave execution.
 
 STATE.md tracks: last completed plan, current wave, pending checkpoints.
 </resumption>

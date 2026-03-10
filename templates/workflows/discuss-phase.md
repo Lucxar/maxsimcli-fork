@@ -1,6 +1,6 @@
 <sanity_check>
 Before executing any step in this workflow, verify:
-1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:new-project` first.
+1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:init` first.
 2. `.planning/ROADMAP.md` exists — if not, stop and tell the user to initialize the project.
 </sanity_check>
 
@@ -199,7 +199,7 @@ Use AskUserQuestion:
 - header: "Plans exist"
 - question: "Phase [X] already has {plan_count} plan(s) created without user context. Your decisions here won't affect existing plans unless you replan."
 - options:
-  - "Continue and replan after" — Capture context, then run /maxsim:plan-phase {X} to replan
+  - "Continue and replan after" — Capture context, then run /maxsim:plan {X} to replan
   - "View existing plans" — Show plans before deciding
   - "Cancel" — Skip discuss-phase
 
@@ -541,14 +541,14 @@ Created: .planning/phases/${PADDED_PHASE}-${SLUG}/${PADDED_PHASE}-CONTEXT.md
 
 **Phase ${PHASE}: [Name]** — [Goal from ROADMAP.md]
 
-`/maxsim:plan-phase ${PHASE}`
+`/maxsim:plan ${PHASE}`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/maxsim:plan-phase ${PHASE} --skip-research` — plan without research
+- `/maxsim:plan ${PHASE} --skip-research` — plan without research
 - Review/edit CONTEXT.md before continuing
 
 ---
@@ -648,23 +648,23 @@ Task(
 
   Auto-advance pipeline finished: discuss → plan → execute
 
-  Next: /maxsim:discuss-phase ${NEXT_PHASE} --auto
+  Next: /maxsim:plan ${NEXT_PHASE} --auto
   <sub>/clear first → fresh context window</sub>
   ```
 - **PLANNING COMPLETE** → Planning done, execution didn't complete:
   ```
   Auto-advance partial: Planning complete, execution did not finish.
-  Continue: /maxsim:execute-phase ${PHASE}
+  Continue: /maxsim:execute ${PHASE}
   ```
 - **PLANNING INCONCLUSIVE / CHECKPOINT** → Stop chain:
   ```
   Auto-advance stopped: Planning needs input.
-  Continue: /maxsim:plan-phase ${PHASE}
+  Continue: /maxsim:plan ${PHASE}
   ```
 - **GAPS FOUND** → Stop chain:
   ```
   Auto-advance stopped: Gaps found during execution.
-  Continue: /maxsim:plan-phase ${PHASE} --gaps
+  Continue: /maxsim:plan ${PHASE} --gaps
   ```
 
 **If neither `--auto` nor config enabled:**

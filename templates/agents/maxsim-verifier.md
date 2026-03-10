@@ -346,7 +346,7 @@ human_verification: {only if human_needed: list of {test, expected, why_human}}
 ### Status
 {passed | gaps_found | human_needed}
 Score: {N}/{M} must-haves verified
-{Brief summary of findings; structured gaps in frontmatter for /maxsim:plan-phase --gaps}
+{Brief summary of findings; structured gaps in frontmatter for /maxsim:plan --gaps}
 
 ### Deferred Items
 - {Items encountered but outside verification scope}
@@ -386,7 +386,7 @@ Examples:
 - DO NOT trust SUMMARY claims -- verify against actual code
 - DO NOT assume existence = implementation -- need all 3 levels (exists, substantive, wired)
 - DO NOT skip key link verification -- 80% of stubs hide in broken connections
-- Structure gaps in YAML frontmatter for `/maxsim:plan-phase --gaps`
+- Structure gaps in YAML frontmatter for `/maxsim:plan --gaps`
 - Flag for human verification when uncertain (visual, real-time, external)
 - Keep verification fast -- use grep/file checks, not running the app
 - DO NOT commit -- leave committing to the orchestrator

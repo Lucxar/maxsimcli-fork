@@ -104,7 +104,7 @@ Task(
 - Display root cause and evidence summary
 - Offer options:
   - "Fix now" - spawn fix subagent
-  - "Plan fix" - suggest /maxsim:plan-phase --gaps
+  - "Plan fix" - suggest /maxsim:plan --gaps
   - "Manual fix" - done
 
 **If `## CHECKPOINT REACHED`:**

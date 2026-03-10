@@ -170,7 +170,7 @@ PROJECT.md evolves throughout the project lifecycle.
 
 For existing codebases:
 
-1. **Map codebase first** via `/maxsim:map-codebase`
+1. **Map codebase first** via `/maxsim:init (codebase mapping)`
 
 2. **Infer Validated requirements** from existing code:
    - What does the codebase actually do?

@@ -1,6 +1,6 @@
 <sanity_check>
 Before executing any step in this workflow, verify:
-1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:new-project` first.
+1. The current directory contains a `.planning/` folder — if not, stop and tell the user to run `/maxsim:init` first.
 2. Git is initialized (`git rev-parse --git-dir` succeeds) — worktrees require a git repository.
 3. `.planning/ROADMAP.md` exists — if not, stop and tell the user to initialize the project.
 </sanity_check>
@@ -27,7 +27,7 @@ INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init quick "$DESCRIPTION")
 
 Parse JSON for: `planner_model`, `executor_model`, `slug`, `date`, `timestamp`, `roadmap_exists`, `planning_exists`.
 
-**If `roadmap_exists` is false:** Error — Batch mode requires an active project with ROADMAP.md. Run `/maxsim:new-project` first.
+**If `roadmap_exists` is false:** Error — Batch mode requires an active project with ROADMAP.md. Run `/maxsim:init` first.
 
 Verify git is available:
 ```bash

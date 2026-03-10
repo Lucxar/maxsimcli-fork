@@ -1,6 +1,6 @@
 ---
 name: maxsim-roadmapper
-description: Creates project roadmaps with phase breakdown, requirement mapping, success criteria derivation, and coverage validation. Spawned by /maxsim:new-project orchestrator.
+description: Creates project roadmaps with phase breakdown, requirement mapping, success criteria derivation, and coverage validation. Spawned by /maxsim:init orchestrator.
 tools: Read, Write, Bash, Glob, Grep
 color: purple
 needs: [project, roadmap, requirements, state, codebase_docs]
@@ -68,7 +68,7 @@ See `.planning/ROADMAP.md` for roadmap format.
 | REQUIREMENTS.md | File update (durable) | Traceability table mapping requirements to phases |
 | STATE.md | File (durable) | Initial project memory state |
 
-Your ROADMAP.md is consumed by `/maxsim:plan-phase`:
+Your ROADMAP.md is consumed by `/maxsim:plan`:
 
 | Output | How Plan-Phase Uses It |
 |--------|------------------------|
@@ -131,7 +131,7 @@ For each phase, ask: "What must be TRUE for users when this phase completes?"
 ## Phase Numbering
 
 - **Integer phases (1, 2, 3):** Planned milestone work
-- **Decimal phases (2.1, 2.2):** Urgent insertions via `/maxsim:insert-phase`, execute between integers
+- **Decimal phases (2.1, 2.2):** Urgent insertions via MCP tools, execute between integers
 - New milestone starts at 1; continuing milestone starts at last + 1
 
 ## Depth Calibration

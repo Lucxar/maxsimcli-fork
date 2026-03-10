@@ -30,7 +30,7 @@ Check if `--auto` flag is present in $ARGUMENTS.
 
 **Document requirement:**
 Auto mode requires an idea document — either:
-- File reference: `/maxsim:new-project --auto @prd.md`
+- File reference: `/maxsim:init --auto @prd.md`
 - Pasted/written text in the prompt
 
 If no document content provided, error:
@@ -39,8 +39,8 @@ If no document content provided, error:
 Error: --auto requires an idea document.
 
 Usage:
-  /maxsim:new-project --auto @your-idea.md
-  /maxsim:new-project --auto [paste or write your idea here]
+  /maxsim:init --auto @your-idea.md
+  /maxsim:init --auto [paste or write your idea here]
 
 The document should describe what you want to build.
 ```
@@ -75,12 +75,12 @@ Use AskUserQuestion:
 - header: "Codebase"
 - question: "I detected existing code in this directory. Would you like to map the codebase first?"
 - options:
-  - "Map codebase first" — Run /maxsim:map-codebase to understand existing architecture (Recommended)
+  - "Map codebase first" — Run /maxsim:init (codebase mapping stage) to understand existing architecture (Recommended)
   - "Skip mapping" — Proceed with project initialization
 
 **If "Map codebase first":**
 ```
-Run `/maxsim:map-codebase` first, then return to `/maxsim:new-project`
+Run `/maxsim:init (codebase mapping stage)` first, then return to `/maxsim:init`
 ```
 Exit command.
 
@@ -440,7 +440,7 @@ Write content:
 | 2 | [Choice from questioning] | [Why this was chosen] | [What else was discussed] | Locked |
 
 ---
-*Decisions captured during /maxsim:new-project initialization*
+*Decisions captured during /maxsim:init initialization*
 ```
 
 **ACCEPTANCE-CRITERIA.md** — Measurable success criteria derived from user's vision:
@@ -467,7 +467,7 @@ These define what "done" looks like for the entire project:
 
 ## Phase-Level Criteria
 
-Populated per-phase during /maxsim:discuss-phase.
+Populated per-phase during /maxsim:plan.
 
 ---
 *Criteria derived from project initialization*
@@ -500,7 +500,7 @@ Write content:
 - [What this project is NOT]
 
 ---
-*No-gos captured during /maxsim:new-project initialization*
+*No-gos captured during /maxsim:init initialization*
 ```
 
 **CONVENTIONS.md** — Coding conventions for agents to follow:
@@ -1340,7 +1340,7 @@ Present completion summary:
 ╚══════════════════════════════════════════╝
 ```
 
-Exit skill and invoke SlashCommand("/maxsim:discuss-phase 1 --auto")
+Exit skill and invoke SlashCommand("/maxsim:plan 1 --auto")
 
 **If interactive mode:**
 
@@ -1351,14 +1351,14 @@ Exit skill and invoke SlashCommand("/maxsim:discuss-phase 1 --auto")
 
 **Phase 1: [Phase Name]** — [Goal from ROADMAP.md]
 
-/maxsim:discuss-phase 1 — gather context and clarify approach
+/maxsim:plan 1 — gather context and clarify approach
 
 <sub>/clear first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- /maxsim:plan-phase 1 — skip discussion, plan directly
+- /maxsim:plan 1 — skip discussion, plan directly
 
 ───────────────────────────────────────────────────────────────
 ```
@@ -1406,7 +1406,7 @@ Exit skill and invoke SlashCommand("/maxsim:discuss-phase 1 --auto")
 - [ ] CONVENTIONS.md generated with 4 must-have sections (Tech Stack, File Layout, Error Handling, Testing)
 - [ ] NO-GOS.md populated from confirmed no-gos during questioning
 - [ ] Agent dry-run validation passed (Quality Score >= 7)
-- [ ] User knows next step is `/maxsim:discuss-phase 1`
+- [ ] User knows next step is `/maxsim:plan 1`
 
 **Atomic commits:** Each phase commits its artifacts immediately. If context is lost, artifacts persist.
 

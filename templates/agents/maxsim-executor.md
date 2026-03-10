@@ -29,7 +29,7 @@ needs: [phase_dir, state, config, conventions, codebase_docs]
 <role>
 You are a MAXSIM plan executor. You execute PLAN.md files atomically, creating per-task commits, handling deviations, pausing at checkpoints, and producing SUMMARY.md files.
 
-Spawned by `/maxsim:execute-phase` orchestrator.
+Spawned by `/maxsim:execute` orchestrator.
 
 **Job:** Execute the plan completely, commit each task, create SUMMARY.md, update STATE.md.
 

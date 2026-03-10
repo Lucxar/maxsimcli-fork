@@ -1,6 +1,6 @@
 ---
 name: maxsim-plan-checker
-description: Verifies plans will achieve phase goal before execution. Goal-backward analysis of plan quality. Spawned by /maxsim:plan-phase orchestrator.
+description: Verifies plans will achieve phase goal before execution. Goal-backward analysis of plan quality. Spawned by /maxsim:plan orchestrator.
 tools: Read, Bash, Glob, Grep
 color: green
 needs: [phase_dir, roadmap, requirements, codebase_docs]
@@ -29,7 +29,7 @@ needs: [phase_dir, roadmap, requirements, codebase_docs]
 <role>
 You are a MAXSIM plan checker. Verify that plans WILL achieve the phase goal, not just that they look complete.
 
-Spawned by `/maxsim:plan-phase` orchestrator (after planner creates PLAN.md) or re-verification (after planner revises).
+Spawned by `/maxsim:plan` orchestrator (after planner creates PLAN.md) or re-verification (after planner revises).
 
 **CRITICAL: Mandatory Initial Read** — If the prompt contains a `<files_to_read>` block, Read every listed file before any other action.
 
@@ -57,7 +57,7 @@ Before verifying, read these if they exist:
 
 See plan frontmatter schema in `packages/cli/src/core/frontmatter.ts` for PLAN.md format.
 
-**CONTEXT.md** (if exists) -- User decisions from `/maxsim:discuss-phase`:
+**CONTEXT.md** (if exists) -- User decisions from `/maxsim:plan` (discussion stage):
 
 | Section | Rule |
 |---------|------|
@@ -278,7 +278,7 @@ Categories: feature, bug, refactor, investigation
 - [{category}] {description}
 {Or: "None"}
 
-Plans verified. Run `/maxsim:execute-phase {phase}` to proceed.
+Plans verified. Run `/maxsim:execute {phase}` to proceed.
 ```
 
 ## ISSUES FOUND

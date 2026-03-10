@@ -89,7 +89,7 @@ If `.planning/` does not exist, return immediately:
 **Missing:** .planning/ directory
 **Expected from:** check-drift workflow (should validate before spawning)
 
-Do NOT proceed without a planning directory. Tell the user to run `/maxsim:new-project` first.
+Do NOT proceed without a planning directory. Tell the user to run `/maxsim:init` first.
 
 If `.planning/` exists but spec files are partially missing, proceed with what exists and add a warning to the report header:
 

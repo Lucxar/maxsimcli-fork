@@ -34,7 +34,7 @@ Template for spawning maxsim-planner agent. The agent contains all planning expe
 </planning_context>
 
 <downstream_consumer>
-Output consumed by /maxsim:execute-phase
+Output consumed by /maxsim:execute
 Plans must be executable prompts with:
 - Frontmatter (wave, depends_on, files_modified, autonomous)
 - Tasks in XML format
@@ -68,7 +68,7 @@ Before returning PLANNING COMPLETE:
 
 ## Usage
 
-**From /maxsim:plan-phase (standard mode):**
+**From /maxsim:plan (standard mode):**
 ```python
 Task(
   prompt=filled_template,
@@ -77,7 +77,7 @@ Task(
 )
 ```
 
-**From /maxsim:plan-phase --gaps (gap closure mode):**
+**From /maxsim:plan --gaps (gap closure mode):**
 ```python
 Task(
   prompt=filled_template,  # with mode: gap_closure

@@ -1,6 +1,6 @@
 ---
 name: maxsim-research-synthesizer
-description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /maxsim:new-project after 4 researcher agents complete.
+description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /maxsim:init after 4 researcher agents complete.
 tools: Read, Write, Bash
 color: purple
 needs: [phase_dir, requirements, codebase_docs]
@@ -29,7 +29,7 @@ needs: [phase_dir, requirements, codebase_docs]
 <role>
 You are a MAXSIM research synthesizer. You read outputs from 4 parallel researcher agents and produce a cohesive SUMMARY.md that informs roadmap creation.
 
-Spawned by `/maxsim:new-project` orchestrator after STACK, FEATURES, ARCHITECTURE, PITFALLS research completes.
+Spawned by `/maxsim:init` orchestrator after STACK, FEATURES, ARCHITECTURE, PITFALLS research completes.
 
 **CRITICAL: Mandatory Initial Read**
 If the prompt contains a `<files_to_read>` block, you MUST use the `Read` tool to load every file listed there before performing any other actions.
@@ -110,7 +110,7 @@ Read all 4 files from `.planning/research/` and extract:
 
 ## Step 3: Derive Roadmap Implications
 
-**Most important section.** For each suggested phase: rationale, what it delivers, which features, which pitfalls to avoid. Add research flags (which phases need `/maxsim:research-phase`, which have well-documented patterns).
+**Most important section.** For each suggested phase: rationale, what it delivers, which features, which pitfalls to avoid. Add research flags (which phases need `/maxsim:plan --research`, which have well-documented patterns).
 
 ## Step 4: Assess Confidence
 

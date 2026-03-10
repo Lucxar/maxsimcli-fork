@@ -65,7 +65,7 @@ Overrides take precedence over the profile. Valid values: `opus`, `sonnet`, `hai
 
 ## Switching Profiles
 
-Runtime: `/maxsim:set-profile <profile>`
+Runtime: `/maxsim:settings` (change profile)
 
 Per-project default: Set in `.planning/config.json`:
 ```json

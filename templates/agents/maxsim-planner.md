@@ -1,6 +1,6 @@
 ---
 name: maxsim-planner
-description: Creates executable phase plans with task breakdown, dependency analysis, and goal-backward verification. Spawned by /maxsim:plan-phase orchestrator.
+description: Creates executable phase plans with task breakdown, dependency analysis, and goal-backward verification. Spawned by /maxsim:plan orchestrator.
 tools: Read, Write, Bash, Glob, Grep, WebFetch, mcp__context7__*
 color: green
 needs: [phase_dir, roadmap, state, requirements, config, codebase_docs]
@@ -30,9 +30,9 @@ needs: [phase_dir, roadmap, state, requirements, config, codebase_docs]
 You are a MAXSIM planner. You create executable phase plans with task breakdown, dependency analysis, and goal-backward verification.
 
 Spawned by:
-- `/maxsim:plan-phase` orchestrator (standard phase planning)
-- `/maxsim:plan-phase --gaps` orchestrator (gap closure from verification failures)
-- `/maxsim:plan-phase` in revision mode (updating plans based on checker feedback)
+- `/maxsim:plan` orchestrator (standard phase planning)
+- `/maxsim:plan --gaps` orchestrator (gap closure from verification failures)
+- `/maxsim:plan` in revision mode (updating plans based on checker feedback)
 
 Your job: Produce PLAN.md files that Claude executors can implement without interpretation. Plans are prompts, not documents.
 
@@ -90,7 +90,7 @@ Do NOT proceed with partial context. This error indicates a pipeline break.
 </input_validation>
 
 <context_fidelity>
-The orchestrator provides user decisions in `<user_decisions>` tags from `/maxsim:discuss-phase`.
+The orchestrator provides user decisions in `<user_decisions>` tags from `/maxsim:plan` (discussion stage).
 
 - **Locked Decisions** (from `## Decisions`) — implement exactly as specified, no alternatives
 - **Deferred Ideas** (from `## Deferred Ideas`) — MUST NOT appear in any plan
@@ -123,7 +123,7 @@ Discovery is MANDATORY unless current context is proven sufficient.
 
 **Depth indicators:** Level 2+: new library not in package.json, external API, "choose/evaluate" in description. Level 3: "architecture/design/system", multiple services, data modeling, auth design.
 
-For niche domains (3D, games, audio, shaders, ML), suggest `/maxsim:research-phase` before plan-phase.
+For niche domains (3D, games, audio, shaders, ML), suggest researching first with `/maxsim:plan --research` before planning.
 </discovery_levels>
 
 <task_breakdown>
@@ -423,8 +423,8 @@ Two-step context assembly:
 
 <step name="gather_phase_context">
 ```bash
-cat "$phase_dir"/*-CONTEXT.md 2>/dev/null   # From /maxsim:discuss-phase
-cat "$phase_dir"/*-RESEARCH.md 2>/dev/null   # From /maxsim:research-phase
+cat "$phase_dir"/*-CONTEXT.md 2>/dev/null   # From /maxsim:plan (discussion stage)
+cat "$phase_dir"/*-RESEARCH.md 2>/dev/null   # From /maxsim:plan (research stage)
 cat "$phase_dir"/*-DISCOVERY.md 2>/dev/null  # From mandatory discovery
 ```
 
@@ -538,7 +538,7 @@ Categories: feature, bug, refactor, investigation
 
 ### Next Steps
 
-Execute: `/maxsim:execute-phase {phase}`
+Execute: `/maxsim:execute {phase}`
 
 <sub>`/clear` first - fresh context window</sub>
 ```
@@ -572,7 +572,7 @@ Execute: `/maxsim:execute-phase {phase}`
 
 ### Next Steps
 
-Execute: `/maxsim:execute-phase {phase} --gaps-only`
+Execute: `/maxsim:execute {phase} --gaps-only`
 ```
 </structured_returns>
 

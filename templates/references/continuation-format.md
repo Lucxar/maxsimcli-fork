@@ -44,7 +44,7 @@ Standard format for presenting next steps after completing a command or workflow
 
 **02-03: Refresh Token Rotation** — Add /api/auth/refresh with sliding expiry
 
-`/maxsim:execute-phase 2`
+`/maxsim:execute 2`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -52,7 +52,7 @@ Standard format for presenting next steps after completing a command or workflow
 
 **Also available:**
 - Review plan before executing
-- `/maxsim:list-phase-assumptions 2` — check assumptions
+- `/maxsim:plan --review 2` — check assumptions
 
 ---
 ```
@@ -69,7 +69,7 @@ Add note that this is the last plan and what comes after:
 **02-03: Refresh Token Rotation** — Add /api/auth/refresh with sliding expiry
 <sub>Final plan in Phase 2</sub>
 
-`/maxsim:execute-phase 2`
+`/maxsim:execute 2`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -91,15 +91,15 @@ Add note that this is the last plan and what comes after:
 
 **Phase 2: Authentication** — JWT login flow with refresh tokens
 
-`/maxsim:plan-phase 2`
+`/maxsim:plan 2`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/maxsim:discuss-phase 2` — gather context first
-- `/maxsim:research-phase 2` — investigate unknowns
+- `/maxsim:plan 2` — gather context first
+- `/maxsim:plan --research 2` — investigate unknowns
 - Review roadmap
 
 ---
@@ -120,15 +120,15 @@ Show completion status before next action:
 
 **Phase 3: Core Features** — User dashboard, settings, and data export
 
-`/maxsim:plan-phase 3`
+`/maxsim:plan 3`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/maxsim:discuss-phase 3` — gather context first
-- `/maxsim:research-phase 3` — investigate unknowns
+- `/maxsim:plan 3` — gather context first
+- `/maxsim:plan --research 3` — investigate unknowns
 - Review what Phase 2 built
 
 ---
@@ -145,11 +145,11 @@ When there's no clear primary action:
 
 **Phase 3: Core Features** — User dashboard, settings, and data export
 
-**To plan directly:** `/maxsim:plan-phase 3`
+**To plan directly:** `/maxsim:plan 3`
 
-**To discuss context first:** `/maxsim:discuss-phase 3`
+**To discuss context first:** `/maxsim:plan 3`
 
-**To research unknowns:** `/maxsim:research-phase 3`
+**To research unknowns:** `/maxsim:plan --research 3`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -169,7 +169,7 @@ All 4 phases shipped
 
 **Start v1.1** — questioning → research → requirements → roadmap
 
-`/maxsim:new-milestone`
+`/maxsim:init`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -214,7 +214,7 @@ Extract: `**02-03: Refresh Token Rotation** — Add /api/auth/refresh with slidi
 ## To Continue
 
 Run `/clear`, then paste:
-/maxsim:execute-phase 2
+/maxsim:execute 2
 ```
 
 User has no idea what 02-03 is about.
@@ -222,7 +222,7 @@ User has no idea what 02-03 is about.
 ### Don't: Missing /clear explanation
 
 ```
-`/maxsim:plan-phase 3`
+`/maxsim:plan 3`
 
 Run /clear first.
 ```
@@ -242,7 +242,7 @@ Sounds like an afterthought. Use "Also available:" instead.
 
 ```
 ```
-/maxsim:plan-phase 3
+/maxsim:plan 3
 ```
 ```
 
