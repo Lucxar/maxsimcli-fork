@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 3 (Command Surface Simplification)
-**Plan:** 03-07 (Update cross-references for 9-command surface)
+**Plan:** 03-08 (Installer orphan cleanup + final verification)
 **Status:** Complete
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
-| Phases Complete | 1/6 |
-| Plans Complete | 11 |
+| Phases Complete | 2/6 |
+| Plans Complete | 12 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -44,6 +44,7 @@
 - [Phase 03]: Milestone completion routes through /maxsim:init which handles the full lifecycle interactively
 - [Phase 03]: Clean break deletion -- 33 old command files and 21 obsolete workflow files removed, no redirects or aliases
 - [Phase 03]: All cross-references updated to 9-command surface; 35 files modified, zero old command names remain in templates/
+- [Phase 03]: Installer orphan cleanup list updated with 33 deleted commands + 21 deleted workflows for v4.x upgrade cleanup
 
 ### Known Issues
 
@@ -70,9 +71,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 03-07 (Update cross-references for 9-command surface)
-- **Outcome:** Updated 35 files across agents, workflows, references, and templates. Zero old command references remain in templates/.
-- **Next Step:** Continue Phase 03 Wave 4 plan 03-08 (Update installer and README)
+- **Activity:** Executed Plan 03-08 (Installer orphan cleanup + final verification)
+- **Outcome:** Added 54 orphaned file entries to cleanupOrphanedFiles() for upgrade cleanup. All Phase 3 verification checks pass: 9 commands, 0 stale refs, all workflows present, build clean.
+- **Next Step:** Phase 03 complete -- proceed to phase verification or next phase
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -82,4 +83,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 03-07 complete)*
+*Last updated: 2026-03-10 (plan 03-08 complete)*
