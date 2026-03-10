@@ -109,6 +109,28 @@ _Note: TDD tasks may have multiple commits (test → feat → refactor)_
 
 [Note: "Deviations from Plan" documents unplanned work that was handled automatically via deviation rules. "Issues Encountered" documents problems during planned work that required problem-solving.]
 
+## Review Cycle
+
+| Stage | Result | Attempts | Duration | Findings |
+|-------|--------|----------|----------|----------|
+| Spec Review | {PASS|FAIL|OVERRIDDEN} | {N}/3 | {X}s | {summary or "All requirements met"} |
+| Code Review | {APPROVED|BLOCKED|OVERRIDDEN} | {N}/3 | {X}s | {summary or "No blocking issues"} |
+| Simplify | {CLEAN|FIXED|BLOCKED|SKIPPED|OVERRIDDEN} | {N}/3 | {X}s | {summary or "N/A"} |
+| Final Review | {APPROVED|BLOCKED|SKIPPED|N/A|OVERRIDDEN} | {N}/3 | {X}s | {summary or "N/A"} |
+
+**Total review time:** {total}s
+**Escalations:** {count} ({details or "None"})
+
+[Populated by the executor after the review cycle completes. See execute-plan.md review_cycle step for stage definitions and retry/escalation protocol.]
+
+## Requirement Evidence
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| {REQ-ID from plan frontmatter} | {specific file/test/behavior that satisfies it} | {MET|PARTIAL|UNMET} |
+
+[Populated by the executor during SUMMARY creation using the `requirements` array from the PLAN.md frontmatter. Each requirement ID from the plan must have an evidence entry. If no requirements field in plan frontmatter, this section can be omitted.]
+
 ## User Setup Required
 
 [If USER-SETUP.md was generated:]
@@ -223,6 +245,25 @@ The one-liner should tell someone what actually shipped.
 
 ## Issues Encountered
 - jsonwebtoken CommonJS import failed in Edge runtime - switched to jose (planned library change, worked as expected)
+
+## Review Cycle
+
+| Stage | Result | Attempts | Duration | Findings |
+|-------|--------|----------|----------|----------|
+| Spec Review | PASS | 1/3 | 45s | All requirements met |
+| Code Review | APPROVED | 2/3 | 82s | Fixed missing error handler on login endpoint (attempt 1) |
+| Simplify | FIXED | 1/3 | 67s | Extracted shared JWT helper, removed unused bcrypt import |
+| Final Review | APPROVED | 1/3 | 38s | Simplification changes verified |
+
+**Total review time:** 232s
+**Escalations:** 0 (None)
+
+## Requirement Evidence
+
+| Requirement | Evidence | Status |
+|-------------|----------|--------|
+| AUTH-01 | src/app/api/auth/login/route.ts implements JWT login with refresh | MET |
+| AUTH-02 | src/middleware.ts validates tokens on protected routes | MET |
 
 ## Next Phase Readiness
 - Auth foundation complete, ready for feature development
