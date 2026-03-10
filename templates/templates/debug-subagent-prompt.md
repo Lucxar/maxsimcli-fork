@@ -1,6 +1,6 @@
 # Debug Subagent Prompt Template
 
-Template for spawning maxsim-debugger agent. The agent contains all debugging expertise - this template provides problem context only.
+Template for spawning verifier agent in debug mode. The agent contains all debugging expertise - this template provides problem context only.
 
 ---
 
@@ -55,14 +55,14 @@ Create: .planning/debug/{slug}.md
 ```python
 Task(
   prompt=filled_template,
-  subagent_type="maxsim-debugger",
+  subagent_type="verifier",
   description="Debug {slug}"
 )
 ```
 
 **From diagnose-issues (UAT):**
 ```python
-Task(prompt=template, subagent_type="maxsim-debugger", description="Debug UAT-001")
+Task(prompt=template, subagent_type="verifier", description="Debug UAT-001")
 ```
 
 ---

@@ -16,7 +16,7 @@ allowed-tools:
 Execute small, ad-hoc tasks with MAXSIM guarantees (atomic commits, STATE.md tracking). Also supports "save for later" -- capturing ideas as GitHub Issues with 'todo' label for future work.
 
 Quick mode is the same system with a shorter path:
-- Spawns maxsim-planner (quick mode) + maxsim-executor(s)
+- Spawns planner (quick mode) + executor(s)
 - Quick tasks live in `.planning/quick/` separate from planned phases
 - Updates STATE.md "Quick Tasks Completed" table (NOT ROADMAP.md)
 

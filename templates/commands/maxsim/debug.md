@@ -12,7 +12,7 @@ allowed-tools:
 <objective>
 Debug issues using scientific method with subagent isolation.
 
-**Orchestrator role:** Gather symptoms, spawn maxsim-debugger agent, handle checkpoints, spawn continuations.
+**Orchestrator role:** Gather symptoms, spawn verifier agent (debug mode), handle checkpoints, spawn continuations.
 
 **Why subagent:** Investigation burns context fast (reading files, forming hypotheses, testing). Fresh 200k context per investigation. Main context stays lean for user interaction.
 </objective>
@@ -36,7 +36,7 @@ INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs state load)
 
 Extract `commit_docs` from init JSON. Resolve debugger model:
 ```bash
-DEBUGGER_MODEL=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs resolve-model maxsim-debugger --raw)
+DEBUGGER_MODEL=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs resolve-model verifier --raw)
 ```
 
 ## 1. Check Active Sessions
@@ -60,7 +60,7 @@ Use AskUserQuestion for each:
 
 After all gathered, confirm ready to investigate.
 
-## 3. Spawn maxsim-debugger Agent
+## 3. Spawn Verifier Agent (Debug Mode)
 
 Fill prompt and spawn:
 
@@ -92,7 +92,7 @@ Create: .planning/debug/{slug}.md
 ```
 Task(
   prompt=filled_prompt,
-  subagent_type="maxsim-debugger",
+  subagent_type="verifier",
   model="{debugger_model}",
   description="Debug {slug}"
 )
@@ -150,7 +150,7 @@ goal: find_and_fix
 ```
 Task(
   prompt=continuation_prompt,
-  subagent_type="maxsim-debugger",
+  subagent_type="verifier",
   model="{debugger_model}",
   description="Continue debug {slug}"
 )
@@ -161,7 +161,7 @@ Task(
 <success_criteria>
 - [ ] Active sessions checked
 - [ ] Symptoms gathered (if new)
-- [ ] maxsim-debugger spawned with context
+- [ ] Verifier agent spawned with debug context
 - [ ] Checkpoints handled correctly
 - [ ] Root cause confirmed before fixing
 </success_criteria>

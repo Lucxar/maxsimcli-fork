@@ -6,17 +6,10 @@ Model profiles control which Claude model each MAXSIM agent uses. This allows ba
 
 | Agent | `quality` | `balanced` | `budget` |
 |-------|-----------|------------|----------|
-| maxsim-planner | opus | opus | sonnet |
-| maxsim-roadmapper | opus | sonnet | sonnet |
-| maxsim-executor | opus | sonnet | sonnet |
-| maxsim-phase-researcher | opus | sonnet | haiku |
-| maxsim-project-researcher | opus | sonnet | haiku |
-| maxsim-research-synthesizer | sonnet | sonnet | haiku |
-| maxsim-debugger | opus | sonnet | sonnet |
-| maxsim-codebase-mapper | sonnet | haiku | haiku |
-| maxsim-verifier | sonnet | sonnet | haiku |
-| maxsim-plan-checker | sonnet | sonnet | haiku |
-| maxsim-integration-checker | sonnet | sonnet | haiku |
+| planner | opus | sonnet | haiku |
+| executor | opus | sonnet | sonnet |
+| researcher | opus | sonnet | haiku |
+| verifier | sonnet | sonnet | haiku |
 
 ## Profile Philosophy
 
@@ -55,8 +48,8 @@ Override specific agents without changing the entire profile:
 {
   "model_profile": "balanced",
   "model_overrides": {
-    "maxsim-executor": "opus",
-    "maxsim-planner": "haiku"
+    "executor": "opus",
+    "planner": "haiku"
   }
 }
 ```
@@ -76,17 +69,17 @@ Per-project default: Set in `.planning/config.json`:
 
 ## Design Rationale
 
-**Why Opus for maxsim-planner?**
+**Why Opus for planner?**
 Planning involves architecture decisions, goal decomposition, and task design. This is where model quality has the highest impact.
 
-**Why Sonnet for maxsim-executor?**
+**Why Sonnet for executor?**
 Executors follow explicit PLAN.md instructions. The plan already contains the reasoning; execution is implementation.
 
-**Why Sonnet (not Haiku) for verifiers in balanced?**
+**Why Sonnet (not Haiku) for verifier in balanced?**
 Verification requires goal-backward reasoning - checking if code *delivers* what the phase promised, not just pattern matching. Sonnet handles this well; Haiku may miss subtle gaps.
 
-**Why Haiku for maxsim-codebase-mapper?**
-Read-only exploration and pattern extraction. No reasoning required, just structured output from file contents.
+**Why Haiku for researcher in budget?**
+Read-only exploration and pattern extraction. Research is guided by orchestrator questions; Haiku can follow structured research protocols effectively at lower cost.
 
 **Why `inherit` instead of passing `opus` directly?**
 Claude Code's `"opus"` alias maps to a specific model version. Organizations may block older opus versions while allowing newer ones. MAXSIM returns `"inherit"` for opus-tier agents, causing them to use whatever opus version the user has configured in their session. This avoids version conflicts and silent fallbacks to Sonnet.
