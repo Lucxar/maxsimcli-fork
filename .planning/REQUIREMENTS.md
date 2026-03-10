@@ -38,7 +38,7 @@ Lightweight requirements for rapid exploration.
 
 ### Prompt Architecture
 
-- [ ] **PROMPT-01**: Skills-based architecture for progressive context disclosure
+- [x] **PROMPT-01**: Skills-based architecture for progressive context disclosure
 - [ ] **PROMPT-02**: Custom agent definitions for Executor, Planner, Researcher, Verifier
 - [ ] **PROMPT-03**: Less nesting -- clear structure, not deeply nested @references
 - [ ] **PROMPT-04**: Hard gates with anti-rationalization (from Superpowers pattern)
@@ -93,7 +93,7 @@ Lightweight requirements for rapid exploration.
 | EXEC-03 | Phase 5: Parallel Execution Model | Pending |
 | EXEC-04 | Phase 5: Parallel Execution Model | Pending |
 | EXEC-05 | Phase 5: Parallel Execution Model | Pending |
-| PROMPT-01 | Phase 4: Prompt & Skill Architecture | Pending |
+| PROMPT-01 | Phase 4: Prompt & Skill Architecture | Complete |
 | PROMPT-02 | Phase 4: Prompt & Skill Architecture | Pending |
 | PROMPT-03 | Phase 4: Prompt & Skill Architecture | Pending |
 | PROMPT-04 | Phase 4: Prompt & Skill Architecture | Pending |

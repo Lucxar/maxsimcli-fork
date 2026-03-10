@@ -3,21 +3,21 @@
 ## Project Reference
 
 **Core Value:** Consistent, high-quality AI-assisted development at any project scale
-**Current Focus:** Phase 3 -- Command Surface Simplification
+**Current Focus:** Phase 4 -- Prompt & Skill Architecture
 
 ## Current Position
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
-**Phase:** 3 (Command Surface Simplification)
-**Plan:** 03-08 (Installer orphan cleanup + final verification)
-**Status:** Milestone complete
+**Phase:** 4 (Prompt & Skill Architecture)
+**Plan:** 04-02 complete, 04-03 next (Wave 2: Agents + workflow updates)
+**Status:** Wave 1 complete
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 12 |
+| Plans Complete | 14 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -45,6 +45,9 @@
 - [Phase 03]: Clean break deletion -- 33 old command files and 21 obsolete workflow files removed, no redirects or aliases
 - [Phase 03]: All cross-references updated to 9-command surface; 35 files modified, zero old command names remain in templates/
 - [Phase 03]: Installer orphan cleanup list updated with 33 deleted commands + 21 deleted workflows for v4.x upgrade cleanup
+- [Phase 04]: User-facing skills rewritten from scratch: removed alwaysApply, removed old 13-agent references, added 4-agent model and 9-command surface, suggestion-based composition via see-also
+- [Phase 04]: Rules files use plain markdown (no frontmatter) in templates/rules/ for always-loaded content; alwaysApply not used
+- [Phase 04]: Agent-system-map documents orchestrator-mediated pattern; subagents cannot spawn subagents in Claude Code
 
 ### Known Issues
 
@@ -64,16 +67,16 @@ None currently.
 
 - Commands: 9 (target achieved, down from ~35)
 - Agents: 15 current, to be consolidated
-- Skills: 11 current, to be expanded with better triggers
+- Skills: 19 total (8 internal + 11 user-facing), all rewritten for new architecture
 - Dashboard: removing entirely (52K-line server + React frontend)
 
 ## Session Continuity
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 03-08 (Installer orphan cleanup + final verification)
-- **Outcome:** Added 54 orphaned file entries to cleanupOrphanedFiles() for upgrade cleanup. All Phase 3 verification checks pass: 9 commands, 0 stale refs, all workflows present, build clean.
-- **Next Step:** Phase 03 complete -- proceed to phase verification or next phase
+- **Activity:** Executed Plan 04-02 (Rewrite 11 user-facing skills)
+- **Outcome:** All 11 user-facing skills rewritten from scratch. No alwaysApply, no old agent references, 4-agent model + 9-command surface in using-maxsim, suggestion-based see-also composition.
+- **Next Step:** Wave 1 complete (Plans 01+02). Proceed to Wave 2 (Plans 03+04: agents + workflow updates)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -83,4 +86,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 03-08 complete)*
+*Last updated: 2026-03-10 (plan 04-02 complete)*
