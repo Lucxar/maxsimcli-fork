@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 3 (Command Surface Simplification)
-**Plan:** 03-02 (Unified /maxsim:init Command)
-**Status:** Executing
+**Plan:** 03-01 (/maxsim:plan State Machine Command)
+**Status:** Complete
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 1/6 |
-| Plans Complete | 5 |
+| Plans Complete | 6 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -37,6 +37,7 @@
 10. Prototype stage, breaking changes OK
 11. MCP tools use requireAuth() gate (no graceful degradation to local-only)
 12. Todo storage stays in .planning/todos/ for now (GitHub Issues migration deferred)
+- [Phase 03]: Orchestrator workflow kept to 8KB by delegating all stage logic to sub-workflows via @references
 
 ### Known Issues
 
@@ -63,9 +64,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 03-02 (Unified /maxsim:init Command)
-- **Outcome:** Created init.md command template and thin router workflow (7.7KB) detecting 4 scenarios and delegating to existing sub-workflows
-- **Next Step:** Continue Phase 03 Wave 1 plans (03-01 parallel)
+- **Activity:** Executed Plan 03-01 (/maxsim:plan State Machine Command)
+- **Outcome:** Created /maxsim:plan command template and thin orchestrator workflow (8KB) with 3 stage sub-workflows (discuss 13KB, research 5KB, create 9KB)
+- **Next Step:** Continue Phase 03 remaining Wave 1 plans
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -75,4 +76,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 03-02 complete)*
+*Last updated: 2026-03-10 (plan 03-01 complete)*
