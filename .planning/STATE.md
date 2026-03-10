@@ -9,15 +9,15 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 4 (Prompt & Skill Architecture)
-**Plan:** 04-02 complete, 04-03 next (Wave 2: Agents + workflow updates)
-**Status:** Wave 1 complete
+**Plan:** 04-04 (Wave 2: Workflow updates)
+**Status:** Plan 04-03 complete, executing 04-04
 
 ## Progress
 
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 14 |
+| Plans Complete | 15 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -48,6 +48,8 @@
 - [Phase 04]: User-facing skills rewritten from scratch: removed alwaysApply, removed old 13-agent references, added 4-agent model and 9-command surface, suggestion-based composition via see-also
 - [Phase 04]: Rules files use plain markdown (no frontmatter) in templates/rules/ for always-loaded content; alwaysApply not used
 - [Phase 04]: Agent-system-map documents orchestrator-mediated pattern; subagents cannot spawn subagents in Claude Code
+- [Phase 04]: 14 agents consolidated to 4 generic types (executor, planner, researcher, verifier) with skill preloading for shared protocols
+- [Phase 04]: builtInSkills array updated with 8 internal skills for installer/uninstaller cleanup
 
 ### Known Issues
 
@@ -66,7 +68,7 @@ None currently.
 ### Key Metrics
 
 - Commands: 9 (target achieved, down from ~35)
-- Agents: 15 current, to be consolidated
+- Agents: 4 (consolidated from 14 specialized agents)
 - Skills: 19 total (8 internal + 11 user-facing), all rewritten for new architecture
 - Dashboard: removing entirely (52K-line server + React frontend)
 
@@ -74,9 +76,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 04-02 (Rewrite 11 user-facing skills)
-- **Outcome:** All 11 user-facing skills rewritten from scratch. No alwaysApply, no old agent references, 4-agent model + 9-command surface in using-maxsim, suggestion-based see-also composition.
-- **Next Step:** Wave 1 complete (Plans 01+02). Proceed to Wave 2 (Plans 03+04: agents + workflow updates)
+- **Activity:** Executed Plan 04-03 (Agent Consolidation)
+- **Outcome:** Created 4 generic agent definitions (executor, planner, researcher, verifier), deleted 14 old maxsim-* agents, rewrote AGENTS.md as 4-agent registry. Fixed builtInSkills sync guard.
+- **Next Step:** Execute Plan 04-04 (Workflow updates for 4-agent model)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -86,4 +88,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 04-02 complete)*
+*Last updated: 2026-03-10 (plan 04-03 complete)*
