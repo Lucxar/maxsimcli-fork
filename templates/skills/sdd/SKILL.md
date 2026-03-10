@@ -1,84 +1,66 @@
 ---
 name: sdd
 description: >-
-  Executes plan tasks sequentially, each in a fresh subagent with minimal context,
-  with mandatory two-stage review between tasks. Use when executing sequential
-  tasks where context rot is a concern or running spec-driven dispatch.
+  Spec-driven development with fresh-agent-per-task execution. Prevents context
+  rot by isolating each task in a clean context window with its spec. Use when
+  executing multi-task plans, orchestrating agent work, or when context
+  accumulation degrades quality.
 ---
 
-# Spec-Driven Dispatch (SDD)
+# Spec-Driven Development (SDD)
 
-Execute tasks sequentially, each in a fresh subagent with clean context. Review every task before moving to the next.
+Execute tasks sequentially, each in a fresh agent with clean context. Verify every task before moving to the next.
 
-**HARD GATE** -- No task starts until the previous task passes two-stage review. If the review found issues, they must be fixed before the next task begins. No exceptions, no deferral, no skipping review for simple tasks.
+## Why SDD
 
-## Process
+Context rot is the primary failure mode for multi-task execution. As an agent processes more tasks, earlier context competes with later instructions. Quality degrades predictably after 3-5 tasks in a single context window. SDD solves this by giving each task a fresh context with only its specification.
+
+## The SDD Process
 
 ### 1. LOAD -- Read the Plan
 
 - Read the plan file (PLAN.md) to get the ordered task list
-- For each task, identify: description, acceptance criteria, relevant files
-- Confirm task order makes sense (later tasks may depend on earlier ones)
+- For each task: description, acceptance criteria, relevant files
+- Confirm task order respects dependencies
 
 ### 2. DISPATCH -- Spawn Fresh Agent Per Task
 
 For each task in order:
 
-1. Assemble the task context:
+1. Assemble minimal task context:
    - Task description and acceptance criteria from the plan
    - Only the files relevant to this specific task
    - Results from previous tasks (commit hashes, created files) -- NOT the full previous context
 2. Spawn a fresh agent with this minimal context
-3. The agent implements the task, runs tests, and commits
+3. The agent implements the task, runs verification, and commits
 
 ### 3. REVIEW -- Two-Stage Quality Gate
 
-After each task completes, run two review stages before proceeding:
+After each task completes:
 
-**Stage 1: Spec Compliance**
+**Stage 1: Spec Compliance** -- Does the implementation match the task spec? Are all acceptance criteria met? Were only specified files modified?
 
-- Does the implementation match the task description?
-- Are all acceptance criteria met?
-- Were only the specified files modified (no scope creep)?
-- Do the changes align with the plan's intent?
+**Stage 2: Code Quality** -- Are there bugs, edge cases, or error handling gaps? Is the code consistent with codebase conventions? Do all tests pass?
 
-Verdict: PASS or FAIL with specific issues.
-
-**Stage 2: Code Quality**
-
-- Are there obvious bugs, edge cases, or error handling gaps?
-- Is the code readable and consistent with codebase conventions?
-- Are there unnecessary complications or dead code?
-- Do all tests pass?
-
-Verdict: PASS or FAIL with specific issues.
+Verdict: PASS or FAIL with specific issues per stage.
 
 ### 4. FIX -- Address Review Failures
 
 If either review stage fails:
 
-1. Spawn a NEW fresh agent with the original task description, the review feedback, and the current file state
-2. The fix agent addresses ONLY the review issues -- no new features
-3. Re-run both review stages on the fixed code
-4. If 3 fix attempts fail: STOP and escalate to the user
+1. Spawn a NEW fresh agent with original task spec + review feedback + current file state
+2. Fix agent addresses ONLY the review issues -- no new features
+3. Re-run both review stages
+4. If 3 fix attempts fail: STOP and escalate
 
 ### 5. ADVANCE -- Move to Next Task
 
 Only after both review stages pass:
 
-- Record the task as complete
-- Note the commit hash and any files created or modified
-- Pass this minimal summary (not full context) to the next task's agent
+- Record task as complete with commit hash
+- Pass minimal summary (not full context) to the next task
 
-### 6. REPORT -- Final Summary
-
-After all tasks complete:
-
-- List each task with its status and commit hash
-- Note any tasks that required fix iterations
-- Summarize the total changes made
-
-## Context Management Rules
+## Context Management
 
 Each agent receives ONLY what it needs:
 
@@ -89,38 +71,21 @@ Each agent receives ONLY what it needs:
 | Previous task commit hashes | Always |
 | Previous task full diff | Never |
 | Previous task agent conversation | Never |
-| PROJECT.md / REQUIREMENTS.md | Only if task references project-level concerns |
 | Full codebase | Never -- only specified files |
 
 The point of SDD is fresh context. Loading the previous agent's full context defeats the purpose.
 
+## When to Use SDD
+
+- **Good fit:** Multi-task plans (3+ tasks), sequential work where each task builds on the previous, implementations where quality degrades over time
+- **Poor fit:** Single-task work, highly interactive tasks requiring user feedback, tasks that share significant overlapping context
+
 ## Common Pitfalls
 
-| Pitfall | Why it matters |
+| Pitfall | Why It Matters |
 |---|---|
-| Skipping review for simple tasks | Simple tasks still have bugs. Review takes seconds for simple code. |
-| Passing full context forward | Full context causes context rot. Minimal summaries keep agents effective. |
+| Skipping review for simple tasks | Simple tasks still have bugs. Review catches what the implementer missed. |
+| Passing full context forward | Full context causes the exact rot SDD is designed to prevent. |
 | Deferring fixes to the next task | The next task's agent does not know about the bug. Fix it now. |
-| Accumulating fix-later items across tasks | Each task must be clean before the next starts. |
 
-## Verification
-
-Before reporting completion, confirm:
-
-- [ ] Every task was executed by a fresh agent with minimal context
-- [ ] Every task passed both spec compliance and code quality review
-- [ ] No task was skipped or started before the previous task passed review
-- [ ] Fix iterations (if any) are documented
-- [ ] All tests pass after the final task
-- [ ] Summary includes per-task status and commit hashes
-
-## MAXSIM Integration
-
-When a plan specifies `skill: "sdd"`:
-
-- The orchestrator reads tasks from PLAN.md in order
-- Each task is dispatched to a fresh subagent
-- Two-stage review runs between every task
-- Failed reviews trigger fix agents (up to 3 attempts)
-- Progress is tracked in STATE.md via decision entries
-- Final results are recorded in SUMMARY.md
+See also: `/verification-before-completion` for the evidence-based verification methodology used within each SDD task.

@@ -1,18 +1,18 @@
 ---
 name: systematic-debugging
 description: >-
-  Investigates bugs through systematic root-cause analysis: reproduce, hypothesize,
-  isolate, verify, fix, confirm. Use when encountering any bug, test failure,
-  unexpected behavior, or error message.
+  Systematic debugging via reproduce-hypothesize-isolate-verify-fix cycle.
+  Requires evidence at each step. Use when investigating bugs, test failures,
+  unexpected behavior, or runtime errors.
 ---
 
 # Systematic Debugging
 
 Find the root cause first. Random fixes waste time and create new bugs.
 
-**HARD GATE -- No fix attempts without understanding root cause. If you have not completed the REPRODUCE and HYPOTHESIZE steps, you cannot propose a fix.**
+**No fix attempts without understanding root cause.** If you have not completed the REPRODUCE and HYPOTHESIZE steps, you cannot propose a fix.
 
-## Process
+## The 5-Step Process
 
 ### 1. REPRODUCE -- Confirm the Problem
 
@@ -52,6 +52,19 @@ Find the root cause first. Random fixes waste time and create new bugs.
 - Run the full test suite: no regressions.
 - Verify the original error no longer occurs.
 
+## Hypothesis Testing Protocol
+
+For each hypothesis:
+
+1. **Form:** "I think X is the root cause because Y."
+2. **Design test:** "If X is the cause, then changing Z should produce W."
+3. **Run test:** Execute the change and observe the result.
+4. **Evaluate:** Did the result match the prediction? If yes, proceed to FIX. If no, form a new hypothesis.
+
+## Escalation
+
+If 3+ fix attempts have failed, the issue is likely architectural. Document what you have tried (hypotheses tested, evidence gathered, fixes attempted) and escalate.
+
 ## Common Pitfalls
 
 | Excuse | Reality |
@@ -61,25 +74,6 @@ Find the root cause first. Random fixes waste time and create new bugs.
 | "Multiple changes at once saves time" | You cannot isolate what worked. You will create new bugs. |
 | "The issue is simple" | Simple bugs have root causes too. The process is fast for simple bugs. |
 
-Stop immediately if you catch yourself changing code before reproducing, proposing a fix before reading the full error, trying random fixes, or changing multiple things at once. If any of these triggers, return to step 1.
+Stop immediately if you catch yourself changing code before reproducing, proposing a fix before reading the full error, trying random fixes, or changing multiple things at once.
 
-If 3+ fix attempts have failed, the issue is likely architectural. Document what you have tried and escalate to the user.
-
-## Verification
-
-Before claiming a bug is fixed, confirm:
-
-- [ ] The original error has been reproduced reliably
-- [ ] Root cause has been identified with evidence (not guessed)
-- [ ] A failing test reproduces the bug
-- [ ] A single, targeted fix addresses the root cause
-- [ ] The failing test now passes
-- [ ] The full test suite passes (no regressions)
-- [ ] The original error no longer occurs when running the original steps
-
-## MAXSIM Integration
-
-When debugging during plan execution, MAXSIM deviation rules apply:
-- **Rule 1 (Auto-fix bugs):** You may auto-fix bugs found during execution, but you must still follow this debugging process.
-- **Rule 4 (Architectural changes):** If 3+ fix attempts fail, STOP and return a checkpoint -- this is an architectural decision for the user.
-- Track all debugging deviations for SUMMARY.md documentation.
+See also: `/verification-before-completion` for evidence-based confirmation after fixes.

@@ -1,18 +1,23 @@
 ---
 name: tdd
 description: >-
-  Enforces test-driven development with the Red-Green-Refactor cycle: write a
-  failing test first, implement minimal code to pass, then refactor. Use when
-  implementing features, fixing bugs, or adding new behavior.
+  Test-driven development with red-green-refactor cycle and atomic commits.
+  Write failing test first, then minimal passing code, then refactor. Use when
+  implementing business logic, API endpoints, data transformations, validation
+  rules, or algorithms.
 ---
 
 # Test-Driven Development (TDD)
 
 Write the test first. Watch it fail. Write minimal code to pass. Clean up.
 
-**HARD GATE: No implementation code without a failing test first. If you wrote production code before the test, delete it and start over. No exceptions.**
+## When to Use TDD
 
-## Process
+**Good fit:** Business logic with defined I/O, API endpoints with contracts, data transformations, validation rules, algorithms, state machines.
+
+**Poor fit:** UI layout, configuration files, build scripts, one-off scripts, mechanical renames.
+
+## The Red-Green-Refactor Cycle
 
 ### 1. RED -- Write One Failing Test
 
@@ -46,40 +51,27 @@ Write the test first. Watch it fail. Write minimal code to pass. Clean up.
 
 ### 6. REPEAT -- Next failing test for next behavior
 
+## Commit Pattern
+
+Each TDD cycle produces 2-3 atomic commits:
+
+- **RED commit:** `test({scope}): add failing test for [feature]`
+- **GREEN commit:** `feat({scope}): implement [feature]`
+- **REFACTOR commit (if changes made):** `refactor({scope}): clean up [feature]`
+
+## Context Budget
+
+TDD uses approximately 40% more context than direct implementation due to the RED-GREEN-REFACTOR overhead. Plan accordingly for long task lists.
+
 ## Common Pitfalls
 
-| Excuse | Why it fails |
+| Excuse | Why It Fails |
 |--------|-------------|
 | "Too simple to test" | Simple code breaks. The test takes 30 seconds. |
 | "I'll add tests after" | Tests written after pass immediately -- they prove nothing. |
 | "I know the code works" | Knowledge is not evidence. A passing test is evidence. |
 | "TDD is slower" | TDD is faster than debugging. Every skip creates debt. |
-| "Let me keep the code as reference" | You will adapt it instead of writing test-first. Delete means delete. |
 
-Stop immediately if you catch yourself:
+Stop immediately if you catch yourself writing implementation code before writing a test, writing a test that passes on the first run, skipping the VERIFY RED step, or adding features beyond what the current test requires.
 
-- Writing implementation code before writing a test
-- Writing a test that passes on the first run
-- Skipping the VERIFY RED step
-- Adding features beyond what the current test requires
-- Keeping pre-TDD code "as reference"
-
-## Verification
-
-Before claiming TDD compliance, confirm:
-
-- [ ] Every new function/method has a corresponding test
-- [ ] Each test was written BEFORE its implementation
-- [ ] Each test was observed to FAIL before implementation was written
-- [ ] Each test failed for the expected reason (missing behavior, not syntax error)
-- [ ] Minimal code was written to pass each test
-- [ ] All tests pass after implementation
-- [ ] Refactoring (if any) did not break any tests
-
-## MAXSIM Integration
-
-In MAXSIM plan execution, tasks marked `tdd="true"` follow this cycle with per-step commits:
-
-- **RED commit:** `test({phase}-{plan}): add failing test for [feature]`
-- **GREEN commit:** `feat({phase}-{plan}): implement [feature]`
-- **REFACTOR commit (if changes made):** `refactor({phase}-{plan}): clean up [feature]`
+See also: `/verification-before-completion` for evidence-based completion claims after TDD cycles.

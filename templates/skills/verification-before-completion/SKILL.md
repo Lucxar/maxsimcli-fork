@@ -1,27 +1,24 @@
 ---
 name: verification-before-completion
 description: >-
-  Requires running verification commands and reading actual output before making
-  any completion claims. Use when claiming work is done, tests pass, builds
-  succeed, or bugs are fixed. Prevents false completion claims.
+  Requires running verification commands and reading actual output before
+  completion claims. Covers the 5-step verification process and evidence block
+  format. Use when claiming work is done, tests pass, builds succeed, or bugs
+  are fixed.
 ---
 
 # Verification Before Completion
 
-Evidence before claims, always.
+Evidence before claims, always. No exceptions.
 
-**HARD GATE -- No completion claims without fresh verification evidence. If you have not run the verification command in this turn, you cannot claim it passes. "Should work" is not evidence. "I'm confident" is not evidence.**
-
-## Process
+## The 5-Step Process
 
 Before claiming any status or marking a task done:
 
 1. **IDENTIFY** -- What command proves this claim?
-2. **RUN** -- Execute the full command fresh in this turn (not a previous run)
+2. **RUN** -- Execute the command fresh in this turn (not a previous run)
 3. **READ** -- Read the full output, check the exit code, count failures
-4. **VERIFY** -- Does the output actually confirm the claim?
-   - If NO: state the actual status with evidence
-   - If YES: state the claim with the evidence
+4. **VERIFY** -- Does the output actually confirm the claim? If NO: state the actual status with evidence. If YES: proceed.
 5. **CLAIM** -- Only now may you assert completion
 
 ### Evidence Block Format
@@ -35,9 +32,9 @@ OUTPUT: [relevant excerpt of actual output]
 VERDICT: PASS | FAIL
 ```
 
-This format is required for task completion claims in MAXSIM plan execution. It is not required for intermediate status updates.
+This format is required for task completion claims in MAXSIM plan execution.
 
-### What Counts as Verification
+## What Counts as Verification
 
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
@@ -59,7 +56,7 @@ This format is required for task completion claims in MAXSIM plan execution. It 
 
 Stop if you catch yourself using "should", "probably", or "looks good" about unverified work, or expressing satisfaction before running verification.
 
-## Verification
+## Verification Checklist
 
 Before marking any work as complete:
 
@@ -71,13 +68,4 @@ Before marking any work as complete:
 - [ ] No "should", "probably", or "seems to" in your completion statement
 - [ ] Evidence block produced for the task completion claim
 
-## MAXSIM Integration
-
-The executor's task commit protocol requires verification before committing:
-
-1. Run the task's verify block (automated checks)
-2. Confirm the done criteria are met with evidence
-3. Produce an evidence block for the task completion
-4. Only then: stage files and commit
-
-The verifier agent independently re-checks all claims -- do not assume the verifier will catch what you missed.
+See also: `/verification-gates` for the full gate framework with retry logic and escalation protocol.
