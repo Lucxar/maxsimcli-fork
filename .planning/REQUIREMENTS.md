@@ -22,7 +22,7 @@ Lightweight requirements for rapid exploration.
 - [x] **CMD-02**: `/maxsim:plan [N]` -- state machine: discussion -> research -> planning
 - [x] **CMD-03**: `/maxsim:execute [N]` -- state machine: execute -> verify, with native parallel agents
 - [ ] **CMD-04**: `/maxsim:progress` -- status overview from GitHub Issues
-- [ ] **CMD-05**: `/maxsim:go` -- auto-detect and dispatch to the right command
+- [x] **CMD-05**: `/maxsim:go` -- auto-detect and dispatch to the right command
 - [ ] **CMD-06**: `/maxsim:debug` -- systematic debugging with persistent state
 - [ ] **CMD-07**: `/maxsim:quick` -- ad-hoc task with atomic commits
 - [ ] **CMD-08**: `/maxsim:settings` -- configuration management
@@ -83,7 +83,7 @@ Lightweight requirements for rapid exploration.
 | CMD-02 | Phase 3: Command Surface Simplification | Complete |
 | CMD-03 | Phase 3: Command Surface Simplification | Complete |
 | CMD-04 | Phase 3: Command Surface Simplification | Pending |
-| CMD-05 | Phase 3: Command Surface Simplification | Pending |
+| CMD-05 | Phase 3: Command Surface Simplification | Complete |
 | CMD-06 | Phase 3: Command Surface Simplification | Pending |
 | CMD-07 | Phase 3: Command Surface Simplification | Pending |
 | CMD-08 | Phase 3: Command Surface Simplification | Pending |
