@@ -1,19 +1,17 @@
 ---
 name: memory-management
-description: "Persists recurring patterns, error solutions, and architectural decisions to project memory files for cross-session continuity. Use when encountering the same error twice, making significant decisions, or discovering non-obvious conventions."
+description: >-
+  Pattern and error persistence across sessions. Defines what to persist, where
+  to store it, and when to capture. Use when encountering recurring patterns,
+  solving non-trivial problems, making architectural decisions, or discovering
+  environment-specific behaviors.
 ---
 
 # Memory Management
 
 Context dies with each session. Patterns discovered but not saved are patterns lost.
 
-**HARD GATE** -- If you encountered it twice, save it. You will encounter it again. "I'll remember" is a lie -- your context resets. Write it down. Violating this rule guarantees repeated mistakes across sessions.
-
-## Process
-
-### 1. Detect -- Recognize Save Triggers
-
-Save immediately when any of these occur:
+## What to Persist
 
 | Trigger | Threshold | What to Save |
 |---------|-----------|-------------|
@@ -24,87 +22,54 @@ Save immediately when any of these occur:
 | Workaround for tooling/framework quirk | Once | The quirk and the workaround |
 | Project-specific pattern confirmed | 2+ uses | The pattern and when to apply it |
 
-Do NOT save: session-specific context, information already in CLAUDE.md, speculative conclusions, temporary workarounds, or obvious patterns.
+**Do NOT save:** Session-specific context, information already in CLAUDE.md, speculative conclusions, temporary workarounds, or obvious patterns.
 
-### 2. Check -- Avoid Duplicates
+## Where to Store
 
-- Read existing memory files before writing
-- If the pattern is already documented, update it (do not duplicate)
-- If it contradicts existing memory, investigate which is correct
+| Location | Content | When Loaded |
+|----------|---------|-------------|
+| STATE.md | Project-level decisions, blockers, metrics | Every MAXSIM session |
+| CLAUDE.md | Project conventions, build commands, architecture | Every Claude Code session |
+| LESSONS.md | Cross-session codebase-specific lessons | MAXSIM execution startup |
 
-### 3. Write -- Persist the Memory
-
-Add to the appropriate topic file using this entry format:
+### Entry Format
 
 ```markdown
-## [Short descriptive title]
-
-**Context:** When this applies
-**Pattern/Error:** What was observed
-**Solution/Decision:** What to do about it
-**Evidence:** How this was confirmed (dates, occurrences, test results)
+- [YYYY-MM-DD] [{phase}-{plan}] {actionable lesson}
 ```
 
-### 4. Verify -- Confirm the Save
+For LESSONS.md entries. For STATE.md decisions, use the `state add-decision` tool.
 
-- Re-read the file to confirm the entry was written correctly
-- Ensure the entry is actionable (someone reading it can act on it immediately)
+## When to Persist
 
-## File Organization
+Persist at natural breakpoints:
 
-Memory files live in `.claude/memory/` (or the equivalent runtime memory directory).
-
-```
-.claude/memory/
-  MEMORY.md          # Index file -- always loaded into context
-  patterns.md        # Code patterns and conventions
-  errors.md          # Error patterns and solutions
-  architecture.md    # Architectural decisions and rationale
-  tooling.md         # Tool quirks and workarounds
-```
-
-- **MEMORY.md** is the index: keep it under 200 lines, link to topic files for details
-- Topic files hold detailed notes organized by subject
-- Use headers and bullet points for scannability
+- After resolving a non-trivial bug (save error pattern + fix)
+- After making an architectural decision (save decision + rationale)
+- After discovering a recurring pattern (save pattern + when to apply)
+- At checkpoints (save current understanding before context resets)
+- At session end (review what was learned, save anything missed)
 
 ## Error Escalation
 
 ```
 Error seen once     -- Note it, move on
-Error seen twice    -- Save to errors.md with pattern and fix
-Error seen 3+ times -- Save AND add to MEMORY.md index for immediate visibility
+Error seen twice    -- Save to LESSONS.md with pattern and fix
+Error seen 3+ times -- Save AND add to CLAUDE.md for immediate visibility
 ```
+
+## Process
+
+1. **DETECT** -- Recognize a save trigger from the table above
+2. **CHECK** -- Read existing memory files before writing to avoid duplicates
+3. **WRITE** -- Add the entry to the appropriate file
+4. **VERIFY** -- Re-read the file to confirm the entry was written correctly and is actionable
 
 ## Common Pitfalls
 
 - Encountering the same error a second time without saving it
 - Making the same architectural decision you made in a previous session
 - Debugging a problem you already solved before
-- Saying "I think we fixed this before" without finding the memory entry
 - Leaving a session without updating memory for patterns discovered
 
 If any of these occur: stop, write the memory entry now, then continue.
-
-## Verification
-
-Before ending a work session:
-
-- [ ] All errors encountered 2+ times are saved to `errors.md`
-- [ ] All significant decisions are saved to `architecture.md`
-- [ ] All discovered patterns are saved to `patterns.md`
-- [ ] MEMORY.md index is up to date
-- [ ] No duplicate entries were created
-- [ ] All entries follow the format (Context, Pattern, Solution, Evidence)
-
-## MAXSIM Integration
-
-During plan execution, agents load memory files at startup:
-- **Executor:** Reads MEMORY.md to avoid known pitfalls before implementing
-- **Researcher:** Saves findings to memory for future phases
-- **Debugger:** Checks error memories before starting investigation -- the fix may already be known
-
-Memory persistence happens at natural breakpoints:
-- After resolving a bug (save to errors.md)
-- After completing a phase (save patterns discovered)
-- After making an architectural decision (save to architecture.md)
-- At checkpoints (save current understanding before context resets)

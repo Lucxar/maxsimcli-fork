@@ -1,55 +1,38 @@
 ---
 name: maxsim-simplify
 description: >-
-  Maintainability optimization pass: finds duplication, dead code, and
-  unnecessary complexity. Answers "Is this code as simple as it can be?"
-  Use when reviewing code before committing, cleaning up implementations,
-  or preparing changes for review. Not a correctness gate — that is
-  code-review's job.
+  Maintainability optimization covering duplication, dead code, complexity, and
+  naming. Produces structured findings with before/after metrics. Use when
+  reviewing code for simplification, during refactoring passes, or when
+  codebase complexity is increasing.
 ---
 
 # Simplify
 
 Every line of code is a liability. Remove what does not earn its place.
 
-**HARD GATE**: No code ships without a simplification pass. If you have not checked for duplication, dead code, and unnecessary complexity, the change is not ready. "It works" is the starting point, not the finish line.
+## Scope
 
-## When to Use
+Only simplify touched files unless explicitly asked for broader refactoring. The goal is incremental maintainability improvement, not a codebase-wide rewrite.
 
-- After implementing a feature or fix, before committing
-- When preparing changes for code review
-- When cleaning up code that has grown organically over multiple iterations
-- When onboarding to a file and noticing accumulated complexity
+## Dimensions
 
-Do NOT use this skill when:
-- Making a hotfix where speed matters more than polish (file a follow-up instead)
-- The changes are purely mechanical (renames, formatting, dependency bumps)
-
-## Process
-
-### 1. DIFF — Identify What Changed
-
-- Collect the set of modified and added files
-- Read each file in full, not just the changed hunks
-- Note files that interact with the changes (callers, consumers, shared modules)
-
-### 2. DUPLICATION — Eliminate Repeated Logic
+### 1. DUPLICATION -- Eliminate Repeated Logic
 
 - Are there patterns repeated across files that should be a shared helper?
 - Does new code duplicate existing utilities or library functions?
 - Could two similar implementations be merged behind a single interface?
-- Is there copy-paste that should be refactored?
 
-**Rule of three**: If the same pattern appears three times, extract it.
+**Rule of three:** If the same pattern appears three times, extract it.
 
-### 3. DEAD CODE — Remove What Is Not Called
+### 2. DEAD CODE -- Remove What Is Not Called
 
 - Delete unused imports, variables, functions, and parameters
 - Remove commented-out code blocks (version control is the archive)
 - Strip unreachable branches and impossible conditions
-- Drop feature flags and configuration for features that no longer exist
+- Drop feature flags for features that no longer exist
 
-### 4. COMPLEXITY — Question Every Abstraction
+### 3. COMPLEXITY -- Question Every Abstraction
 
 - Does every wrapper, adapter, or indirection layer justify its existence?
 - Are there generics or parametrization that serve only one concrete case?
@@ -58,86 +41,50 @@ Do NOT use this skill when:
 
 **If removing it does not break anything, it should not be there.**
 
-### 5. CLARITY — Tighten Naming and Structure
+### 4. NAMING -- Tighten Clarity
 
 - Are names self-documenting? Rename anything that needs a comment to explain.
 - Could nested logic be flattened with early returns?
 - Is control flow straightforward, or does it require tracing to understand?
-- Are there layers of indirection that obscure the data path?
 
-### 6. REVIEW — Final Sanity Check
+## Process
 
-- Re-read the simplified code end to end
-- Confirm all tests still pass
-- Verify no behavioral changes were introduced (simplify, do not alter)
+1. **DIFF** -- Collect the set of modified and added files. Read each file in full, not just changed hunks.
+2. **SCAN** -- Check each dimension (duplication, dead code, complexity, naming) against each file.
+3. **RECORD** -- Document findings with file path, line range, dimension, and suggested fix.
+4. **FIX** -- Apply fixes for all actionable items. Blocker and High priority first.
+5. **VERIFY** -- Re-run tests to confirm nothing broke. Simplify, do not alter behavior.
 
-## Parallel 3-Reviewer Pattern
+## Output Format
 
-When invoked as part of the execute-phase cycle, simplification runs as three parallel review agents, each focused on one dimension.
+```
+DIMENSION: [Duplication | Dead Code | Complexity | Naming]
+FILE: [path]
+FINDING: [description]
+SEVERITY: [Blocker | High | Medium]
+FIX: [what was done or recommended]
+```
 
-### Reviewer 1: Code Reuse
+## Common Rationalizations -- Reject These
 
-- Scan all changed files for duplicated patterns
-- Cross-reference against existing shared utilities and helpers
-- Flag any logic that appears three or more times without extraction
-- **Output**: List of reuse opportunities with file paths and line ranges
-
-### Reviewer 2: Code Quality
-
-- Check for dead code: unused imports, unreachable branches, commented blocks
-- Verify naming consistency with codebase conventions
-- Flag unnecessary abstractions, wrappers, and indirection
-- **Output**: List of quality issues categorized by severity
-
-### Reviewer 3: Efficiency
-
-- Identify over-engineered solutions (parametrization serving one case, generic interfaces with one implementor)
-- Flag defensive programming that guards impossible conditions
-- Check for configuration and feature flags that serve no current purpose
-- **Output**: List of efficiency issues with suggested removals
-
-### Consolidation
-
-After all three reviewers complete:
-1. Merge findings into a deduplicated list
-2. Apply fixes for all actionable items (BLOCKER and HIGH priority first)
-3. Re-run tests to confirm nothing broke
-4. Report status: CLEAN (nothing found), FIXED (issues resolved), or BLOCKED (cannot simplify without architectural changes)
-
-## Common Rationalizations — REJECT THESE
-
-| Excuse | Why It Violates the Rule |
-|--------|--------------------------|
+| Excuse | Why It Fails |
+|--------|-------------|
 | "It might be needed later" | Delete it. Re-adding is cheaper than maintaining unused code. |
-| "The abstraction makes it extensible" | Extensibility that serves no current requirement is dead weight. |
+| "The abstraction makes it extensible" | Extensibility serving no current requirement is dead weight. |
 | "Refactoring is risky" | Small, tested simplifications reduce risk. Accumulated complexity increases it. |
 | "I'll clean it up later" | Later never comes. Simplify now while context is fresh. |
 
-## Red Flags — STOP If You Catch Yourself:
+Stop if you catch yourself skipping the simplification pass because the diff is small, keeping dead code "just in case", or adding complexity during a simplification pass.
 
-- Skipping the simplification pass because the diff is small
-- Keeping dead code "just in case"
-- Adding complexity during a simplification pass
-- Merging without having read the full file (not just changed lines)
+## Verification
 
-**If any red flag triggers: STOP. Complete the simplification cycle before proceeding.**
+Before reporting completion:
 
-## Verification Checklist
-
-Before reporting completion, confirm:
-
-- [ ] All changed files were reviewed in full (not just diffs)
+- [ ] All changed files reviewed in full (not just diffs)
 - [ ] No duplicated logic remains that appears three or more times
 - [ ] No dead code: unused imports, commented blocks, unreachable branches
 - [ ] No unnecessary abstractions, wrappers, or indirection layers
 - [ ] All tests pass after simplification
-- [ ] No behavioral changes were introduced (simplify only, do not alter)
+- [ ] No behavioral changes introduced (simplify only, do not alter)
 
-## MAXSIM Integration
-
-When a plan specifies `skill: "maxsim-simplify"`:
-- The orchestrator collects changed files from the implementation step
-- Three parallel reviewers (Reuse, Quality, Efficiency) are spawned
-- Findings are consolidated and fixes applied
-- Progress is tracked in STATE.md via decision entries
-- Final results are recorded in SUMMARY.md
+See also: `/code-review` for correctness review (security, interfaces, error handling, test coverage).

@@ -1,90 +1,86 @@
 ---
 name: maxsim-batch
 description: >-
-  Decomposes large tasks into independent units and executes each in an isolated
-  git worktree with its own branch and PR. Use when parallelizing work across
-  3-30 independent units or orchestrating worktree-based parallel execution. Not
-  for sequential dependencies or fewer than 3 units.
+  Parallel worktree execution for independent work units. Isolates agents in
+  separate git worktrees for conflict-free parallel implementation. Use when
+  executing multiple independent plans, batch processing, or parallelizable
+  tasks.
 ---
 
-# Batch Worktree
+# Batch Worktree Execution
 
-Decompose large tasks into independent units, execute each in an isolated worktree, and produce one PR per unit.
+Decompose large tasks into independent units and execute each in an isolated git worktree.
 
-**HARD GATE: Every unit must be independently mergeable. If merging unit A would break the build without unit B, they are not independent. Combine them or serialize them. No exceptions.**
+## When to Use
+
+- 3 or more independent work units with no shared file modifications
+- Tasks that can be verified independently (each unit's tests pass without the others)
+- Parallelizable implementation where speed matters
+
+**Do not use for:** Fewer than 3 units (overhead not worth it), sequential dependencies, tasks that modify the same files.
 
 ## Process
 
-### 1. Research -- Analyze and Decompose
+### 1. DECOMPOSE -- Analyze Independence
 
-List all units with a one-line description each. For each unit, list the files it will create or modify. Verify no file appears in more than one unit. If overlap exists, merge the overlapping units into one or extract shared code into a prerequisite unit that runs first.
+List all units with a one-line description each. For each unit, list the files it will create or modify. Verify:
 
-For each pair of units, confirm:
-- No shared file modifications
+- No file appears in more than one unit
 - No runtime dependency (unit A output is not unit B input)
-- Each unit's tests pass without the other unit's changes
+- Each unit's tests pass without the other units' changes
 
-If validation fails, redesign the decomposition before proceeding.
+If overlap exists, merge overlapping units or extract shared code into a prerequisite unit that runs first.
 
-### 2. Plan -- Define Unit Specifications
+### 2. PLAN -- Define Unit Specifications
 
-For each unit, prepare a specification containing:
+For each unit, prepare:
+
 - Unit description and acceptance criteria
 - The list of files it owns (and only those files)
 - The base branch to branch from
-- Instructions to implement, test, commit, push, and create a PR
+- Instructions: implement, test, commit, push, create PR
 
-Record the decomposition decision:
+### 3. SPAWN -- Create Worktree Per Unit
 
-```
-node .claude/maxsim/bin/maxsim-tools.cjs state-add-decision "Batch decomposition: N units identified, no file overlap confirmed"
-```
+For each unit, create an isolated worktree and spawn an agent. Each agent works independently: read source, implement changes, run tests, commit, push, create PR.
 
-### 3. Spawn -- Create Worktree Per Unit
+### 4. TRACK -- Monitor Progress
 
-For each unit, create an isolated worktree and spawn an agent with `isolation: "worktree"`. Each agent receives its unit specification and works independently through: read relevant source, implement changes, run tests, commit, push, create PR.
-
-### 4. Track -- Monitor Progress
-
-Maintain a status table and update it as agents report back:
+Maintain a status table:
 
 | # | Unit | Status | PR |
 |---|------|--------|----|
 | 1 | description | done | #123 |
 | 2 | description | in-progress | -- |
-| 3 | description | failed | -- |
 
-Statuses: `pending`, `in-progress`, `done`, `failed`, `needs-review`
+Statuses: `pending`, `in-progress`, `done`, `failed`
 
-Failure handling:
+### 5. MERGE -- Collect Results
+
+When all units complete, list all created PRs. Handle failures:
+
 - Unit fails tests: spawn a fix agent in the same worktree
-- Merge conflict: decomposition was wrong, fix overlap and re-run unit
-- Agent times out: re-spawn with the same unit description
-- 3+ failures on same unit: stop and escalate to user
+- Merge conflict: decomposition was wrong -- fix overlap and re-run unit
+- 3+ failures on same unit: stop and escalate
 
-When all units complete, list all created PRs and flag any failed units with error summaries. If any unit failed, spawn a fix agent for that unit only.
+## Limits
+
+- Up to 30 parallel agents, but typically 3-10 for manageable coordination
+- Fast-forward merge preferred, rebase if needed
+- Each unit must be independently mergeable
 
 ## Common Pitfalls
 
 - "The overlap is minor" -- Minor overlap causes merge conflicts. Split shared code into a prerequisite unit.
 - "We'll merge in the right order" -- Order-dependent merges are not independent. Serialize those units.
-- "Only 2 units, let's still use worktrees" -- Worktree overhead is not worth it for fewer than 3 units. Use sequential execution.
+- "Only 2 units, let's still use worktrees" -- Worktree overhead is not worth it for fewer than 3 units.
 
 ## Verification
 
-Before reporting completion, confirm:
+Before reporting completion:
 
-- [ ] All units were verified to touch non-overlapping files
+- [ ] All units touch non-overlapping files
 - [ ] Each unit was implemented in an isolated worktree
 - [ ] Each unit's tests pass independently
 - [ ] Each unit has its own PR
 - [ ] No PR depends on another PR being merged first
-- [ ] Status table is complete with all PR links
-
-## MAXSIM Integration
-
-When a plan specifies `skill: "maxsim-batch"`:
-- The orchestrator decomposes the plan's tasks into independent units
-- Each unit becomes a worktree agent with its own branch and PR
-- The orchestrator tracks progress and reports the final PR list in SUMMARY.md
-- Failed units are retried once before escalating
