@@ -9,7 +9,7 @@
 
 **Milestone:** v5.0 -- MAXSIM Simplification & GitHub-Native Architecture
 **Phase:** 5 (Parallel Execution Model)
-**Plan:** 05-01 complete (worktree CLI infrastructure)
+**Plan:** 05-03 complete (worktree batch execution integration)
 **Status:** In progress
 
 ## Progress
@@ -17,7 +17,7 @@
 | Metric | Value |
 |--------|-------|
 | Phases Complete | 2/6 |
-| Plans Complete | 18 |
+| Plans Complete | 19 |
 | Plans Failed | 0 |
 | Blockers | 0 |
 
@@ -57,6 +57,7 @@
 - [Phase 05]: SUMMARY.md template enhanced with Review Cycle (Attempts/Duration/Findings) and Requirement Evidence sections
 - [Phase 05]: Worktree commands as sub-handler (worktree create/list/cleanup); decide-execution-mode and validate-plan-independence as top-level commands
 - [Phase 05]: Review sub-config deep-merged in loadConfig so partial user overrides work without losing defaults
+- [Phase 05]: Batch execution path gated by EXECUTION_MODE variable; worktree cleanup after each wave; agents constrained from metadata modification
 
 ### Known Issues
 
@@ -83,9 +84,9 @@ None currently.
 
 ### Last Session
 - **Date:** 2026-03-10
-- **Activity:** Executed Plan 05-01 (Worktree CLI infrastructure and parallel execution types)
-- **Outcome:** Created worktree.ts module (411 lines, 7 core functions), added 8 new types to types.ts, extended config/init/CLI with worktree and review settings. 2 tasks, 7 files changed. Foundation for Wave 2 workflow integration.
-- **Next Step:** Continue Phase 5 Wave 2 plans (05-03, 05-04, 05-05)
+- **Activity:** Executed Plan 05-03 (Worktree batch execution integration into execute-phase workflow)
+- **Outcome:** Added decide_execution_mode step and dual-path execute_waves (batch/standard) to execute-phase.md. Updated execute.md workflow and command with --worktrees/--no-worktrees flag support. 2 tasks, 3 files modified.
+- **Next Step:** Continue Phase 5 Wave 2 plans (05-04, 05-05)
 
 ### Recovery Instructions
 1. Read `.planning/ROADMAP.md` for phase structure and dependencies
@@ -95,4 +96,4 @@ None currently.
 
 ---
 *State initialized: 2026-03-09*
-*Last updated: 2026-03-10 (plan 05-01 complete)*
+*Last updated: 2026-03-10 (plan 05-03 complete)*
