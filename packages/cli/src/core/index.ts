@@ -211,6 +211,9 @@ export type {
   KeyLinksResult,
   ConsistencyResult,
   HealthResult,
+  RequirementExistenceResult,
+  RequirementStatusResult,
+  EvidenceCompletenessResult,
 } from './verify.js';
 
 export {
@@ -221,8 +224,14 @@ export {
   cmdVerifyCommits,
   cmdVerifyArtifacts,
   cmdVerifyKeyLinks,
+  cmdValidateRequirementExistence,
+  cmdValidateRequirementStatus,
+  cmdValidateEvidenceCompleteness,
   cmdValidateConsistency,
   cmdValidateHealth,
+  validateRequirementExistence,
+  validateRequirementStatus,
+  validateEvidenceCompleteness,
 } from './verify.js';
 
 // Drift exports

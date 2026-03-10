@@ -598,6 +598,188 @@ export async function cmdVerifyKeyLinks(cwd: string, planFilePath: string | null
   return cmdOk(linksResult, verified === results.length ? 'valid' : 'invalid');
 }
 
+// ─── Requirement Validation ──────────────────────────────────────────────────
+
+export interface RequirementExistenceResult {
+  valid: boolean;
+  missing: string[];
+  found: string[];
+}
+
+export interface RequirementStatusResult {
+  valid: boolean;
+  already_complete: string[];
+  pending: string[];
+}
+
+export interface EvidenceCompletenessResult {
+  valid: boolean;
+  missing_evidence: string[];
+  has_evidence: string[];
+}
+
+/**
+ * Gate G1: Validate that all requirement IDs from a plan's frontmatter exist in REQUIREMENTS.md.
+ * Parses REQUIREMENTS.md for **{ID}**: patterns and checks each reqId is present.
+ */
+export async function validateRequirementExistence(
+  cwd: string,
+  reqIds: string[],
+): Promise<RequirementExistenceResult> {
+  const reqPath = planningPath(cwd, 'REQUIREMENTS.md');
+  const content = await safeReadFile(reqPath);
+  if (!content) {
+    return { valid: false, missing: reqIds, found: [] };
+  }
+
+  // Parse all requirement IDs from REQUIREMENTS.md (pattern: **{ID}**)
+  const idPattern = /\*\*([A-Z]+-\d+)\*\*/g;
+  const existingIds = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = idPattern.exec(content)) !== null) {
+    existingIds.add(m[1]);
+  }
+
+  const found: string[] = [];
+  const missing: string[] = [];
+  for (const id of reqIds) {
+    const trimmed = id.trim();
+    if (!trimmed) continue;
+    if (existingIds.has(trimmed)) {
+      found.push(trimmed);
+    } else {
+      missing.push(trimmed);
+    }
+  }
+
+  return { valid: missing.length === 0, missing, found };
+}
+
+export async function cmdValidateRequirementExistence(
+  cwd: string,
+  reqIds: string[],
+): Promise<CmdResult> {
+  if (!reqIds || reqIds.length === 0) {
+    return cmdErr('At least one requirement ID required');
+  }
+  const result = await validateRequirementExistence(cwd, reqIds);
+  return cmdOk(result, result.valid ? 'valid' : 'invalid');
+}
+
+/**
+ * Gate G2: Validate that requirement IDs are not already marked Complete in REQUIREMENTS.md.
+ * Checks checkbox status: [x] = complete, [ ] = pending.
+ */
+export async function validateRequirementStatus(
+  cwd: string,
+  reqIds: string[],
+): Promise<RequirementStatusResult> {
+  const reqPath = planningPath(cwd, 'REQUIREMENTS.md');
+  const content = await safeReadFile(reqPath);
+  if (!content) {
+    return { valid: true, already_complete: [], pending: reqIds };
+  }
+
+  // Parse lines to find checkbox + requirement ID patterns
+  // Pattern: - [x] **ID**: or - [ ] **ID**:
+  const lines = content.split('\n');
+  const statusMap = new Map<string, boolean>();
+  for (const line of lines) {
+    const match = line.match(/^-\s*\[([ xX])\]\s*\*\*([A-Z]+-\d+)\*\*/);
+    if (match) {
+      const isComplete = match[1].toLowerCase() === 'x';
+      statusMap.set(match[2], isComplete);
+    }
+  }
+
+  const already_complete: string[] = [];
+  const pending: string[] = [];
+  for (const id of reqIds) {
+    const trimmed = id.trim();
+    if (!trimmed) continue;
+    if (statusMap.get(trimmed) === true) {
+      already_complete.push(trimmed);
+    } else {
+      pending.push(trimmed);
+    }
+  }
+
+  return { valid: already_complete.length === 0, already_complete, pending };
+}
+
+export async function cmdValidateRequirementStatus(
+  cwd: string,
+  reqIds: string[],
+): Promise<CmdResult> {
+  if (!reqIds || reqIds.length === 0) {
+    return cmdErr('At least one requirement ID required');
+  }
+  const result = await validateRequirementStatus(cwd, reqIds);
+  return cmdOk(result, result.valid ? 'valid' : 'invalid');
+}
+
+/**
+ * Gate G6: Validate that SUMMARY.md has evidence for each requirement ID.
+ * Parses the ## Requirement Evidence section table rows and checks Status != UNMET.
+ */
+export async function validateEvidenceCompleteness(
+  summaryPath: string,
+  reqIds: string[],
+): Promise<EvidenceCompletenessResult> {
+  const content = await safeReadFile(summaryPath);
+  if (!content) {
+    return { valid: false, missing_evidence: reqIds, has_evidence: [] };
+  }
+
+  // Find the ## Requirement Evidence section
+  const sectionMatch = content.match(/##\s*Requirement Evidence[\s\S]*?(?=\n##\s|\n---|\z)/);
+  if (!sectionMatch) {
+    return { valid: false, missing_evidence: reqIds, has_evidence: [] };
+  }
+
+  const section = sectionMatch[0];
+
+  // Parse table rows for requirement IDs and their status
+  // Table format: | REQ-ID | evidence text | MET/PARTIAL/UNMET |
+  const evidenceIds = new Map<string, string>();
+  const rowPattern = /\|\s*([A-Z]+-\d+)\s*\|[^|]*\|\s*(\w+)\s*\|/g;
+  let rm: RegExpExecArray | null;
+  while ((rm = rowPattern.exec(section)) !== null) {
+    evidenceIds.set(rm[1], rm[2].toUpperCase());
+  }
+
+  const has_evidence: string[] = [];
+  const missing_evidence: string[] = [];
+  for (const id of reqIds) {
+    const trimmed = id.trim();
+    if (!trimmed) continue;
+    const status = evidenceIds.get(trimmed);
+    if (status && status !== 'UNMET') {
+      has_evidence.push(trimmed);
+    } else {
+      missing_evidence.push(trimmed);
+    }
+  }
+
+  return { valid: missing_evidence.length === 0, missing_evidence, has_evidence };
+}
+
+export async function cmdValidateEvidenceCompleteness(
+  cwd: string,
+  summaryFilePath: string | null,
+  reqIds: string[],
+): Promise<CmdResult> {
+  if (!summaryFilePath) {
+    return cmdErr('summary file path required');
+  }
+  if (!reqIds || reqIds.length === 0) {
+    return cmdErr('At least one requirement ID required');
+  }
+  const fullPath = path.isAbsolute(summaryFilePath) ? summaryFilePath : path.join(cwd, summaryFilePath);
+  const result = await validateEvidenceCompleteness(fullPath, reqIds);
+  return cmdOk(result, result.valid ? 'valid' : 'invalid');
+}
+
 // ─── Validate Consistency ────────────────────────────────────────────────────
 
 export async function cmdValidateConsistency(cwd: string): Promise<CmdResult> {

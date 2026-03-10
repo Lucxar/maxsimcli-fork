@@ -59,6 +59,9 @@ import {
   cmdVerifyCommits,
   cmdVerifyArtifacts,
   cmdVerifyKeyLinks,
+  cmdValidateRequirementExistence,
+  cmdValidateRequirementStatus,
+  cmdValidateEvidenceCompleteness,
   cmdValidateConsistency,
   cmdValidateHealth,
   cmdPhasesList,
@@ -242,10 +245,13 @@ const handleVerify: Handler = async (args, cwd, raw) => {
     'commits': async () => handleResult(await cmdVerifyCommits(cwd, args.slice(2)), raw),
     'artifacts': async () => handleResult(await cmdVerifyArtifacts(cwd, args[2]), raw),
     'key-links': async () => handleResult(await cmdVerifyKeyLinks(cwd, args[2]), raw),
+    'requirement-existence': async () => handleResult(await cmdValidateRequirementExistence(cwd, args.slice(2)), raw),
+    'requirement-status': async () => handleResult(await cmdValidateRequirementStatus(cwd, args.slice(2)), raw),
+    'evidence-completeness': async () => handleResult(await cmdValidateEvidenceCompleteness(cwd, args[2], args.slice(3)), raw),
   };
   const handler = sub ? handlers[sub] : undefined;
   if (handler) return handler();
-  error('Unknown verify subcommand. Available: plan-structure, phase-completeness, references, commits, artifacts, key-links');
+  error('Unknown verify subcommand. Available: plan-structure, phase-completeness, references, commits, artifacts, key-links, requirement-existence, requirement-status, evidence-completeness');
 };
 
 const handlePhases: Handler = async (args, cwd, raw) => {
