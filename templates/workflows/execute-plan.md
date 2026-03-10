@@ -131,6 +131,42 @@ cat .planning/phases/XX-name/{phase}-{plan}-PLAN.md
 This IS the execution instructions. Follow exactly. If plan references CONTEXT.md: honor user's vision throughout.
 </step>
 
+<step name="pre_execution_gates">
+Validate requirements before execution. These gates ensure spec-driven development.
+
+**Gate G1: Requirement Existence** — All requirement IDs from the plan's frontmatter must exist in REQUIREMENTS.md.
+
+```bash
+# Extract requirement IDs from plan frontmatter
+REQ_IDS=$(grep "^requirements:" "$PLAN_PATH" | sed 's/requirements:\s*\[//;s/\]//;s/,/ /g;s/"//g;s/'\''//g' | tr -s ' ')
+if [ -n "$REQ_IDS" ]; then
+  G1_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs verify requirement-existence $REQ_IDS)
+  G1_VALID=$(echo "$G1_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).valid))")
+  if [ "$G1_VALID" != "true" ]; then
+    G1_MISSING=$(echo "$G1_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).missing.join(', ')))")
+    echo "GATE G1 FAILED: Requirements not found in REQUIREMENTS.md: $G1_MISSING"
+    echo "Fix: Add missing requirements to REQUIREMENTS.md or update plan frontmatter."
+    # STOP execution — this is a hard gate
+  fi
+fi
+```
+
+**Gate G2: Requirement Status** — Requirement IDs must not already be marked Complete.
+
+```bash
+if [ -n "$REQ_IDS" ]; then
+  G2_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs verify requirement-status $REQ_IDS)
+  G2_VALID=$(echo "$G2_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).valid))")
+  if [ "$G2_VALID" != "true" ]; then
+    G2_COMPLETE=$(echo "$G2_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).already_complete.join(', ')))")
+    echo "GATE G2 WARNING: Requirements already marked complete: $G2_COMPLETE"
+    echo "This plan may be re-implementing completed work. Proceeding with warning."
+    # WARNING only — log but continue (re-execution scenarios are valid)
+  fi
+fi
+```
+</step>
+
 <step name="previous_phase_check">
 ```bash
 node ~/.claude/maxsim/bin/maxsim-tools.cjs phases list --type summaries --raw
@@ -784,6 +820,26 @@ Record review results in SUMMARY.md under a `## Review Cycle` section:
 Update the SUMMARY.md commit after the review cycle completes:
 ```bash
 node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): add review cycle results" --files {phase_dir}/{phase}-{plan}-SUMMARY.md
+```
+</step>
+
+<step name="evidence_gate">
+**Gate G6: Evidence Completeness** — SUMMARY.md must have evidence for each requirement.
+
+After the review cycle and before committing metadata, validate that the SUMMARY.md contains requirement evidence for all requirements in the plan's frontmatter.
+
+```bash
+if [ -n "$REQ_IDS" ]; then
+  SUMMARY_PATH=".planning/phases/XX-name/{phase}-{plan}-SUMMARY.md"
+  G6_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs verify evidence-completeness "$SUMMARY_PATH" $REQ_IDS)
+  G6_VALID=$(echo "$G6_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).valid))")
+  if [ "$G6_VALID" != "true" ]; then
+    G6_MISSING=$(echo "$G6_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).missing_evidence.join(', ')))")
+    echo "GATE G6: Missing requirement evidence for: $G6_MISSING"
+    echo "Add Requirement Evidence rows to SUMMARY.md for these requirements before proceeding."
+    # Present as warning with instruction to fix — executor should add evidence
+  fi
+fi
 ```
 </step>
 

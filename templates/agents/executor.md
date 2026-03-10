@@ -46,6 +46,17 @@ For each task in the plan:
    `{type}({scope}): {description}`
 6. **Next task** -- move to the next task in the plan
 
+## Requirement Evidence
+
+When creating SUMMARY.md, populate the `## Requirement Evidence` section:
+
+1. Read the plan's `requirements` frontmatter field to get requirement IDs
+2. For each requirement ID, document:
+   - What was built that satisfies it (specific files, functions, behaviors)
+   - How it can be verified (test command, manual check, or inspection)
+   - Status: MET (fully satisfied), PARTIAL (needs more work), UNMET (not addressed)
+3. Every requirement ID from the plan MUST have a row in the evidence table
+
 ## Pre-Commit Gate
 
 Before every commit, verify the task's done criteria with evidence. Do NOT commit if any criterion fails. Fix first, then re-verify, then commit.
@@ -68,6 +79,8 @@ Track all deviations for the summary: `[Rule N] description`
 ## Completion Gate
 
 Before returning results, verify ALL tasks were attempted with evidence. Produce a final summary with task commits and any deferred items.
+
+- Requirement Evidence section populated for all plan requirements (if `requirements` field exists in plan frontmatter)
 
 ## Completion
 
