@@ -1,745 +1,350 @@
 /**
- * GitHub Issues — Issue CRUD, lifecycle, batch operations, and branch naming
+ * GitHub Issues — Phase CRUD, task sub-issues, plan comments, close/reopen
  *
- * Provides all issue-related operations: creating task issues with full spec bodies,
- * parent tracking issues with live task lists, todo issues, comments, close/reopen,
- * import external issues, supersession handling, and branch naming.
+ * Uses Octokit REST API for all operations. Phase Issues have YAML frontmatter
+ * bodies. Tasks are linked as native sub-issues via GitHub's sub-issues API.
+ * Plans are posted as structured comments on phase Issues.
  *
- * Uses `ghExec` from gh.ts for all GitHub CLI operations.
- * Uses mapping.ts for persisting issue-to-task associations.
- *
- * CRITICAL: `gh issue create` does NOT support --format json.
- *   Parse the URL from stdout to extract issue number.
+ * CRITICAL: Uses `child.data.id` (internal numeric ID) for sub-issue linking,
+ *   NOT `child.data.number` (human-readable number).
+ * CRITICAL: Never import from gh-legacy.js — use client.ts exclusively.
  * CRITICAL: Never call process.exit() — return GhResult instead.
- * CRITICAL: Never import octokit or any npm GitHub SDK.
  */
 
 import type { GhResult } from './types.js';
-import { ghExec } from './gh-legacy.js';
-import { loadMapping, saveMapping } from './mapping.js';
+import { getOctokit, getRepoInfo, withGhResult } from './client.js';
 
-// ---- Helpers ---------------------------------------------------------------
-
-/**
- * Parse an issue number from a `gh issue create` stdout URL.
- *
- * `gh issue create` outputs a URL like:
- *   https://github.com/owner/repo/issues/42\n
- *
- * We trim whitespace and extract the last path segment as the issue number.
- */
-function parseIssueNumberFromUrl(stdout: string): number | null {
-  const trimmed = stdout.trim();
-  const lastSegment = trimmed.split('/').pop();
-  if (!lastSegment) return null;
-  const num = parseInt(lastSegment, 10);
-  return Number.isNaN(num) ? null : num;
-}
+// ---- Phase Issue Creation ---------------------------------------------------
 
 /**
- * After creating an issue (parsed number from URL), fetch its node_id
- * via `gh issue view {number} --json nodeId,number,url`.
- */
-async function fetchIssueDetails(
-  issueNumber: number,
-): Promise<GhResult<{ number: number; url: string; node_id: string }>> {
-  const result = await ghExec<{ nodeId: string; number: number; url: string }>(
-    ['issue', 'view', String(issueNumber), '--json', 'nodeId,number,url'],
-    { parseJson: true },
-  );
-
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-
-  return {
-    ok: true,
-    data: {
-      number: result.data.number,
-      url: result.data.url,
-      node_id: result.data.nodeId,
-    },
-  };
-}
-
-// ---- Issue Creation Functions -----------------------------------------------
-
-/**
- * Create a task issue with full specification body in collapsible details section.
+ * Create a GitHub Issue for a MAXSIM phase.
  *
- * Title format: `[P{phaseNum}] {title}`
- * Body includes summary, actions, acceptance criteria, dependencies in `<details>`.
- * Labels: maxsim, phase-task.
+ * Title: `[Phase {phaseNum}] {phaseName}`
+ * Body: YAML frontmatter (in ```yaml code fence) + human-readable sections.
+ * Label: `phase`
  *
- * Returns the issue number, URL, and node_id.
+ * Returns both `number` (for display/API) and `id` (for sub-issue linking).
  */
-export async function createTaskIssue(opts: {
-  title: string;
-  phaseNum: string;
-  planNum: string;
-  taskId: string;
-  summary: string;
-  actions: string[];
-  acceptanceCriteria: string[];
-  dependencies?: number[];
-  milestone?: string;
-  projectTitle?: string;
-  labels?: string[];
-  estimate?: number;
-}): Promise<GhResult<{ number: number; url: string; node_id: string }>> {
-  const issueTitle = `[P${opts.phaseNum}] ${opts.title}`;
+export async function createPhaseIssue(
+  phaseNum: string,
+  phaseName: string,
+  goal: string,
+  requirements: string[],
+  successCriteria: string[],
+): Promise<GhResult<{ number: number; id: number }>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  // Build the issue body with collapsible details section
-  const depsSection =
-    opts.dependencies && opts.dependencies.length > 0
-      ? `\n### Dependencies\nDepends on: ${opts.dependencies.map(d => `#${d}`).join(', ')}\n`
-      : '';
+    const title = `[Phase ${phaseNum}] ${phaseName}`;
 
-  const estimateSection =
-    opts.estimate !== undefined ? `\n### Estimate\n${opts.estimate} points\n` : '';
+    // Build YAML frontmatter block
+    const reqYaml = requirements.length > 0
+      ? `\n${requirements.map(r => `  - ${r}`).join('\n')}`
+      : ' []';
 
-  const body = `## Summary
-${opts.summary}
+    const frontmatter = [
+      '```yaml',
+      `phase_number: "${phaseNum}"`,
+      `requirements:${reqYaml}`,
+      'dependencies: []',
+      "status: 'to-do'",
+      '```',
+    ].join('\n');
 
-<details>
-<summary>Full Specification</summary>
+    // Build human-readable sections
+    const reqSection = requirements.length > 0
+      ? requirements.map(r => `- ${r}`).join('\n')
+      : '_None specified_';
 
-### Actions
-${opts.actions.map(a => `- ${a}`).join('\n')}
+    const criteriaSection = successCriteria.length > 0
+      ? successCriteria.map(c => `- [ ] ${c}`).join('\n')
+      : '_None specified_';
 
-### Acceptance Criteria
-${opts.acceptanceCriteria.map(c => `- [ ] ${c}`).join('\n')}
-${depsSection}${estimateSection}
-</details>
+    const body = `${frontmatter}
+
+## Goal
+
+${goal}
+
+## Requirements
+
+${reqSection}
+
+## Success Criteria
+
+${criteriaSection}
 
 ---
-*Phase: ${opts.phaseNum} | Plan: ${opts.planNum} | Task: ${opts.taskId}*
 *Generated by MAXSIM*`;
 
-  // Build gh issue create args
-  const args: string[] = ['issue', 'create', '--title', issueTitle, '--body', body];
+    const response = await octokit.rest.issues.create({
+      owner,
+      repo,
+      title,
+      body,
+      labels: ['phase'],
+    });
 
-  // Always add maxsim and phase-task labels
-  args.push('--label', 'maxsim');
-  args.push('--label', 'phase-task');
+    return {
+      number: response.data.number,
+      id: response.data.id,
+    };
+  });
+}
 
-  // Add any additional labels
-  if (opts.labels) {
-    for (const label of opts.labels) {
-      args.push('--label', label);
+// ---- Task Sub-Issue Creation ------------------------------------------------
+
+/**
+ * Create a task sub-issue and link it to a parent phase Issue.
+ *
+ * Title: `[P{phaseNum}] {title}`
+ * Label: `task`
+ * Body: passed as-is (caller formats it).
+ *
+ * After creation, links the new issue as a sub-issue of the parent via
+ * GitHub's native sub-issues API. Uses `child.data.id` (internal ID),
+ * NOT `child.data.number`.
+ *
+ * If sub-issue linking fails, attempts cleanup by closing the orphan issue.
+ */
+export async function createTaskSubIssue(
+  phaseNum: string,
+  taskId: string,
+  title: string,
+  body: string,
+  parentIssueNumber: number,
+): Promise<GhResult<{ number: number; id: number }>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
+
+    const issueTitle = `[P${phaseNum}] ${title}`;
+
+    // Create the child issue
+    const child = await octokit.rest.issues.create({
+      owner,
+      repo,
+      title: issueTitle,
+      body,
+      labels: ['task'],
+    });
+
+    // Link as sub-issue using the internal `id` (NOT `number`)
+    try {
+      await (octokit.rest.issues as any).addSubIssue({
+        owner,
+        repo,
+        issue_number: parentIssueNumber,
+        sub_issue_id: child.data.id,
+      });
+    } catch (linkError: unknown) {
+      // Sub-issue linking failed — attempt cleanup by closing the orphan
+      try {
+        await octokit.rest.issues.update({
+          owner,
+          repo,
+          issue_number: child.data.number,
+          state: 'closed',
+          state_reason: 'not_planned' as any,
+        });
+      } catch {
+        // Cleanup failed — orphan issue will remain open
+      }
+
+      const message = linkError instanceof Error ? linkError.message : String(linkError);
+      throw new Error(
+        `Created issue #${child.data.number} but failed to link as sub-issue: ${message}. ` +
+        `Orphan issue has been closed.`
+      );
     }
-  }
 
-  // Optional milestone
-  if (opts.milestone) {
-    args.push('--milestone', opts.milestone);
-  }
-
-  // Optional project
-  if (opts.projectTitle) {
-    args.push('--project', opts.projectTitle);
-  }
-
-  // Create the issue — stdout is a URL, NOT JSON
-  const createResult = await ghExec<string>(args);
-  if (!createResult.ok) return { ok: false, error: createResult.error, code: createResult.code };
-
-  // Parse issue number from URL
-  const issueNumber = parseIssueNumberFromUrl(createResult.data);
-  if (issueNumber === null) {
     return {
-      ok: false,
-      error: `Failed to parse issue number from gh output: ${createResult.data}`,
-      code: 'UNKNOWN',
+      number: child.data.number,
+      id: child.data.id,
     };
-  }
-
-  // Fetch node_id via separate gh issue view call
-  return fetchIssueDetails(issueNumber);
+  });
 }
 
+// ---- Plan Comments ----------------------------------------------------------
+
 /**
- * Create a parent tracking issue for a phase with a live checkbox task list.
+ * Post a structured plan comment on a phase Issue.
  *
- * Title format: `[Phase {phaseNum}] {phaseName}`
- * Body includes task list with checkbox links: `- [ ] #{childNumber}`
- * Labels: maxsim, phase-task.
+ * Comment body: `## Plan {planNumber}\n\n{planContent}\n\n---\n*Posted by MAXSIM*`
  */
-export async function createParentTrackingIssue(opts: {
-  phaseNum: string;
-  phaseName: string;
-  childIssueNumbers: number[];
-  milestone?: string;
-  projectTitle?: string;
-}): Promise<GhResult<{ number: number; url: string; node_id: string }>> {
-  const issueTitle = `[Phase ${opts.phaseNum}] ${opts.phaseName}`;
+export async function postPlanComment(
+  phaseIssueNumber: number,
+  planNumber: string,
+  planContent: string,
+): Promise<GhResult<{ commentId: number }>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  const taskList = opts.childIssueNumbers.map(n => `- [ ] #${n}`).join('\n');
+    const commentBody = `## Plan ${planNumber}\n\n${planContent}\n\n---\n*Posted by MAXSIM*`;
 
-  const body = `## Phase ${opts.phaseNum}: ${opts.phaseName}
+    const response = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: phaseIssueNumber,
+      body: commentBody,
+    });
 
-### Tasks
-${taskList}
-
----
-*Phase tracking issue -- Generated by MAXSIM*`;
-
-  const args: string[] = ['issue', 'create', '--title', issueTitle, '--body', body];
-  args.push('--label', 'maxsim');
-  args.push('--label', 'phase-task');
-
-  if (opts.milestone) {
-    args.push('--milestone', opts.milestone);
-  }
-
-  if (opts.projectTitle) {
-    args.push('--project', opts.projectTitle);
-  }
-
-  const createResult = await ghExec<string>(args);
-  if (!createResult.ok) return { ok: false, error: createResult.error, code: createResult.code };
-
-  const issueNumber = parseIssueNumberFromUrl(createResult.data);
-  if (issueNumber === null) {
-    return {
-      ok: false,
-      error: `Failed to parse issue number from gh output: ${createResult.data}`,
-      code: 'UNKNOWN',
-    };
-  }
-
-  return fetchIssueDetails(issueNumber);
+    return { commentId: response.data.id };
+  });
 }
 
-/**
- * Create a todo issue with a lighter body (no collapsible details section).
- *
- * Labels: maxsim, todo.
- */
-export async function createTodoIssue(opts: {
-  title: string;
-  description?: string;
-  acceptanceCriteria?: string[];
-  milestone?: string;
-  projectTitle?: string;
-}): Promise<GhResult<{ number: number; url: string; node_id: string }>> {
-  let body = '';
-
-  if (opts.description) {
-    body += `${opts.description}\n`;
-  }
-
-  if (opts.acceptanceCriteria && opts.acceptanceCriteria.length > 0) {
-    body += `\n### Acceptance Criteria\n`;
-    body += opts.acceptanceCriteria.map(c => `- [ ] ${c}`).join('\n');
-    body += '\n';
-  }
-
-  body += `\n---\n*Generated by MAXSIM*`;
-
-  const args: string[] = ['issue', 'create', '--title', opts.title, '--body', body];
-  args.push('--label', 'maxsim');
-  args.push('--label', 'todo');
-
-  if (opts.milestone) {
-    args.push('--milestone', opts.milestone);
-  }
-
-  if (opts.projectTitle) {
-    args.push('--project', opts.projectTitle);
-  }
-
-  const createResult = await ghExec<string>(args);
-  if (!createResult.ok) return { ok: false, error: createResult.error, code: createResult.code };
-
-  const issueNumber = parseIssueNumberFromUrl(createResult.data);
-  if (issueNumber === null) {
-    return {
-      ok: false,
-      error: `Failed to parse issue number from gh output: ${createResult.data}`,
-      code: 'UNKNOWN',
-    };
-  }
-
-  return fetchIssueDetails(issueNumber);
-}
-
-// ---- Utility Functions (pure/simple) ----------------------------------------
+// ---- Issue Lifecycle --------------------------------------------------------
 
 /**
- * Get the branch name for an issue.
+ * Close an issue. Optionally post a reason comment before closing.
  *
- * Format: `maxsim/issue-{issueNumber}-{slug}`
- * Pure function, no async needed.
- */
-export function getIssueBranchName(issueNumber: number, slug: string): string {
-  return `maxsim/issue-${issueNumber}-${slug}`;
-}
-
-/**
- * Build a PR description body with `Closes #{N}` lines for auto-close on merge (AC-08).
- *
- * This function is called by `mcp_create_pr` in Plan 04's github-tools.ts.
- */
-export function buildPrBody(closesIssues: number[], additionalContent?: string): string {
-  const closesLines = closesIssues.map(n => `Closes #${n}`).join('\n');
-  const content = additionalContent ? `\n\n${additionalContent}` : '';
-  return `${closesLines}${content}`;
-}
-
-// ---- Lifecycle Functions ----------------------------------------------------
-
-/**
- * Close an issue with an optional reason.
- *
- * Reason defaults to 'completed' if not specified.
+ * Uses `state_reason: 'completed'` by default.
  */
 export async function closeIssue(
   issueNumber: number,
-  reason?: 'completed' | 'not_planned',
+  reason?: string,
 ): Promise<GhResult<void>> {
-  const args: string[] = ['issue', 'close', String(issueNumber)];
-  if (reason) {
-    args.push('--reason', reason);
-  }
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  const result = await ghExec<string>(args);
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  return { ok: true, data: undefined };
+    // If a reason is provided, post it as a comment before closing
+    if (reason) {
+      await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        body: reason,
+      });
+    }
+
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      state: 'closed',
+      state_reason: 'completed' as any,
+    });
+  });
 }
 
 /**
  * Reopen a closed issue.
  */
 export async function reopenIssue(issueNumber: number): Promise<GhResult<void>> {
-  const result = await ghExec<string>(['issue', 'reopen', String(issueNumber)]);
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  return { ok: true, data: undefined };
-}
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-/**
- * Close an issue as superseded by a newer issue.
- *
- * 1. Posts "Superseded by #{newIssueNumber}" comment on old issue
- * 2. Adds 'superseded' label to old issue
- * 3. Closes old issue as completed
- * 4. Posts "Replaces #{oldIssueNumber}" comment on new issue
- *
- * Creates bidirectional cross-references.
- */
-export async function closeIssueAsSuperseded(
-  oldIssueNumber: number,
-  newIssueNumber: number,
-): Promise<GhResult<void>> {
-  // 1. Post cross-reference comment on old issue
-  const commentResult = await postComment(
-    oldIssueNumber,
-    `Superseded by #${newIssueNumber}`,
-  );
-  if (!commentResult.ok) return { ok: false, error: commentResult.error, code: commentResult.code };
-
-  // 2. Add superseded label
-  const labelResult = await ghExec<string>([
-    'issue',
-    'edit',
-    String(oldIssueNumber),
-    '--add-label',
-    'superseded',
-  ]);
-  if (!labelResult.ok) return { ok: false, error: labelResult.error, code: labelResult.code };
-
-  // 3. Close old issue
-  const closeResult = await closeIssue(oldIssueNumber, 'completed');
-  if (!closeResult.ok) return closeResult;
-
-  // 4. Post cross-reference comment on new issue
-  const replaceCommentResult = await postComment(
-    newIssueNumber,
-    `Replaces #${oldIssueNumber}`,
-  );
-  if (!replaceCommentResult.ok) return { ok: false, error: replaceCommentResult.error, code: replaceCommentResult.code };
-
-  return { ok: true, data: undefined };
-}
-
-/**
- * Post a comment on an issue.
- */
-export async function postComment(
-  issueNumber: number,
-  body: string,
-): Promise<GhResult<void>> {
-  const result = await ghExec<string>([
-    'issue',
-    'comment',
-    String(issueNumber),
-    '--body',
-    body,
-  ]);
-  if (!result.ok) return { ok: false, error: result.error, code: result.code };
-  return { ok: true, data: undefined };
-}
-
-// ---- Import Function --------------------------------------------------------
-
-/**
- * Import an existing external GitHub issue into MAXSIM tracking.
- *
- * Reads the issue details and adds 'maxsim' and 'imported' labels.
- * Returns the issue details for the AI to decide placement.
- */
-export async function importExternalIssue(
-  issueNumber: number,
-): Promise<GhResult<{ number: number; title: string; labels: string[] }>> {
-  // Fetch issue details
-  const viewResult = await ghExec<{
-    title: string;
-    labels: Array<{ name: string }>;
-    body: string;
-    state: string;
-  }>(['issue', 'view', String(issueNumber), '--json', 'title,labels,body,state'], {
-    parseJson: true,
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      state: 'open',
+    });
   });
-
-  if (!viewResult.ok) return { ok: false, error: viewResult.error, code: viewResult.code };
-
-  // Add maxsim and imported labels
-  const labelResult = await ghExec<string>([
-    'issue',
-    'edit',
-    String(issueNumber),
-    '--add-label',
-    'maxsim,imported',
-  ]);
-  if (!labelResult.ok) return { ok: false, error: labelResult.error, code: labelResult.code };
-
-  const existingLabels = viewResult.data.labels.map(l => l.name);
-  const allLabels = Array.from(new Set([...existingLabels, 'maxsim', 'imported']));
-
-  return {
-    ok: true,
-    data: {
-      number: issueNumber,
-      title: viewResult.data.title,
-      labels: allLabels,
-    },
-  };
 }
 
-// ---- Parent Tracking Update -------------------------------------------------
+// ---- Issue Fetch ------------------------------------------------------------
 
 /**
- * Update the parent tracking issue's task list checkbox.
+ * Fetch a single issue by number.
  *
- * Reads the parent issue body, finds `- [ ] #{childNumber}` or `- [x] #{childNumber}`,
- * toggles the checkbox, and updates the issue body via `gh issue edit`.
+ * Returns number, id, title, state, and body.
  */
-export async function updateParentTaskList(
-  parentIssueNumber: number,
-  childIssueNumber: number,
-  checked: boolean,
-): Promise<GhResult<void>> {
-  // Read current body
-  const viewResult = await ghExec<{ body: string }>(
-    ['issue', 'view', String(parentIssueNumber), '--json', 'body'],
-    { parseJson: true },
-  );
+export async function getPhaseIssue(
+  phaseIssueNumber: number,
+): Promise<GhResult<{ number: number; id: number; title: string; state: string; body: string }>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  if (!viewResult.ok) return { ok: false, error: viewResult.error, code: viewResult.code };
-
-  const currentBody = viewResult.data.body;
-
-  // Build regex to match either checked or unchecked state for this child issue
-  const checkboxPattern = new RegExp(
-    `- \\[([ x])\\] #${childIssueNumber}\\b`,
-    'g',
-  );
-
-  const newCheckState = checked ? 'x' : ' ';
-  const updatedBody = currentBody.replace(checkboxPattern, `- [${newCheckState}] #${childIssueNumber}`);
-
-  if (updatedBody === currentBody) {
-    // No matching task list entry found -- not necessarily an error
-    return { ok: true, data: undefined };
-  }
-
-  // Update the issue body
-  const editResult = await ghExec<string>([
-    'issue',
-    'edit',
-    String(parentIssueNumber),
-    '--body',
-    updatedBody,
-  ]);
-
-  if (!editResult.ok) return { ok: false, error: editResult.error, code: editResult.code };
-  return { ok: true, data: undefined };
-}
-
-// ---- Batch Operations -------------------------------------------------------
-
-/**
- * Create all issues for a plan at once (eager creation on plan finalization).
- *
- * 1. Creates all task issues with concurrency limit of 5 (rate limit safety).
- * 2. After all task issues created, creates parent tracking issue.
- * 3. Updates mapping file for all created issues.
- * 4. Returns parent issue number and all task issue numbers.
- *
- * Handles partial failures: continues batch, reports which failed.
- */
-export async function createAllPlanIssues(opts: {
-  phaseNum: string;
-  planNum: string;
-  phaseName: string;
-  tasks: Array<{
-    taskId: string;
-    title: string;
-    summary: string;
-    actions: string[];
-    acceptanceCriteria: string[];
-    dependencies?: string[];
-    estimate?: number;
-  }>;
-  milestone?: string;
-  projectTitle?: string;
-  cwd: string;
-}): Promise<
-  GhResult<{
-    parentIssue: number;
-    taskIssues: Array<{ taskId: string; issueNumber: number }>;
-  }>
-> {
-  const BATCH_SIZE = 5;
-  const results: Array<{ taskId: string; issueNumber: number; nodeId: string }> = [];
-  const failures: Array<{ taskId: string; error: string }> = [];
-
-  // Process tasks in batches of 5 for rate limit safety
-  for (let i = 0; i < opts.tasks.length; i += BATCH_SIZE) {
-    const batch = opts.tasks.slice(i, i + BATCH_SIZE);
-
-    const batchPromises = batch.map(async task => {
-      // Resolve task dependencies to issue numbers from already-created issues
-      let depIssueNumbers: number[] | undefined;
-      if (task.dependencies && task.dependencies.length > 0) {
-        depIssueNumbers = task.dependencies
-          .map(depId => {
-            const found = results.find(r => r.taskId === depId);
-            return found ? found.issueNumber : 0;
-          })
-          .filter(n => n > 0);
-      }
-
-      const result = await createTaskIssue({
-        title: task.title,
-        phaseNum: opts.phaseNum,
-        planNum: opts.planNum,
-        taskId: task.taskId,
-        summary: task.summary,
-        actions: task.actions,
-        acceptanceCriteria: task.acceptanceCriteria,
-        dependencies: depIssueNumbers,
-        milestone: opts.milestone,
-        projectTitle: opts.projectTitle,
-        estimate: task.estimate,
-      });
-
-      return { taskId: task.taskId, result };
+    const response = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: phaseIssueNumber,
     });
 
-    const batchResults = await Promise.all(batchPromises);
-
-    for (const { taskId, result } of batchResults) {
-      if (result.ok) {
-        results.push({
-          taskId,
-          issueNumber: result.data.number,
-          nodeId: result.data.node_id,
-        });
-      } else {
-        failures.push({ taskId, error: result.error });
-      }
-    }
-  }
-
-  // If ALL tasks failed, return error
-  if (results.length === 0) {
     return {
-      ok: false,
-      error: `All task issue creations failed: ${failures.map(f => `${f.taskId}: ${f.error}`).join('; ')}`,
-      code: 'UNKNOWN',
+      number: response.data.number,
+      id: response.data.id,
+      title: response.data.title,
+      state: response.data.state,
+      body: response.data.body ?? '',
     };
-  }
-
-  // Create parent tracking issue with all child issue numbers
-  const childNumbers = results.map(r => r.issueNumber);
-  const parentResult = await createParentTrackingIssue({
-    phaseNum: opts.phaseNum,
-    phaseName: opts.phaseName,
-    childIssueNumbers: childNumbers,
-    milestone: opts.milestone,
-    projectTitle: opts.projectTitle,
   });
-
-  if (!parentResult.ok) {
-    return {
-      ok: false,
-      error: `Task issues created but parent tracking issue failed: ${parentResult.error}`,
-      code: parentResult.code,
-    };
-  }
-
-  // Update mapping file for all created issues
-  const mapping = loadMapping(opts.cwd);
-  if (mapping) {
-    // Ensure phase entry exists
-    if (!mapping.phases[opts.phaseNum]) {
-      mapping.phases[opts.phaseNum] = {
-        tracking_issue: { number: 0, node_id: '', item_id: '', status: 'To Do' },
-        plan: '',
-        tasks: {},
-      };
-    }
-
-    // Update parent tracking issue
-    mapping.phases[opts.phaseNum].tracking_issue = {
-      number: parentResult.data.number,
-      node_id: parentResult.data.node_id,
-      item_id: '',
-      status: 'To Do',
-    };
-    mapping.phases[opts.phaseNum].plan = `${opts.phaseNum}-${opts.planNum}`;
-
-    // Update each task issue
-    for (const r of results) {
-      mapping.phases[opts.phaseNum].tasks[r.taskId] = {
-        number: r.issueNumber,
-        node_id: r.nodeId,
-        item_id: '',
-        status: 'To Do',
-      };
-    }
-
-    saveMapping(opts.cwd, mapping);
-  }
-
-  // Build result with failure info if partial
-  const taskIssues = results.map(r => ({ taskId: r.taskId, issueNumber: r.issueNumber }));
-
-  return {
-    ok: true,
-    data: {
-      parentIssue: parentResult.data.number,
-      taskIssues,
-    },
-  };
 }
 
 /**
- * Supersede old plan's issues when a plan is re-planned (fresh issues per plan).
+ * List all sub-issues of a phase Issue.
  *
- * 1. Load mapping to find old plan's issue numbers.
- * 2. For each old issue, close as superseded with cross-reference to new issue.
- * 3. Close old parent tracking issue as superseded.
- * 4. Update mapping: mark old entries, add new entries.
+ * Uses GitHub's native sub-issues API.
+ * Returns each sub-issue's number, id, title, and state.
  */
-export async function supersedePlanIssues(opts: {
-  phaseNum: string;
-  oldPlanNum: string;
-  newPlanNum: string;
-  newIssueNumbers: Array<{ taskId: string; issueNumber: number }>;
-  cwd: string;
-}): Promise<GhResult<void>> {
-  const mapping = loadMapping(opts.cwd);
-  if (!mapping) {
-    return {
-      ok: false,
-      error: 'github-issues.json does not exist. Run project setup first.',
-      code: 'NOT_FOUND',
-    };
-  }
+export async function listPhaseSubIssues(
+  phaseIssueNumber: number,
+): Promise<GhResult<Array<{ number: number; id: number; title: string; state: string }>>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  const phase = mapping.phases[opts.phaseNum];
-  if (!phase) {
-    return {
-      ok: false,
-      error: `No phase ${opts.phaseNum} found in mapping file`,
-      code: 'NOT_FOUND',
-    };
-  }
+    const response = await (octokit.rest.issues as any).listSubIssues({
+      owner,
+      repo,
+      issue_number: phaseIssueNumber,
+    });
 
-  // Check that this is the old plan
-  const currentPlan = phase.plan;
-  const expectedOldPlan = `${opts.phaseNum}-${opts.oldPlanNum}`;
-  if (currentPlan !== expectedOldPlan) {
-    return {
-      ok: false,
-      error: `Phase ${opts.phaseNum} is on plan '${currentPlan}', expected '${expectedOldPlan}'`,
-      code: 'UNKNOWN',
-    };
-  }
+    const subIssues = (response.data as any[]).map((issue: any) => ({
+      number: issue.number as number,
+      id: issue.id as number,
+      title: issue.title as string,
+      state: issue.state as string,
+    }));
 
-  const failures: string[] = [];
+    return subIssues;
+  });
+}
 
-  // Supersede each old task issue with corresponding new issue
-  const oldTasks = Object.entries(phase.tasks);
-  for (const [taskId, oldTask] of oldTasks) {
-    // Find the corresponding new issue for this task
-    const newIssue = opts.newIssueNumbers.find(n => n.taskId === taskId);
-    if (!newIssue) {
-      // No corresponding new issue — just close the old one
-      const closeResult = await closeIssue(oldTask.number, 'completed');
-      if (!closeResult.ok) {
-        failures.push(`close task ${taskId} (#${oldTask.number}): ${closeResult.error}`);
-      }
-      continue;
-    }
+// ---- Completion Comment -----------------------------------------------------
 
-    const supersedeResult = await closeIssueAsSuperseded(
-      oldTask.number,
-      newIssue.issueNumber,
-    );
-    if (!supersedeResult.ok) {
-      failures.push(
-        `supersede task ${taskId} (#${oldTask.number} -> #${newIssue.issueNumber}): ${supersedeResult.error}`,
-      );
-    }
-  }
+/**
+ * Post a structured completion comment on an issue.
+ *
+ * Includes the commit SHA and list of files changed.
+ * Satisfies CONTEXT.md decision: "Each completed task gets a completion comment."
+ */
+export async function postCompletionComment(
+  issueNumber: number,
+  commitSha: string,
+  filesChanged: string[],
+): Promise<GhResult<{ commentId: number }>> {
+  return withGhResult(async () => {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
 
-  // Close old parent tracking issue
-  if (phase.tracking_issue.number > 0) {
-    // Find any new parent issue number (if available) for cross-reference
-    // The new parent will be created separately, so we just close the old one
-    const closeResult = await closeIssue(phase.tracking_issue.number, 'completed');
-    if (!closeResult.ok) {
-      failures.push(
-        `close parent tracking issue #${phase.tracking_issue.number}: ${closeResult.error}`,
-      );
-    }
-  }
+    const fileList = filesChanged.length > 0
+      ? filesChanged.map(f => `- \`${f}\``).join('\n')
+      : '_No files changed_';
 
-  // Update mapping: update the plan reference
-  phase.plan = `${opts.phaseNum}-${opts.newPlanNum}`;
+    const commentBody = `## Task Completed
 
-  // Clear old task entries and add new ones
-  phase.tasks = {};
-  for (const newIssue of opts.newIssueNumbers) {
-    phase.tasks[newIssue.taskId] = {
-      number: newIssue.issueNumber,
-      node_id: '',
-      item_id: '',
-      status: 'To Do',
-    };
-  }
+**Commit:** \`${commitSha}\`
 
-  saveMapping(opts.cwd, mapping);
+### Files Changed
+${fileList}
 
-  if (failures.length > 0) {
-    // Partial failure: mapping updated but some GitHub operations failed
-    return {
-      ok: false,
-      error: `Partial failure during supersession: ${failures.join('; ')}`,
-      code: 'UNKNOWN',
-    };
-  }
+---
+*Completion recorded by MAXSIM*`;
 
-  return { ok: true, data: undefined };
+    const response = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: commentBody,
+    });
+
+    return { commentId: response.data.id };
+  });
 }
