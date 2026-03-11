@@ -286,6 +286,12 @@ After all waves complete:
 Proceeding to verification...
 ```
 
+**Move phase issue to "In Review" on GitHub (WIRE-08):**
+```
+mcp_move_issue(issue_number: phase_issue_number, status: "In Review")
+```
+This signals all tasks are complete and the phase is awaiting verification. The phase moves to "Done" only after verification passes.
+
 Wait for user confirmation before proceeding to verification.
 
 ## 5. Auto-Verify
@@ -513,7 +519,8 @@ Display final results:
 - [ ] Spot-check reads summary comments and checks sub-issue closure instead of local SUMMARY.md
 - [ ] Gate confirmation shown after execution completes
 - [ ] Auto-verification spawns verifier agent that posts to GitHub
-- [ ] Phase issue moved to Done on verification pass
+- [ ] Phase issue moved to "In Review" after all tasks complete (before verification)
+- [ ] Phase issue moved to "Done" on verification pass
 - [ ] Retry loop with gap closure (max 2 retries, 3 total attempts)
 - [ ] Checkpoint-before-clear posts to GitHub issue
 - [ ] No references to old SUMMARY.md local file checks for completion detection

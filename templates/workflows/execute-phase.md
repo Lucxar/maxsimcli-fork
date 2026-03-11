@@ -552,6 +552,12 @@ If any plan has unresolved BLOCKED/FAIL status: list the blocking issues below.]
 [Aggregate from summary comments, or "None"]
 ```
 
+**Move phase issue to "In Review" on GitHub (WIRE-08):**
+All tasks are complete — move the phase to "In Review" before running verification:
+```
+mcp_move_issue(issue_number: phase_issue_number, status: "In Review")
+```
+
 **Phase completion gate:** If any plan has unresolved review issues (BLOCKED or FAIL in Spec Review or Code Review stages), the phase CANNOT proceed to `verify_phase_goal`. Present unresolved issues and offer:
 - "Fix review issues now" — re-run the review cycle for affected plans
 - "Override and continue" — mark as acknowledged, proceed (adds warning to VERIFICATION.md)
