@@ -1,3 +1,51 @@
+# [4.9.0](https://github.com/maystudios/maxsimcli/compare/v4.8.0...v4.9.0) (2026-03-11)
+
+
+### Bug Fixes
+
+* **04-02:** adjust roadmap-writing description line break for trigger matching ([db7117e](https://github.com/maystudios/maxsimcli/commit/db7117edd5e37e759aa22baf19860cbf801b2c4f))
+* **04-03:** add 8 internal skills to builtInSkills array ([5717cbd](https://github.com/maystudios/maxsimcli/commit/5717cbd9f7071eec8a788005dc3e51838761aec6))
+* **04-05:** update remaining old agent names in templates ([ba4e42e](https://github.com/maystudios/maxsimcli/commit/ba4e42ef6505ac68707cd995a55448e3936548a9))
+* **05-04:** fix evidence section regex for end-of-file matching ([3660c07](https://github.com/maystudios/maxsimcli/commit/3660c0743e1136f743146c93f54d765f8bf641d5))
+* **hooks:** wire backup into install flow, fix spawn pattern and stale comment ([44764d5](https://github.com/maystudios/maxsimcli/commit/44764d58c59385665c63464a1c0d0c33d68ccacc))
+* **tests:** update stale file count assertions in E2E install tests ([e81b420](https://github.com/maystudios/maxsimcli/commit/e81b42007d4b702ce4996412f51a4cc377c0ee90))
+
+
+### Features
+
+* **03-01:** create /maxsim:plan command template and thin orchestrator workflow ([051ea00](https://github.com/maystudios/maxsimcli/commit/051ea000c8c66d31962bfeb28b306679030ae693))
+* **03-01:** create plan stage sub-workflows for discussion, research, and planning ([252cdac](https://github.com/maystudios/maxsimcli/commit/252cdac1da8e6e1a9d8de30e95968056a061fdab))
+* **03-02:** create unified /maxsim:init command and thin router workflow ([446490b](https://github.com/maystudios/maxsimcli/commit/446490ba0d9cf3132613b4a9e05b09671626b48b))
+* **03-03:** create /maxsim:execute command template and state-machine workflow ([d5b915c](https://github.com/maystudios/maxsimcli/commit/d5b915c447e1842ba6de3401cc842126021699e2))
+* **03-04:** create /maxsim:go auto-detection command and workflow ([d501f16](https://github.com/maystudios/maxsimcli/commit/d501f16450f865f366d06dbf11e7567650f8bbca))
+* **03-04:** rewrite /maxsim:help for 9-command surface ([f37fbd9](https://github.com/maystudios/maxsimcli/commit/f37fbd99a77a55d30a4dade7ddf93ab4b5868922))
+* **03-05:** enhance /maxsim:quick with todo capture mode ([0f8170d](https://github.com/maystudios/maxsimcli/commit/0f8170dbe329a8b5da23359ebf834bd17645a7fc))
+* **03-05:** enhance progress and settings with absorbed capabilities ([41e0bd8](https://github.com/maystudios/maxsimcli/commit/41e0bd8ee6f353c8343f694d393e3ddb74ceaf15))
+* **03-06:** delete 33 old command files and 21 obsolete workflow files ([fb7bf84](https://github.com/maystudios/maxsimcli/commit/fb7bf8417fb12c8b8164b7666500eb9e295544bd))
+* **03-08:** add orphan cleanup for deleted v5.0 command and workflow files ([80e3e92](https://github.com/maystudios/maxsimcli/commit/80e3e92888fd619f7aa9fada15cc8b44b5047b62))
+* **04-01:** create 8 internal skills with native Claude Code frontmatter ([d081eed](https://github.com/maystudios/maxsimcli/commit/d081eed91ea794e9584d77e0e64a7519d14cada5))
+* **04-01:** create always-loaded rules for conventions and verification protocol ([eec12f5](https://github.com/maystudios/maxsimcli/commit/eec12f5142547f77b118de732379e6425086bb92))
+* **04-02:** rewrite 5 remaining user-facing skills for new architecture ([1a04f87](https://github.com/maystudios/maxsimcli/commit/1a04f879ee09032d9f0a0fcf8611db34f3f3c8b5))
+* **04-02:** rewrite 6 core user-facing skills for new architecture ([90aae27](https://github.com/maystudios/maxsimcli/commit/90aae27cd32da32d6506e7e99e0419f262e45090))
+* **04-03:** create 4 generic agent definitions ([80af42e](https://github.com/maystudios/maxsimcli/commit/80af42ec7db474f8469e2ceac97a2674c3adfe3e))
+* **04-03:** delete 14 old agents and rewrite AGENTS.md registry ([b42c7f4](https://github.com/maystudios/maxsimcli/commit/b42c7f4babe0af5788bf9c3b5bbd4324823bfc55))
+* **04-04:** consolidate CLI agent types from 12 to 4 ([a2e5c46](https://github.com/maystudios/maxsimcli/commit/a2e5c464070b3421570a8580bd75d01a416d4ea0))
+* **04-04:** update all workflow files to use 4-agent model names ([2c81d3f](https://github.com/maystudios/maxsimcli/commit/2c81d3f06fa902beb65c24782a4b17308342fec7))
+* **05-01:** add worktree types and lifecycle management module ([d81bc25](https://github.com/maystudios/maxsimcli/commit/d81bc25881591172dee07b726882d8a36ef2b926))
+* **05-01:** extend config, init context, and CLI with worktree commands ([826e14e](https://github.com/maystudios/maxsimcli/commit/826e14e64eaef46da874c6d9c4cad23afe0242aa))
+* **05-02:** add review cycle retry counters and escalation protocol ([595314f](https://github.com/maystudios/maxsimcli/commit/595314f700ec57451df6757497617f32831661e1))
+* **05-02:** enhance summary template with review cycle and requirement evidence sections ([a2ae70b](https://github.com/maystudios/maxsimcli/commit/a2ae70ba5ed0eaa614201aed293813d0430cea70))
+* **05-03:** add --worktrees/--no-worktrees flag support to execute workflow and command ([d9a13a4](https://github.com/maystudios/maxsimcli/commit/d9a13a4e01d0f9b484108794abdfb9e5661e20b9))
+* **05-03:** add decide_execution_mode step and batch worktree path to execute-phase ([9af4015](https://github.com/maystudios/maxsimcli/commit/9af4015e4c48da746e786e0e90a009bcccaa4d10))
+* **05-04:** add pre-execution gates G1/G2 and post-execution evidence gate G6 ([fab1d9e](https://github.com/maystudios/maxsimcli/commit/fab1d9ecc7d977fd1ba5a44d63fdbf75e64613a5))
+* **05-04:** add requirement validation functions and CLI commands ([38517fe](https://github.com/maystudios/maxsimcli/commit/38517fe938223c8ab7f3f62b0b8edd73b48cbeb8))
+* **05-05:** add Agent Teams coordination to execute-phase workflow ([3f1f808](https://github.com/maystudios/maxsimcli/commit/3f1f8084c4dff1e9bbb3e6f1dfdd4b7fa6c4e8ab))
+* **05-05:** add worktree-aware executor and Agent Teams installer prompt ([010920e](https://github.com/maystudios/maxsimcli/commit/010920e9abb9cb53c1593d5ec6587a674883a700))
+* **hooks:** add sync-reminder hook and update-checker backup logic ([32e0295](https://github.com/maystudios/maxsimcli/commit/32e029504c3f44df70a0d22558979e7e685c4330))
+* **hooks:** rewrite statusline with phase/milestone progress, remove context monitor ([48ebea2](https://github.com/maystudios/maxsimcli/commit/48ebea2dcff3cedbe2aab4d9354feccc722b835b))
+* **hooks:** update build/install/tests for context monitor removal ([439f424](https://github.com/maystudios/maxsimcli/commit/439f424af3394a7b2fe74a37cbff753a5c2fef24))
+* **hooks:** wire sync-reminder into build, installer, and tests ([83cdd6d](https://github.com/maystudios/maxsimcli/commit/83cdd6d36c8cda337050092b257d444d86dd39ce))
+
 # [4.8.0](https://github.com/maystudios/maxsimcli/compare/v4.7.1...v4.8.0) (2026-03-10)
 
 
