@@ -1,3 +1,10 @@
+# [4.12.0](https://github.com/maystudios/maxsimcli/compare/v4.11.0...v4.12.0) (2026-03-11)
+
+
+### Features
+
+* **workflows:** rewrite plan workflows for GitHub-first artifact storage and stage detection ([289fc7e](https://github.com/maystudios/maxsimcli/commit/289fc7e4fbc583e2b182d4a73ebdfc0d85123d2b))
+
 # [4.11.0](https://github.com/maystudios/maxsimcli/compare/v4.10.0...v4.11.0) (2026-03-11)
 
 
