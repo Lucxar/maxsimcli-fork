@@ -46,6 +46,27 @@ import type {
   ReviewConfig,
 } from './types.js';
 
+import { loadMapping } from '../github/mapping.js';
+import type { IssueMappingFile } from '../github/types.js';
+
+// ─── GitHub context helper ───────────────────────────────────────────────────
+
+function getGitHubContext(cwd: string): {
+  github_ready: boolean;
+  project_number: number | null;
+  mapping: IssueMappingFile | null;
+} {
+  try {
+    const mapping = loadMapping(cwd);
+    if (!mapping || !mapping.project_number) {
+      return { github_ready: false, project_number: null, mapping: null };
+    }
+    return { github_ready: true, project_number: mapping.project_number, mapping };
+  } catch {
+    return { github_ready: false, project_number: null, mapping: null };
+  }
+}
+
 // ─── Init result types ──────────────────────────────────────────────────────
 
 export type WorkflowType =
@@ -98,6 +119,11 @@ export interface ExecutePhaseContext {
   worktree_mode: WorktreeMode;
   max_parallel_agents: number;
   review_config: ReviewConfig;
+  github_ready: boolean;
+  project_number: number | null;
+  phase_issue_number: number | null;
+  phase_item_id: string | null;
+  task_mappings: Record<string, { number: number; id: number; item_id: string; status: string }> | null;
 }
 
 export interface PlanPhaseContext {
@@ -128,6 +154,10 @@ export interface PlanPhaseContext {
   research_path?: string;
   verification_path?: string;
   uat_path?: string;
+  github_ready: boolean;
+  project_number: number | null;
+  phase_issue_number: number | null;
+  phase_item_id: string | null;
 }
 
 export interface NewProjectContext {
@@ -145,6 +175,9 @@ export interface NewProjectContext {
   has_git: boolean;
   brave_search_available: boolean;
   project_path: string;
+  github_ready: boolean;
+  has_github_remote: boolean;
+  gh_authenticated: boolean;
 }
 
 export interface NewMilestoneContext {
@@ -293,6 +326,9 @@ export interface InitExistingContext {
   parallelization: boolean;
   project_path: string;
   codebase_dir: string;
+  github_ready: boolean;
+  has_github_remote: boolean;
+  gh_authenticated: boolean;
 }
 
 interface ProgressPhaseInfo {
@@ -326,6 +362,9 @@ export interface ProgressContext {
   roadmap_path: string;
   project_path: string;
   config_path: string;
+  github_ready: boolean;
+  project_number: number | null;
+  phase_mappings: Record<string, { issue_number: number; item_id: string }> | null;
 }
 
 export type InitContext =
@@ -406,6 +445,9 @@ export async function cmdInitExecutePhase(cwd: string, phase: string | undefined
   const phaseInfo = await findPhaseInternal(cwd, phase!);
   const milestone = await getMilestoneInfo(cwd);
   const phase_req_ids = await extractReqIds(cwd, phase!);
+  const ghCtx = getGitHubContext(cwd);
+  const phaseNum = phaseInfo?.phase_number ?? phase;
+  const phaseMapping = ghCtx.mapping?.phases[phaseNum] ?? null;
   const result: ExecutePhaseContext = {
     executor_model: await resolveModelInternal(cwd, 'executor'),
     verifier_model: await resolveModelInternal(cwd, 'verifier'),
@@ -448,6 +490,18 @@ export async function cmdInitExecutePhase(cwd: string, phase: string | undefined
       simplify_review: true,
       retry_limit: 3,
     },
+    github_ready: ghCtx.github_ready,
+    project_number: ghCtx.project_number,
+    phase_issue_number: phaseMapping?.tracking_issue.number ?? null,
+    phase_item_id: phaseMapping?.tracking_issue.item_id ?? null,
+    task_mappings: phaseMapping?.tasks
+      ? Object.fromEntries(
+          Object.entries(phaseMapping.tasks).map(([k, v]) => [
+            k,
+            { number: v.number, id: v.id, item_id: v.item_id, status: v.status },
+          ]),
+        )
+      : null,
   };
   return cmdOk(result);
 }
@@ -457,6 +511,9 @@ export async function cmdInitPlanPhase(cwd: string, phase: string | undefined): 
   const config = await loadConfig(cwd);
   const phaseInfo = await findPhaseInternal(cwd, phase!);
   const phase_req_ids = await extractReqIds(cwd, phase!);
+  const ghCtx = getGitHubContext(cwd);
+  const phaseNum = phaseInfo?.phase_number ?? phase;
+  const phaseMapping = ghCtx.mapping?.phases[phaseNum] ?? null;
   const result: PlanPhaseContext = {
     researcher_model: await resolveModelInternal(cwd, 'researcher'),
     planner_model: await resolveModelInternal(cwd, 'planner'),
@@ -480,6 +537,10 @@ export async function cmdInitPlanPhase(cwd: string, phase: string | undefined): 
     state_path: '.planning/STATE.md',
     roadmap_path: '.planning/ROADMAP.md',
     requirements_path: '.planning/REQUIREMENTS.md',
+    github_ready: ghCtx.github_ready,
+    project_number: ghCtx.project_number,
+    phase_issue_number: phaseMapping?.tracking_issue.number ?? null,
+    phase_item_id: phaseMapping?.tracking_issue.item_id ?? null,
   };
   if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
@@ -502,6 +563,19 @@ export async function cmdInitNewProject(cwd: string): Promise<CmdResult> {
   const hasCode = findCodeFiles(cwd).length > 0;
   const hasPackageFile = await pathExistsInternal(path.join(cwd, 'package.json')) || await pathExistsInternal(path.join(cwd, 'requirements.txt')) || await pathExistsInternal(path.join(cwd, 'Cargo.toml')) || await pathExistsInternal(path.join(cwd, 'go.mod')) || await pathExistsInternal(path.join(cwd, 'Package.swift'));
   const hasCodebaseMap = await pathExistsInternal(planningPath(cwd, 'codebase'));
+  const ghCtx = getGitHubContext(cwd);
+  let hasGitHubRemote = false;
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const remoteResult = spawnSync('git', ['remote', 'get-url', 'origin'], { cwd, encoding: 'utf-8' });
+    hasGitHubRemote = remoteResult.status === 0 && !!remoteResult.stdout.trim();
+  } catch { /* no git remote */ }
+  let ghAuthenticated = false;
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const authResult = spawnSync('gh', ['auth', 'status'], { cwd, encoding: 'utf-8' });
+    ghAuthenticated = authResult.status === 0;
+  } catch { /* gh not installed or not authenticated */ }
   const result: NewProjectContext = {
     researcher_model: await resolveModelInternal(cwd, 'researcher'),
     synthesizer_model: await resolveModelInternal(cwd, 'researcher'),
@@ -517,6 +591,9 @@ export async function cmdInitNewProject(cwd: string): Promise<CmdResult> {
     has_git: await pathExistsInternal(path.join(cwd, '.git')),
     brave_search_available: hasBraveSearch,
     project_path: '.planning/PROJECT.md',
+    github_ready: ghCtx.github_ready,
+    has_github_remote: hasGitHubRemote,
+    gh_authenticated: ghAuthenticated,
   };
   return cmdOk(result);
 }
@@ -748,6 +825,19 @@ export async function cmdInitExisting(cwd: string): Promise<CmdResult> {
   const hasPackageFile = await pathExistsInternal(path.join(cwd, 'package.json')) || await pathExistsInternal(path.join(cwd, 'requirements.txt')) || await pathExistsInternal(path.join(cwd, 'Cargo.toml')) || await pathExistsInternal(path.join(cwd, 'go.mod')) || await pathExistsInternal(path.join(cwd, 'Package.swift'));
   let planningFiles: string[] = [];
   try { const planDir = planningPath(cwd); if (fs.existsSync(planDir)) planningFiles = fs.readdirSync(planDir, { recursive: true }).map((f) => String(f)).filter((f) => !f.startsWith('.')); } catch (e) { debugLog(e); }
+  const ghCtx = getGitHubContext(cwd);
+  let hasGitHubRemote = false;
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const remoteResult = spawnSync('git', ['remote', 'get-url', 'origin'], { cwd, encoding: 'utf-8' });
+    hasGitHubRemote = remoteResult.status === 0 && !!remoteResult.stdout.trim();
+  } catch { /* no git remote */ }
+  let ghAuthenticated = false;
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const authResult = spawnSync('gh', ['auth', 'status'], { cwd, encoding: 'utf-8' });
+    ghAuthenticated = authResult.status === 0;
+  } catch { /* gh not installed or not authenticated */ }
   const result: InitExistingContext = {
     researcher_model: await resolveModelInternal(cwd, 'researcher'),
     synthesizer_model: await resolveModelInternal(cwd, 'researcher'),
@@ -768,6 +858,9 @@ export async function cmdInitExisting(cwd: string): Promise<CmdResult> {
     parallelization: config.parallelization,
     project_path: '.planning/PROJECT.md',
     codebase_dir: '.planning/codebase',
+    github_ready: ghCtx.github_ready,
+    has_github_remote: hasGitHubRemote,
+    gh_authenticated: ghAuthenticated,
   };
   return cmdOk(result);
 }
@@ -775,6 +868,7 @@ export async function cmdInitExisting(cwd: string): Promise<CmdResult> {
 export async function cmdInitProgress(cwd: string): Promise<CmdResult> {
   const config = await loadConfig(cwd);
   const milestone = await getMilestoneInfo(cwd);
+  const ghCtx = getGitHubContext(cwd);
   const progressPhasesDir = phasesPath(cwd);
   const phases: ProgressPhaseInfo[] = [];
   let currentPhase: ProgressPhaseInfo | null = null;
@@ -820,6 +914,16 @@ export async function cmdInitProgress(cwd: string): Promise<CmdResult> {
     roadmap_path: '.planning/ROADMAP.md',
     project_path: '.planning/PROJECT.md',
     config_path: '.planning/config.json',
+    github_ready: ghCtx.github_ready,
+    project_number: ghCtx.project_number,
+    phase_mappings: ghCtx.mapping
+      ? Object.fromEntries(
+          Object.entries(ghCtx.mapping.phases).map(([phaseNum, phaseMap]) => [
+            phaseNum,
+            { issue_number: phaseMap.tracking_issue.number, item_id: phaseMap.tracking_issue.item_id },
+          ]),
+        )
+      : null,
   };
   return cmdOk(result);
 }
