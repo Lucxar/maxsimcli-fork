@@ -5,11 +5,11 @@ Before executing any step in this workflow, verify:
 </sanity_check>
 
 <purpose>
-Execute all plans in a phase using wave-based parallel execution. Orchestrator stays lean — delegates plan execution to subagents.
+Execute all plans in a phase using wave-based parallel execution. Orchestrator stays lean — delegates plan execution to subagents. Plans are read from GitHub issue comments; summaries are posted as GitHub comments; task sub-issues are transitioned on the board per task.
 </purpose>
 
 <core_principle>
-Orchestrator coordinates, not executes. Each subagent loads the full execute-plan context. Orchestrator: discover plans → analyze deps → group waves → spawn agents → handle checkpoints → collect results.
+Orchestrator coordinates, not executes. Each subagent loads the full execute-plan context. Orchestrator: discover plans from GitHub → analyze deps → group waves → spawn agents → handle checkpoints → collect results.
 </core_principle>
 
 <agent_teams>
@@ -37,7 +37,7 @@ Load all context in one call:
 INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init execute-phase "${PHASE_ARG}")
 ```
 
-Parse JSON for: `executor_model`, `verifier_model`, `commit_docs`, `parallelization`, `branching_strategy`, `branch_name`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `plans`, `incomplete_plans`, `plan_count`, `incomplete_count`, `state_exists`, `roadmap_exists`, `phase_req_ids`.
+Parse JSON for: `executor_model`, `verifier_model`, `commit_docs`, `parallelization`, `branching_strategy`, `branch_name`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `plans`, `incomplete_plans`, `plan_count`, `incomplete_count`, `state_exists`, `roadmap_exists`, `phase_req_ids`, `phase_issue_number`, `task_mappings`.
 
 Also extract parallel execution fields:
 ```
@@ -47,7 +47,7 @@ REVIEW_CONFIG (from init JSON review_config — spec_review, code_review, simpli
 ```
 
 **If `phase_found` is false:** Error — phase directory not found.
-**If `plan_count` is 0:** Error — no plans found in phase.
+**If `plan_count` is 0:** Check GitHub before reporting no plans (see discover_and_group_plans step).
 **If `state_exists` is false but `.planning/` exists:** Offer reconstruct or continue.
 
 When `parallelization` is false, plans within a wave execute sequentially.
@@ -86,7 +86,47 @@ Report: "Found {plan_count} plans in {phase_dir} ({incomplete_count} incomplete)
 </step>
 
 <step name="discover_and_group_plans">
-Load plan inventory with wave grouping in one call:
+
+## Plan Discovery -- GitHub First
+
+When `phase_issue_number` is set (GitHub integration active):
+
+1. **Check for external edits (WIRE-06):**
+   ```
+   mcp_detect_external_edits(issue_number: phase_issue_number)
+   ```
+   If external edits detected: warn user before continuing.
+
+2. **Fetch the phase issue and its comments:**
+   ```
+   mcp_get_issue_detail(issue_number: phase_issue_number)
+   ```
+
+3. **Parse plan comments:** Identify comments containing either:
+   - `<!-- maxsim:type=plan -->` HTML marker, OR
+   - A heading `## Plan NN` (where NN is a number)
+
+4. **For each plan comment:**
+   - Extract plan number from the heading or frontmatter
+   - Parse YAML frontmatter from the comment body for: `wave`, `dependencies`, `autonomous`, `objective`, `gap_closure`, `task_count`
+   - Store plan content in memory as `PLAN_COMMENTS[]`
+
+5. **Determine completion status for each plan:**
+   - Call `mcp_list_sub_issues(issue_number: phase_issue_number)` to get all task sub-issues
+   - A plan is complete when all its task sub-issues are closed (cross-reference using `task_mappings`)
+   - Also check for `<!-- maxsim:type=summary -->` comments as a secondary completion signal
+
+6. **Build plan inventory:**
+   - `plans[]`: each with `id`, `wave`, `autonomous`, `objective`, `has_summary` (true if all sub-issues closed), `plan_comment_body`, `task_mappings`
+   - `waves`: map of wave number → plan IDs
+   - `incomplete`: IDs of plans that are not yet complete
+   - `has_checkpoints`: true if any plan has `autonomous: false`
+
+**Filtering:** Skip plans where `has_summary: true`. If `--gaps-only`: also skip non-gap_closure plans. If all filtered: "No matching incomplete plans" → exit.
+
+**Fallback -- no GitHub integration:**
+
+When `phase_issue_number` is not set, use local file scanning:
 
 ```bash
 PLAN_INDEX=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs phase-plan-index "${PHASE_NUMBER}")
@@ -94,7 +134,7 @@ PLAN_INDEX=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs phase-plan-index "${PHAS
 
 Parse JSON for: `phase`, `plans[]` (each with `id`, `wave`, `autonomous`, `objective`, `files_modified`, `task_count`, `has_summary`), `waves` (map of wave number → plan IDs), `incomplete`, `has_checkpoints`.
 
-**Filtering:** Skip plans where `has_summary: true`. If `--gaps-only`: also skip non-gap_closure plans. If all filtered: "No matching incomplete plans" → exit.
+**Skip plans where `has_summary: true`** (local SUMMARY.md file present). If `--gaps-only`: also skip non-gap_closure plans.
 
 Report:
 ```
@@ -136,7 +176,7 @@ Display decision:
 
 **If batch mode, validate plan independence:**
 ```bash
-# Build plans JSON from PLAN_INDEX data
+# Build plans JSON from plan inventory data
 VALID=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs validate-plan-independence "$PLANS_JSON")
 ```
 If conflicts found: report conflicts, fall back to standard mode with warning.
@@ -159,7 +199,7 @@ For each wave:
 
 2. **Describe what is being built (BEFORE spawning):**
 
-   Read each plan's `<objective>`. Extract what is being built and why.
+   Read each plan's `<objective>` from the plan comment content. Extract what is being built and why.
 
    ```
    ---
@@ -183,7 +223,8 @@ For each wave:
      prompt="
        <objective>
        Execute plan {plan_number} of phase {phase_number}-{phase_name}.
-       Commit each task atomically. Create SUMMARY.md.
+       Commit each task atomically. Post SUMMARY as GitHub comment.
+       Move task sub-issues on the board: In Progress when started, Done when completed.
        IMPORTANT: Do NOT update STATE.md or ROADMAP.md — the orchestrator handles metadata.
        </objective>
 
@@ -193,9 +234,14 @@ For each wave:
        @./references/checkpoints.md
        </execution_context>
 
+       <github_context>
+       Phase issue number: {phase_issue_number}
+       Plan comment body: {plan_comment_body}
+       Task mappings: {task_mappings_for_this_plan}
+       </github_context>
+
        <files_to_read>
        Read these files at execution start using the Read tool:
-       - {phase_dir}/{plan_file} (Plan)
        - .planning/STATE.md (State — READ ONLY, do not modify)
        - .planning/config.json (Config, if exists)
        - ./CLAUDE.md (Project instructions, if exists)
@@ -203,14 +249,15 @@ For each wave:
 
        <constraints>
        - You are running in a worktree. Do NOT modify .planning/STATE.md or .planning/ROADMAP.md.
-       - Only create SUMMARY.md and commit task code.
+       - Only post summary comment to GitHub and commit task code.
        - The orchestrator will handle metadata updates after all agents complete.
        </constraints>
 
        <success_criteria>
        - [ ] All tasks executed
        - [ ] Each task committed individually
-       - [ ] SUMMARY.md created in plan directory
+       - [ ] Summary posted as GitHub comment (type=summary) on phase issue #{phase_issue_number}
+       - [ ] Task sub-issues moved: In Progress → Done per task
        </success_criteria>
      ",
      run_in_background=true
@@ -226,8 +273,8 @@ For each wave:
    ```
 
 5. **After all agents in wave complete, collect results:**
-   - Read each SUMMARY.md from the worktree paths
-   - Run spot-checks (same as standard path: files exist, commits present, review cycle check)
+   - Check for `<!-- maxsim:type=summary -->` comments on the phase issue for each plan
+   - Run spot-checks (same as standard path: summary comment exists, commits present, sub-issues closed, review cycle check)
    - Orchestrator performs batch metadata updates:
      ```bash
      for PLAN_ID in $COMPLETED_PLANS; do
@@ -242,7 +289,7 @@ For each wave:
      ## Wave {N} Complete (Batch)
 
      **{Plan ID}: {Plan Name}**
-     {What was built — from SUMMARY.md}
+     {What was built — from summary comment}
      {Notable deviations, if any}
 
      {If more waves: what this enables for next wave}
@@ -256,12 +303,12 @@ For each wave:
 
 7. **Prepare inter-wave handoff context (for waves after Wave 1):**
 
-   When spawning agents for the next wave, include a brief context block so they can reference prior wave outputs without reading full SUMMARYs:
+   When spawning agents for the next wave, include a brief context block so they can reference prior wave outputs without fetching full summary comments:
 
    ```
    <prior_wave_results>
    Wave {N-1} completed:
-   {For each plan in prior wave: plan ID, one-liner from SUMMARY.md, key files created/modified}
+   {For each plan in prior wave: plan ID, one-liner from summary comment, key files created/modified}
    </prior_wave_results>
    ```
 
@@ -275,7 +322,7 @@ For each wave:
 
 1. **Describe what's being built (BEFORE spawning):**
 
-   Read each plan's `<objective>`. Extract what's being built and why.
+   Read each plan's `<objective>` from the plan comment content (or local PLAN.md in fallback). Extract what's being built and why.
 
    ```
    ---
@@ -302,7 +349,7 @@ For each wave:
 
 3. **Spawn executor agents:**
 
-   Pass paths only — executors read files themselves with their fresh 200k context.
+   Pass plan content from GitHub and GitHub context — executors do NOT need to read local PLAN.md files.
    This keeps orchestrator context lean (~10-15%).
 
    When the wave has multiple plans (parallel execution), add `team_name` to group agents:
@@ -315,7 +362,8 @@ For each wave:
      prompt="
        <objective>
        Execute plan {plan_number} of phase {phase_number}-{phase_name}.
-       Commit each task atomically. Create SUMMARY.md. Update STATE.md and ROADMAP.md.
+       Commit each task atomically. Post SUMMARY as GitHub comment. Update STATE.md and ROADMAP.md.
+       Move task sub-issues on the board: In Progress when started, Done when completed.
        </objective>
 
        <execution_context>
@@ -325,9 +373,14 @@ For each wave:
        @./references/tdd.md
        </execution_context>
 
+       <github_context>
+       Phase issue number: {phase_issue_number}
+       Plan comment body: {plan_comment_body}
+       Task mappings: {task_mappings_for_this_plan}
+       </github_context>
+
        <files_to_read>
        Read these files at execution start using the Read tool:
-       - {phase_dir}/{plan_file} (Plan)
        - .planning/STATE.md (State)
        - .planning/config.json (Config, if exists)
        - ./CLAUDE.md (Project instructions, if exists — follow project-specific guidelines and coding conventions)
@@ -337,7 +390,8 @@ For each wave:
        <success_criteria>
        - [ ] All tasks executed
        - [ ] Each task committed individually
-       - [ ] SUMMARY.md created in plan directory
+       - [ ] Summary posted as GitHub comment (type=summary) on phase issue #{phase_issue_number}
+       - [ ] Task sub-issues moved: In Progress when started, Done when completed
        - [ ] STATE.md updated with position and decisions
        - [ ] ROADMAP.md updated with plan progress (via `roadmap update-plan-progress`)
        </success_criteria>
@@ -349,17 +403,21 @@ For each wave:
 
 4. **Report completion — spot-check claims and review cycle:**
 
-   For each SUMMARY.md:
-   - Verify first 2 files from `key-files.created` exist on disk
+   For each completed plan:
+   - Fetch the phase issue comments and verify a `<!-- maxsim:type=summary -->` comment exists for this plan
    - Check `git log --oneline --all --grep="{phase}-{plan}"` returns ≥1 commit
-   - Check for `## Self-Check: FAILED` marker
-   - **Check for `## Review Cycle` section** — verify both review stages (Spec and Code) show PASS or SKIPPED (not BLOCKED or FAIL)
+   - Verify all task sub-issues for this plan are closed:
+     ```
+     mcp_list_sub_issues(issue_number: phase_issue_number)
+     ```
+   - Check for `## Self-Check: FAILED` in the summary comment body
+   - **Check for `## Review Cycle` section** in the summary comment — verify both review stages (Spec and Code) show PASS or SKIPPED (not BLOCKED or FAIL)
 
    If ANY spot-check fails: report which plan failed, route to failure handler — ask "Retry plan?" or "Continue with remaining waves?"
 
    If review cycle is missing or has unresolved issues: flag the plan as **review-incomplete** — ask "Run review cycle for this plan?" or "Continue (review will block phase completion)?"
 
-   **Note:** The executor agent runs the two-stage review (Spec Review + Code Review) after each wave. The orchestrator does NOT run reviews itself -- it only checks the executor's review results in SUMMARY.md. If review is missing, the executor failed to run it, and the orchestrator should offer to re-run the affected plan.
+   **Note:** The executor agent runs the two-stage review (Spec Review + Code Review) after each wave. The orchestrator does NOT run reviews itself — it only checks the executor's review results in the summary comment. If review is missing, the executor failed to run it, and the orchestrator should offer to re-run the affected plan.
 
    Review stages to check: `Spec:` and `Code:` lines in `## Review Cycle`. Both must be PASS or SKIPPED for the plan to be considered review-complete.
 
@@ -378,7 +436,7 @@ For each wave:
    ## Wave {N} Complete
 
    **{Plan ID}: {Plan Name}**
-   {What was built — from SUMMARY.md}
+   {What was built — from summary comment}
    {Notable deviations, if any}
 
    {If more waves: what this enables for next wave}
@@ -390,7 +448,7 @@ For each wave:
 
 5. **Handle failures:**
 
-   **Known Claude Code bug (classifyHandoffIfNeeded):** If an agent reports "failed" with error containing `classifyHandoffIfNeeded is not defined`, this is a Claude Code runtime bug — not a MAXSIM or agent issue. The error fires in the completion handler AFTER all tool calls finish. In this case: run the same spot-checks as step 4 (SUMMARY.md exists, git commits present, no Self-Check: FAILED). If spot-checks PASS → treat as **successful**. If spot-checks FAIL → treat as real failure below.
+   **Known Claude Code bug (classifyHandoffIfNeeded):** If an agent reports "failed" with error containing `classifyHandoffIfNeeded is not defined`, this is a Claude Code runtime bug — not a MAXSIM or agent issue. The error fires in the completion handler AFTER all tool calls finish. In this case: run the same spot-checks as step 4 (summary comment exists, git commits present, sub-issues closed, no Self-Check: FAILED). If spot-checks PASS → treat as **successful**. If spot-checks FAIL → treat as real failure below.
 
    For real failures: report which plan failed → ask "Continue?" or "Stop?" → if continue, dependent plans may also fail. If stop, partial completion report.
 
@@ -398,12 +456,12 @@ For each wave:
 
 7. **Prepare inter-wave handoff context (for waves after Wave 1):**
 
-   When spawning agents for the next wave, include a brief context block so they can reference prior wave outputs without reading full SUMMARYs:
+   When spawning agents for the next wave, include a brief context block so they can reference prior wave outputs without fetching full summary comments:
 
    ```
    <prior_wave_results>
    Wave {N-1} completed:
-   {For each plan in prior wave: plan ID, one-liner from SUMMARY.md, key files created/modified}
+   {For each plan in prior wave: plan ID, one-liner from summary comment, key files created/modified}
    </prior_wave_results>
    ```
 
@@ -448,6 +506,7 @@ When executor returns a checkpoint AND `AUTO_CFG` is `"true"`:
    - `{resume_task_number}` + `{resume_task_name}`: Current task
    - `{user_response}`: What user provided
    - `{resume_instructions}`: Based on checkpoint type
+   - `{github_context}`: Pass phase_issue_number and task_mappings for board transitions
 7. Continuation agent verifies previous commits, continues from resume point
 8. Repeat until plan completes or user stops
 
@@ -473,8 +532,8 @@ After all waves:
 | 2 | plan-04 | ✓ Complete |
 
 ### Plan Details
-1. **03-01**: [one-liner from SUMMARY.md]
-2. **03-02**: [one-liner from SUMMARY.md]
+1. **03-01**: [one-liner from summary comment]
+2. **03-02**: [one-liner from summary comment]
 
 ### Review Cycle Summary
 | Plan | Spec Review | Code Review | Retries |
@@ -482,15 +541,15 @@ After all waves:
 | 03-01 | PASS | PASS | 0 |
 | 03-02 | PASS | PASS | 1 |
 
-[Aggregate review findings from each plan's SUMMARY.md `## Review Cycle` section.
-If any plan has no Review Cycle section: mark as "NOT RUN" and flag for attention.
+[Aggregate review findings from each plan's summary comment `## Review Cycle` section.
+If any plan has no Review Cycle section in its summary comment: mark as "NOT RUN" and flag for attention.
 If any plan has unresolved BLOCKED/FAIL status: list the blocking issues below.]
 
 ### Unresolved Review Issues
 [List any plans with BLOCKED or FAIL review stages. These MUST be resolved before phase completion.]
 
 ### Issues Encountered
-[Aggregate from SUMMARYs, or "None"]
+[Aggregate from summary comments, or "None"]
 ```
 
 **Phase completion gate:** If any plan has unresolved review issues (BLOCKED or FAIL in Spec Review or Code Review stages), the phase CANNOT proceed to `verify_phase_goal`. Present unresolved issues and offer:
@@ -511,7 +570,14 @@ if [[ "$PHASE_NUMBER" == *.* ]]; then
 fi
 ```
 
-**2. Find parent UAT file:**
+**2. Find parent UAT:**
+
+When GitHub integration is active, look for `<!-- maxsim:type=uat -->` comments on the parent phase issue:
+```
+mcp_get_issue_detail(issue_number: parent_phase_issue_number)
+```
+
+As fallback, check local files:
 ```bash
 PARENT_INFO=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs find-phase "${PARENT_PHASE}" --raw)
 # Extract directory from PARENT_INFO JSON, then find UAT file in that directory
@@ -521,14 +587,13 @@ PARENT_INFO=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs find-phase "${PARENT_PH
 
 **3. Update UAT gap statuses:**
 
-Read the parent UAT file's `## Gaps` section. For each gap entry with `status: failed`:
+Read the parent UAT content (from comment or local file). For each gap entry with `status: failed`:
 - Update to `status: resolved`
 
-**4. Update UAT frontmatter:**
+**4. If all gaps resolved — update UAT status:**
 
-If all gaps now have `status: resolved`:
-- Update frontmatter `status: diagnosed` → `status: resolved`
-- Update frontmatter `updated:` timestamp
+- If posting to GitHub: update the UAT comment body with resolved statuses
+- If local file: update frontmatter `status: diagnosed` → `status: resolved`, update `updated:` timestamp
 
 **5. Resolve referenced debug sessions:**
 
@@ -555,17 +620,26 @@ Verify phase achieved its GOAL, not just completed tasks.
 Task(
   prompt="Verify phase {phase_number} goal achievement.
 Phase directory: {phase_dir}
+Phase issue: #{phase_issue_number}
 Phase goal: {goal from ROADMAP.md}
 Phase requirement IDs: {phase_req_ids}
 Check must_haves against actual codebase.
-Cross-reference requirement IDs from PLAN frontmatter against REQUIREMENTS.md — every ID MUST be accounted for.
-Create VERIFICATION.md.",
+Cross-reference requirement IDs from plan frontmatter against REQUIREMENTS.md — every ID MUST be accounted for.
+Post verification results as a GitHub comment (mcp_post_comment with type=verification) on phase issue #{phase_issue_number}.
+Also write VERIFICATION.md to the phase directory for local reference.",
   subagent_type="verifier",
   model="{verifier_model}"
 )
 ```
 
-Read status:
+Read status from the verification comment posted to GitHub:
+```
+mcp_get_issue_detail(issue_number: phase_issue_number)
+```
+
+Look for `<!-- maxsim:type=verification -->` comment and parse `status:` field.
+
+Fallback:
 ```bash
 grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
 ```
@@ -578,37 +652,37 @@ grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
 
 **If human_needed:**
 ```
-## ✓ Phase {X}: {Name} — Human Verification Required
+## Phase {X}: {Name} — Human Verification Required
 
 All automated checks passed. {N} items need human testing:
 
-{From VERIFICATION.md human_verification section}
+{From verification comment human_verification section}
 
 "approved" → continue | Report issues → gap closure
 ```
 
 **If gaps_found:**
 ```
-## ⚠ Phase {X}: {Name} — Gaps Found
+## Phase {X}: {Name} — Gaps Found
 
 **Score:** {N}/{M} must-haves verified
-**Report:** {phase_dir}/{phase_num}-VERIFICATION.md
+**Report:** Phase issue #{phase_issue_number} (verification comment)
 
 ### What's Missing
-{Gap summaries from VERIFICATION.md}
+{Gap summaries from verification comment}
 
 ---
-## ▶ Next Up
+## Next Up
 
 `/maxsim:plan {X} --gaps`
 
 <sub>`/clear` first → fresh context window</sub>
 
-Also: `cat {phase_dir}/{phase_num}-VERIFICATION.md` — full report
+Also: view the verification comment on issue #{phase_issue_number} for the full report
 Also: `/maxsim:execute {X}` (includes verification) — manual testing first
 ```
 
-Gap closure cycle: `/maxsim:plan {X} --gaps` reads VERIFICATION.md → creates gap plans with `gap_closure: true` → user runs `/maxsim:execute {X} --gaps-only` → verifier re-runs.
+Gap closure cycle: `/maxsim:plan {X} --gaps` reads verification comment → creates gap plans as new comments on phase issue (with `gap_closure: true` frontmatter) → user runs `/maxsim:execute {X} --gaps-only` → verifier re-runs.
 </step>
 
 <step name="update_roadmap">
@@ -629,6 +703,20 @@ Extract from result: `next_phase`, `next_phase_name`, `is_last_phase`.
 
 ```bash
 node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md {phase_dir}/*-VERIFICATION.md
+```
+
+**Move phase issue to Done on GitHub:**
+```
+mcp_move_issue(issue_number: phase_issue_number, status: "Done")
+```
+
+**Post phase completion summary comment on the phase issue:**
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  type: "phase-complete",
+  body: "## Phase {phase_number} Execution Complete\n\nAll plans executed and verified.\n\n**Execution Mode:** {Batch | Standard}\n**Waves:** {wave_count}\n**Plans:** {completed}/{total}\n**Verification:** Passed\n\n### Plan Summary\n{one-liner per plan from summary comments}"
+)
 ```
 
 **Emit phase-complete lifecycle event** (if `DASHBOARD_ACTIVE`):
@@ -660,6 +748,7 @@ After verification passes and roadmap is updated, return completion status to pa
 Phase: ${PHASE_NUMBER} - ${PHASE_NAME}
 Plans: ${completed_count}/${total_count}
 Verification: {Passed | Gaps Found}
+GitHub: Phase issue #{phase_issue_number} moved to Done
 
 [Include aggregate_results output]
 ```
@@ -698,18 +787,20 @@ The workflow ends. The user runs `/maxsim:progress` or invokes the transition wo
 
 <context_efficiency>
 Orchestrator: ~10-15% context. Subagents: fresh 200k each. No polling (Task blocks). No context bleed.
+Plan content passed directly from GitHub comments to subagents — no local PLAN.md reads in the orchestrator.
 </context_efficiency>
 
 <failure_handling>
-- **classifyHandoffIfNeeded false failure:** Agent reports "failed" but error is `classifyHandoffIfNeeded is not defined` → Claude Code bug, not MAXSIM. Spot-check (SUMMARY exists, commits present) → if pass, treat as success
-- **Agent fails mid-plan:** Missing SUMMARY.md → report, ask user how to proceed
+- **classifyHandoffIfNeeded false failure:** Agent reports "failed" but error is `classifyHandoffIfNeeded is not defined` → Claude Code bug, not MAXSIM. Spot-check (summary comment exists, commits present, sub-issues closed) → if pass, treat as success
+- **Agent fails mid-plan:** Missing summary comment on GitHub → report, ask user how to proceed
 - **Dependency chain breaks:** Wave 1 fails → Wave 2 dependents likely fail → user chooses attempt or skip
 - **All agents in wave fail:** Systemic issue → stop, report for investigation
 - **Checkpoint unresolvable:** "Skip this plan?" or "Abort phase execution?" → record partial progress in STATE.md
+- **GitHub integration unavailable:** Fall back to local file I/O for all plan reading and summary writing
 </failure_handling>
 
 <resumption>
-Re-run `/maxsim:execute {phase}` → discover_plans finds completed SUMMARYs → skips them → resumes from first incomplete plan → continues wave execution.
+Re-run `/maxsim:execute {phase}` → discover_and_group_plans fetches the phase issue comments and checks sub-issue closure → skips plans with all sub-issues closed → resumes from first incomplete plan → continues wave execution.
 
 STATE.md tracks: last completed plan, current wave, pending checkpoints.
 </resumption>

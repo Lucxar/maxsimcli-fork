@@ -1,5 +1,5 @@
 <purpose>
-Execute a phase prompt (PLAN.md) and create the outcome summary (SUMMARY.md).
+Execute a phase plan (loaded from GitHub issue comment or local PLAN.md) and post the outcome summary as a GitHub comment. Per-task board transitions keep the project board current throughout execution.
 </purpose>
 
 <required_reading>
@@ -29,24 +29,40 @@ Load execution context (paths only to minimize orchestrator context):
 INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init execute-phase "${PHASE}")
 ```
 
-Extract from init JSON: `executor_model`, `commit_docs`, `phase_dir`, `phase_number`, `plans`, `summaries`, `incomplete_plans`, `state_path`, `config_path`.
+Extract from init JSON: `executor_model`, `commit_docs`, `phase_dir`, `phase_number`, `plans`, `summaries`, `incomplete_plans`, `state_path`, `config_path`, `phase_issue_number`, `task_mappings`.
 
 If `.planning/` missing: error.
 </step>
 
-<step name="identify_plan">
+<step name="load_plan_from_github">
+
+## Plan Loading -- GitHub First
+
+When the orchestrator passes `github_context` (phase_issue_number and plan_comment_body), use it directly:
+
+1. The plan content is in `plan_comment_body` passed from the orchestrator. Parse it in memory -- do NOT read a local PLAN.md file.
+2. Extract frontmatter fields: `wave`, `autonomous`, `objective`, `requirements`, `task_mappings`, `gap_closure`.
+3. Extract the task list and verification criteria from the comment body.
+
+**External edit detection (WIRE-06):** Before beginning execution, check if the plan comment was modified since the orchestrator read it:
+
+```
+mcp_detect_external_edits(issue_number: phase_issue_number)
+```
+
+If external edits detected: warn user and offer to re-read the plan before proceeding.
+
+**Fallback -- no GitHub context:**
+
+If no `phase_issue_number` or `plan_comment_body` was passed:
+
 ```bash
 # Use plans/summaries from INIT JSON, or list files
 ls .planning/phases/XX-name/*-PLAN.md 2>/dev/null | sort
 ls .planning/phases/XX-name/*-SUMMARY.md 2>/dev/null | sort
 ```
 
-Find first PLAN without matching SUMMARY. Decimal phases supported (`01.1-hotfix/`):
-
-```bash
-PHASE=$(echo "$PLAN_PATH" | grep -oE '[0-9]+(\.[0-9]+)?-[0-9]+')
-# config settings can be fetched via maxsim-tools config-get if needed
-```
+Find first PLAN without matching SUMMARY. Decimal phases supported (`01.1-hotfix/`).
 
 <if mode="yolo">
 Auto-approve: `⚡ Execute {phase}-{plan}-PLAN.md [Plan X of Y for Phase Z]` → parse_segments.
@@ -65,7 +81,12 @@ PLAN_START_EPOCH=$(date +%s)
 </step>
 
 <step name="parse_segments">
+
+Identify checkpoint type from plan content:
+
 ```bash
+# If plan loaded from GitHub comment, scan comment body for checkpoint markers
+# If plan loaded from local file:
 grep -n "type=\"checkpoint" .planning/phases/XX-name/{phase}-{plan}-PLAN.md
 ```
 
@@ -73,13 +94,13 @@ grep -n "type=\"checkpoint" .planning/phases/XX-name/{phase}-{plan}-PLAN.md
 
 | Checkpoints | Pattern | Execution |
 |-------------|---------|-----------|
-| None | A (autonomous) | Single subagent: full plan + SUMMARY + commit |
+| None | A (autonomous) | Single subagent: full plan + post SUMMARY comment + commit |
 | Verify-only | B (segmented) | Segments between checkpoints. After none/human-verify → SUBAGENT. After decision/human-action → MAIN |
 | Decision | C (main) | Execute entirely in main context |
 
-**Pattern A:** init_agent_tracking → spawn Task(subagent_type="executor", model=executor_model) with prompt: execute plan at [path], autonomous, all tasks + SUMMARY + commit, follow deviation/auth rules, report: plan name, tasks, SUMMARY path, commit hash → track agent_id → wait → update tracking → report.
+**Pattern A:** init_agent_tracking → spawn Task(subagent_type="executor", model=executor_model) with prompt: execute plan (content from GitHub comment or local path), autonomous, all tasks + post SUMMARY comment + commit, follow deviation/auth rules, move task sub-issues on board as each task starts/completes, report: plan name, tasks, summary comment URL, commit hash → track agent_id → wait → update tracking → report.
 
-**Pattern B:** Execute segment-by-segment. Autonomous segments: spawn subagent for assigned tasks only (no SUMMARY/commit). Checkpoints: main context. After all segments: aggregate, create SUMMARY, commit. See segment_execution.
+**Pattern B:** Execute segment-by-segment. Autonomous segments: spawn subagent for assigned tasks only (no SUMMARY/commit). Checkpoints: main context. After all segments: aggregate, post SUMMARY as GitHub comment, commit. See segment_execution.
 
 **Pattern C:** Execute in main using standard flow (step name="execute").
 
@@ -110,25 +131,26 @@ Pattern B only (verify-only checkpoints). Skip for A/C.
 
 1. Parse segment map: checkpoint locations and types
 2. Per segment:
-   - Subagent route: spawn executor for assigned tasks only. Prompt: task range, plan path, read full plan for context, execute assigned tasks, track deviations, NO SUMMARY/commit. Track via agent protocol.
+   - Subagent route: spawn executor for assigned tasks only. Prompt: task range, plan content (from GitHub comment or local path), read full plan for context, execute assigned tasks, track deviations, move task sub-issues to "In Progress" when started and "Done" when completed, NO SUMMARY/commit. Track via agent protocol.
    - Main route: execute tasks using standard flow (step name="execute")
-3. After ALL segments: aggregate files/deviations/decisions → create SUMMARY.md → commit → self-check:
+3. After ALL segments: aggregate files/deviations/decisions → post SUMMARY as GitHub comment (mcp_post_comment with type=summary) → commit → self-check:
    - Verify key-files.created exist on disk with `[ -f ]`
    - Check `git log --oneline --all --grep="{phase}-{plan}"` returns ≥1 commit
-   - Append `## Self-Check: PASSED` or `## Self-Check: FAILED` to SUMMARY
+   - Check for `## Self-Check: PASSED` or `## Self-Check: FAILED` and append to summary comment body
 
    **Known Claude Code bug (classifyHandoffIfNeeded):** If any segment agent reports "failed" with `classifyHandoffIfNeeded is not defined`, this is a Claude Code runtime bug — not a real failure. Run spot-checks; if they pass, treat as successful.
-
-
-
-
 </step>
 
 <step name="load_prompt">
+
+The plan content IS the execution instructions. Follow exactly. If plan references CONTEXT.md: honor user's vision throughout.
+
+When plan was loaded from a GitHub comment (github_context passed): the plan content is already in memory from the load_plan_from_github step.
+
+When plan is loaded from a local file (fallback):
 ```bash
 cat .planning/phases/XX-name/{phase}-{plan}-PLAN.md
 ```
-This IS the execution instructions. Follow exactly. If plan references CONTEXT.md: honor user's vision throughout.
 </step>
 
 <step name="pre_execution_gates">
@@ -137,7 +159,7 @@ Validate requirements before execution. These gates ensure spec-driven developme
 **Gate G1: Requirement Existence** — All requirement IDs from the plan's frontmatter must exist in REQUIREMENTS.md.
 
 ```bash
-# Extract requirement IDs from plan frontmatter
+# Extract requirement IDs from plan frontmatter (in memory if loaded from GitHub, or from file)
 REQ_IDS=$(grep "^requirements:" "$PLAN_PATH" | sed 's/requirements:\s*\[//;s/\]//;s/,/ /g;s/"//g;s/'\''//g' | tr -s ' ')
 if [ -n "$REQ_IDS" ]; then
   G1_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs verify requirement-existence $REQ_IDS)
@@ -172,7 +194,7 @@ fi
 node ~/.claude/maxsim/bin/maxsim-tools.cjs phases list --type summaries --raw
 # Extract the second-to-last summary from the JSON result
 ```
-If previous SUMMARY has unresolved "Issues Encountered" or "Next Phase Readiness" blockers: AskUserQuestion(header="Previous Issues", options: "Proceed anyway" | "Address first" | "Review previous").
+If previous phase has unresolved issues (check summary comments on phase issue or local SUMMARY.md "Issues Encountered" / "Next Phase Readiness" blockers): AskUserQuestion(header="Previous Issues", options: "Proceed anyway" | "Address first" | "Review previous").
 </step>
 
 <step name="execute">
@@ -180,8 +202,32 @@ Deviations are normal — handle via rules below.
 
 1. Read @context files from prompt
 2. Per task:
+
+   **Before starting each task (WIRE-04 board transition):**
+   - Look up the task's sub-issue number from `task_mappings` in the GitHub context.
+   - Move the task sub-issue to "In Progress":
+     ```
+     mcp_move_issue(issue_number: task_sub_issue_number, status: "In Progress")
+     ```
+
    - `type="auto"`: if `tdd="true"` → TDD execution. Implement with deviation rules + auth gates. Verify done criteria. Commit (see task_commit). Track hash for Summary.
    - `type="checkpoint:*"`: STOP → checkpoint_protocol → wait for user → continue only after confirmation.
+
+   **After each task completes successfully (WIRE-04 board transition):**
+   - Post task completion details on the task sub-issue:
+     ```
+     mcp_post_completion(
+       issue_number: task_sub_issue_number,
+       commit_sha: TASK_COMMIT,
+       files_changed: [list of files modified by this task]
+     )
+     ```
+   - Close the task sub-issue and move to "Done":
+     ```
+     mcp_close_issue(issue_number: task_sub_issue_number)
+     mcp_move_issue(issue_number: task_sub_issue_number, status: "Done")
+     ```
+
 3. Run `<verification>` checks
 4. Confirm `<success_criteria>` met
 5. Document deviations in Summary
@@ -337,6 +383,16 @@ Orchestrator parses → presents to user → spawns fresh continuation with your
 
 <step name="verification_failure_gate">
 If verification fails: STOP. Present: "Verification failed for Task [X]: [name]. Expected: [criteria]. Actual: [result]." Options: Retry | Skip (mark incomplete) | Stop (investigate). If skipped → SUMMARY "Issues Encountered".
+
+**On review failure (WIRE-07):** If the task sub-issue was already moved to "Done", reopen and move back:
+```
+mcp_reopen_issue(issue_number: task_sub_issue_number)
+mcp_move_issue(issue_number: task_sub_issue_number, status: "In Progress")
+mcp_post_comment(
+  issue_number: task_sub_issue_number,
+  body: "## Review Failure\n\nVerification failed for this task. Moving back to In Progress.\n\n**Reason:** {failure details}\n**Action needed:** {what needs to be fixed}"
+)
+```
 </step>
 
 <step name="record_completion_time">
@@ -358,31 +414,54 @@ fi
 </step>
 
 <step name="generate_user_setup">
-```bash
-grep -A 50 "^user_setup:" .planning/phases/XX-name/{phase}-{plan}-PLAN.md | head -50
-```
+If plan frontmatter contains a `user_setup` field: create `{phase}-USER-SETUP.md` using template `~/.claude/maxsim/templates/user-setup.md`. Per service: env vars table, account setup checklist, dashboard config, local dev notes, verification commands. Status "Incomplete". Set `USER_SETUP_CREATED=true`. If empty/missing: skip.
 
-If user_setup exists: create `{phase}-USER-SETUP.md` using template `~/.claude/maxsim/templates/user-setup.md`. Per service: env vars table, account setup checklist, dashboard config, local dev notes, verification commands. Status "Incomplete". Set `USER_SETUP_CREATED=true`. If empty/missing: skip.
+Also post a reminder comment on the phase issue:
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  body: "## User Setup Required\n\nThis plan created a USER-SETUP.md with manual steps needed before proceeding.\n\n**File:** {phase}-USER-SETUP.md\n**Services:** {list of services requiring setup}"
+)
+```
 </step>
 
 <step name="create_summary">
-Create `{phase}-{plan}-SUMMARY.md` at `.planning/phases/XX-name/`. Use `~/.claude/maxsim/templates/summary.md`.
 
-**Frontmatter:** phase, plan, subsystem, tags | requires/provides/affects | tech-stack.added/patterns | key-files.created/modified | key-decisions | requirements-completed (**MUST** copy `requirements` array from PLAN.md frontmatter verbatim) | duration ($DURATION), completed ($PLAN_END_TIME date).
+## Post Summary as GitHub Comment (WIRE-02)
 
-Title: `# Phase [X] Plan [Y]: [Name] Summary`
+Do NOT write a local SUMMARY.md file to `.planning/phases/`. Instead, build the summary content in memory and post it as a GitHub comment.
 
-One-liner SUBSTANTIVE: "JWT auth with refresh rotation using jose library" not "Authentication implemented"
+Build summary content using the same structure as `~/.claude/maxsim/templates/summary.md`:
 
-Include: duration, start/end times, task count, file count.
+**Content to include:**
+- `<!-- maxsim:type=summary -->` HTML marker at the top (required for detection)
+- Frontmatter: phase, plan, subsystem, tags | requires/provides/affects | tech-stack.added/patterns | key-files.created/modified | key-decisions | requirements-completed (MUST copy `requirements` array from plan frontmatter verbatim) | duration ($DURATION), completed ($PLAN_END_TIME date)
+- Title: `# Phase [X] Plan [Y]: [Name] Summary`
+- One-liner SUBSTANTIVE: "JWT auth with refresh rotation using jose library" not "Authentication implemented"
+- Duration, start/end times, task count, file count
+- Next: more plans → "Ready for {next-plan}" | last → "Phase complete, ready for transition"
+- Deviations section (required, even if "None")
+- Review Cycle section (added after review cycle completes)
+- Self-Check result
 
-Next: more plans → "Ready for {next-plan}" | last → "Phase complete, ready for transition".
+Post to the phase issue:
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  type: "summary",
+  body: {summary_content}
+)
+```
+
+Record the comment URL/ID as `SUMMARY_COMMENT_ID` for future reference.
+
+**Fallback (no GitHub integration):** Write `{phase}-{plan}-SUMMARY.md` to `.planning/phases/XX-name/` as before.
 </step>
 
 <step name="review_cycle">
 ## Execute-Review-Simplify-Review Cycle
 
-After implementation is complete and SUMMARY.md is created, run the full review cycle before proceeding. All four stages must pass before the plan is considered done.
+After implementation is complete and summary is drafted (not yet posted), run the full review cycle before posting. All four stages must pass before the plan is considered done.
 
 ### Retry Counter Initialization
 
@@ -424,8 +503,8 @@ Task(
     </objective>
 
     <plan_spec>
-    Plan file: {phase_dir}/{phase}-{plan}-PLAN.md
-    Summary file: {phase_dir}/{phase}-{plan}-SUMMARY.md
+    Plan content: {plan_content_in_memory or plan file path: {phase_dir}/{phase}-{plan}-PLAN.md}
+    Summary content: {summary_content_in_memory}
     </plan_spec>
 
     <task_specs>
@@ -433,11 +512,11 @@ Task(
     </task_specs>
 
     <files_modified>
-    {List all files created/modified during execution from SUMMARY.md key-files}
+    {List all files created/modified during execution from summary key-files}
     </files_modified>
 
     <instructions>
-    1. Read the plan file and extract every task requirement
+    1. Read the plan content and extract every task requirement
     2. For each requirement, verify the implementation exists and matches the spec
     3. Check that nothing was added beyond scope
     4. Report: PASS (all requirements met) or FAIL (list unmet requirements)
@@ -448,7 +527,7 @@ Task(
 
 3. **If PASS:** Set `SPEC_RESULT="PASS"`, record `SPEC_STAGE_END=$(date +%s)`, proceed to Stage 2.
 
-4. **If FAIL and SPEC_ATTEMPTS < MAX_REVIEW_ATTEMPTS:** Fix the unmet requirements identified by the verifier, re-stage and commit fixes (`fix({phase}-{plan}): address spec review findings`), update SUMMARY.md, then loop back to step 1.
+4. **If FAIL and SPEC_ATTEMPTS < MAX_REVIEW_ATTEMPTS:** Fix the unmet requirements identified by the verifier, re-stage and commit fixes (`fix({phase}-{plan}): address spec review findings`), update summary content in memory, then loop back to step 1.
 
 5. **If FAIL and SPEC_ATTEMPTS >= MAX_REVIEW_ATTEMPTS:** Escalate to user:
 
@@ -463,14 +542,14 @@ The spec review has failed 3 times. This may indicate a fundamental mismatch bet
 
 **Options:**
 1. Fix manually and type "retry" to re-run spec review (resets attempt counter)
-2. Type "override" to skip spec review (will be flagged in SUMMARY.md)
+2. Type "override" to skip spec review (will be flagged in summary)
 3. Type "abort" to stop execution
 ```
 
 Wait for user response:
 - **"retry":** Reset `SPEC_ATTEMPTS=0`, loop back to step 1.
 - **"override":** Set `SPEC_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `SPEC_STAGE_END=$(date +%s)`, proceed to Stage 2.
-- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+- **"abort":** Stop execution, post partial summary with review status.
 
 ---
 
@@ -499,7 +578,7 @@ Task(
     </objective>
 
     <files_modified>
-    {List all files created/modified during execution from SUMMARY.md key-files}
+    {List all files created/modified during execution from summary key-files}
     </files_modified>
 
     <instructions>
@@ -529,14 +608,26 @@ The code review has been blocked 3 times. Remaining issues may require architect
 
 **Options:**
 1. Fix manually and type "retry" to re-run code review (resets attempt counter)
-2. Type "override" to skip code review (will be flagged in SUMMARY.md)
+2. Type "override" to skip code review (will be flagged in summary)
 3. Type "abort" to stop execution
 ```
 
 Wait for user response:
 - **"retry":** Reset `CODE_ATTEMPTS=0`, loop back to step 1.
 - **"override":** Set `CODE_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `CODE_STAGE_END=$(date +%s)`, proceed to Stage 3.
-- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+- **"abort":** Stop execution, post partial summary with review status.
+
+**On review failure -- reopen affected task sub-issues (WIRE-07):**
+
+If the code review identifies failures tied to specific tasks, and those task sub-issues were already closed:
+```
+mcp_reopen_issue(issue_number: task_sub_issue_number)
+mcp_move_issue(issue_number: task_sub_issue_number, status: "In Progress")
+mcp_post_comment(
+  issue_number: task_sub_issue_number,
+  body: "## Code Review Failure\n\nThis task's code review was blocked. Moving back to In Progress.\n\n**Blocking issues:**\n{list of blocker/high issues from verifier}"
+)
+```
 
 ---
 
@@ -572,7 +663,7 @@ Task(
     </objective>
 
     <files_to_review>
-    {List all files created/modified during execution from SUMMARY.md key-files}
+    {List all files created/modified during execution from summary key-files}
     </files_to_review>
 
     <instructions>
@@ -602,7 +693,7 @@ Task(
     </objective>
 
     <files_to_review>
-    {List all files created/modified during execution from SUMMARY.md key-files}
+    {List all files created/modified during execution from summary key-files}
     </files_to_review>
 
     <instructions>
@@ -632,7 +723,7 @@ Task(
     </objective>
 
     <files_to_review>
-    {List all files created/modified during execution from SUMMARY.md key-files}
+    {List all files created/modified during execution from summary key-files}
     </files_to_review>
 
     <instructions>
@@ -669,7 +760,7 @@ Task(
     </findings>
 
     <files_to_review>
-    {List all files created/modified during execution from SUMMARY.md key-files}
+    {List all files created/modified during execution from summary key-files}
     </files_to_review>
 
     <instructions>
@@ -699,14 +790,14 @@ The simplify stage has been blocked 3 times. Remaining issues require architectu
 
 **Options:**
 1. Fix manually and type "retry" to re-run simplify (resets attempt counter)
-2. Type "override" to skip simplify (will be flagged in SUMMARY.md)
+2. Type "override" to skip simplify (will be flagged in summary)
 3. Type "abort" to stop execution
 ```
 
 Wait for user response:
 - **"retry":** Reset `SIMPLIFY_ATTEMPTS=0`, re-run 3 reviewers.
 - **"override":** Set `SIMPLIFY_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `SIMPLIFY_STAGE_END=$(date +%s)`, skip Stage 4. Set `FINAL_RESULT="N/A"`.
-- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+- **"abort":** Stop execution, post partial summary with review status.
 
 ---
 
@@ -774,14 +865,14 @@ The final review has been blocked 3 times after simplification changes.
 
 **Options:**
 1. Fix manually and type "retry" to re-run final review (resets attempt counter)
-2. Type "override" to skip final review (will be flagged in SUMMARY.md)
+2. Type "override" to skip final review (will be flagged in summary)
 3. Type "abort" to stop execution
 ```
 
 Wait for user response:
 - **"retry":** Reset `FINAL_ATTEMPTS=0`, loop back to step 1.
 - **"override":** Set `FINAL_RESULT="OVERRIDDEN"`, increment `REVIEW_ESCALATIONS`, record `FINAL_STAGE_END=$(date +%s)`, proceed to review cycle tracking.
-- **"abort":** Stop execution, create partial SUMMARY.md with review status.
+- **"abort":** Stop execution, post partial summary with review status.
 
 ---
 
@@ -802,7 +893,7 @@ SIMPLIFY_DURATION=$(( SIMPLIFY_STAGE_END - SIMPLIFY_STAGE_START ))  # or "N/A" i
 FINAL_DURATION=$(( FINAL_STAGE_END - FINAL_STAGE_START ))  # or "N/A" if skipped
 ```
 
-Record review results in SUMMARY.md under a `## Review Cycle` section:
+Add review cycle results to the summary content in memory (under a `## Review Cycle` section):
 ```markdown
 ## Review Cycle
 
@@ -817,26 +908,36 @@ Record review results in SUMMARY.md under a `## Review Cycle` section:
 **Escalations:** {REVIEW_ESCALATIONS} ({REVIEW_ESCALATION_DETAILS or "None"})
 ```
 
-Update the SUMMARY.md commit after the review cycle completes:
+Now post the complete summary (with review cycle included) to GitHub:
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  type: "summary",
+  body: {complete_summary_content_including_review_cycle}
+)
+```
+
+After posting, commit any review-cycle metadata:
 ```bash
-node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): add review cycle results" --files {phase_dir}/{phase}-{plan}-SUMMARY.md
+node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): add review cycle results" --files .planning/STATE.md .planning/ROADMAP.md
 ```
 </step>
 
 <step name="evidence_gate">
-**Gate G6: Evidence Completeness** — SUMMARY.md must have evidence for each requirement.
+**Gate G6: Evidence Completeness** — Summary must have evidence for each requirement.
 
-After the review cycle and before committing metadata, validate that the SUMMARY.md contains requirement evidence for all requirements in the plan's frontmatter.
+After the review cycle and before finalizing, validate that the summary content contains requirement evidence for all requirements in the plan's frontmatter.
 
 ```bash
 if [ -n "$REQ_IDS" ]; then
-  SUMMARY_PATH=".planning/phases/XX-name/{phase}-{plan}-SUMMARY.md"
-  G6_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs verify evidence-completeness "$SUMMARY_PATH" $REQ_IDS)
+  # Write summary content to a temp file for verification
+  echo "$SUMMARY_CONTENT" > /tmp/summary-check.md
+  G6_RESULT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs verify evidence-completeness "/tmp/summary-check.md" $REQ_IDS)
   G6_VALID=$(echo "$G6_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).valid))")
   if [ "$G6_VALID" != "true" ]; then
     G6_MISSING=$(echo "$G6_RESULT" | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).missing_evidence.join(', ')))")
     echo "GATE G6: Missing requirement evidence for: $G6_MISSING"
-    echo "Add Requirement Evidence rows to SUMMARY.md for these requirements before proceeding."
+    echo "Add Requirement Evidence rows to summary for these requirements before posting."
     # Present as warning with instruction to fix — executor should add evidence
   fi
 fi
@@ -861,10 +962,10 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs state record-metric \
 </step>
 
 <step name="extract_decisions_and_issues">
-From SUMMARY: Extract decisions and add to STATE.md:
+From summary content: Extract decisions and add to STATE.md:
 
 ```bash
-# Add each decision from SUMMARY key-decisions
+# Add each decision from summary key-decisions
 # Prefer file inputs for shell-safe text (preserves `$`, `*`, etc. exactly)
 node ~/.claude/maxsim/bin/maxsim-tools.cjs state add-decision \
   --phase "${PHASE}" --summary-file "${DECISION_TEXT_FILE}" --rationale-file "${RATIONALE_FILE}"
@@ -887,32 +988,63 @@ Keep STATE.md under 150 lines.
 </step>
 
 <step name="issues_review_gate">
-If SUMMARY "Issues Encountered" ≠ "None": yolo → log and continue. Interactive → present issues, wait for acknowledgment.
+If summary "Issues Encountered" ≠ "None": yolo → log and continue. Interactive → present issues, wait for acknowledgment.
 </step>
 
 <step name="update_roadmap">
 ```bash
 node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap update-plan-progress "${PHASE}"
 ```
-Counts PLAN vs SUMMARY files on disk. Updates progress table row with correct count and status (`In Progress` or `Complete` with date).
+Counts completed task sub-issues (or PLAN vs SUMMARY files in fallback mode) on disk. Updates progress table row with correct count and status (`In Progress` or `Complete` with date).
 </step>
 
 <step name="update_requirements">
-Mark completed requirements from the PLAN.md frontmatter `requirements:` field:
+Mark completed requirements from the plan's frontmatter `requirements:` field:
 
 ```bash
 node ~/.claude/maxsim/bin/maxsim-tools.cjs requirements mark-complete ${REQ_IDS}
 ```
 
-Extract requirement IDs from the plan's frontmatter (e.g., `requirements: [AUTH-01, AUTH-02]`). If no requirements field, skip.
+Extract requirement IDs from the plan frontmatter (e.g., `requirements: [AUTH-01, AUTH-02]`). If no requirements field, skip.
 </step>
 
 <step name="git_commit_metadata">
 Task code already committed per-task. Commit plan metadata:
 
 ```bash
-node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): complete [plan-name] plan" --files .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md .planning/STATE.md .planning/ROADMAP.md .planning/REQUIREMENTS.md
+node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): complete [plan-name] plan" --files .planning/STATE.md .planning/ROADMAP.md .planning/REQUIREMENTS.md
 ```
+
+Note: No local SUMMARY.md is committed -- summary was posted to GitHub as a comment.
+</step>
+
+<step name="post_verification_to_github">
+
+## Post Verification Results as GitHub Comment
+
+If the plan includes verification criteria (from `<verification>` section of plan content):
+
+Build verification results content in memory with `<!-- maxsim:type=verification -->` marker.
+
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  type: "verification",
+  body: "<!-- maxsim:type=verification -->\n## Plan {plan_number} Verification\n\n{verification_results}\n\n**Status:** {passed|failed}\n**Timestamp:** {ISO timestamp}"
+)
+```
+
+If the plan includes UAT criteria (from `<uat>` section):
+
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  type: "uat",
+  body: "<!-- maxsim:type=uat -->\n## Plan {plan_number} UAT\n\n{uat_criteria_and_results}\n\n**Status:** {pending|passed|failed}\n**Timestamp:** {ISO timestamp}"
+)
+```
+
+**Fallback (no GitHub integration):** Write VERIFICATION.md and UAT.md to the phase directory as before.
 </step>
 
 <step name="update_codebase_map">
@@ -933,6 +1065,14 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "" --files .planning/codebase/
 <step name="offer_next">
 If `USER_SETUP_CREATED=true`: display `⚠️ USER SETUP REQUIRED` with path + env/config tasks at TOP.
 
+Check completion by querying the phase issue's task sub-issues:
+```
+mcp_list_sub_issues(issue_number: phase_issue_number)
+```
+
+Count open vs closed sub-issues. Map closed count to plans complete.
+
+Fallback (no GitHub):
 ```bash
 ls -1 .planning/phases/[current-phase-dir]/*-PLAN.md 2>/dev/null | wc -l
 ls -1 .planning/phases/[current-phase-dir]/*-SUMMARY.md 2>/dev/null | wc -l
@@ -940,9 +1080,9 @@ ls -1 .planning/phases/[current-phase-dir]/*-SUMMARY.md 2>/dev/null | wc -l
 
 | Condition | Route | Action |
 |-----------|-------|--------|
-| summaries < plans | **A: More plans** | Find next PLAN without SUMMARY. Yolo: auto-continue. Interactive: show next plan, suggest `/maxsim:execute {phase}`. STOP here. |
-| summaries = plans, current < highest phase | **B: Phase done** | Show completion, suggest `/maxsim:plan {Z+1}`. |
-| summaries = plans, current = highest phase | **C: Milestone done** | Show banner, suggest `/maxsim:progress`. |
+| open task sub-issues remain | **A: More plans** | Find next incomplete plan (by open sub-issues or missing summary comment). Yolo: auto-continue. Interactive: show next plan, suggest `/maxsim:execute {phase}`. STOP here. |
+| all sub-issues closed, current < highest phase | **B: Phase done** | Show completion, suggest `/maxsim:plan {Z+1}`. |
+| all sub-issues closed, current = highest phase | **C: Milestone done** | Show banner, suggest `/maxsim:progress`. |
 
 All routes: `/clear` first for fresh context.
 </step>
@@ -951,10 +1091,13 @@ All routes: `/clear` first for fresh context.
 
 <success_criteria>
 
-- All tasks from PLAN.md completed
+- All tasks from plan completed
 - All verifications pass
 - USER-SETUP.md generated if user_setup in frontmatter
-- SUMMARY.md created with substantive content
+- Summary posted as GitHub comment with `<!-- maxsim:type=summary -->` marker (not written to local SUMMARY.md)
+- Verification and UAT posted as GitHub comments with appropriate type markers
+- Task sub-issues moved: In Progress when started, Done when completed (WIRE-04)
+- On review failure: task sub-issues reopened and moved back to In Progress (WIRE-07)
 - STATE.md updated (position, decisions, issues, session)
 - ROADMAP.md updated
 - If codebase map exists: map updated with execution changes (or skipped if no significant changes)
