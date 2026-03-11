@@ -26,6 +26,8 @@ import {
   getProjectBoard,
   addItemToProject,
 } from '../github/projects.js';
+import { getPhaseIssue } from '../github/issues.js';
+import { loadMapping } from '../github/mapping.js';
 
 import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';
 
@@ -139,6 +141,90 @@ export function registerBoardTools(server: McpServer): void {
             added: true,
           },
           `Issue #${issue_number} added to project board`,
+        );
+      } catch (e) {
+        return mcpError((e as Error).message, 'Operation failed');
+      }
+    },
+  );
+
+  // -- mcp_sync_check -----------------------------------------------------------
+
+  server.tool(
+    'mcp_sync_check',
+    'Verify local github-issues.json mapping is in sync with live GitHub state.',
+    {},
+    async () => {
+      try {
+        try {
+          requireAuth();
+        } catch (e) {
+          if (e instanceof AuthError) {
+            return mcpAuthError(e);
+          }
+          throw e;
+        }
+
+        const cwd = detectProjectRoot();
+        if (!cwd) {
+          return mcpError('No .planning/ directory found', 'Project not detected');
+        }
+
+        const mapping = loadMapping(cwd);
+        if (!mapping) {
+          return mcpError('github-issues.json not found. Run project setup first.', 'Mapping missing');
+        }
+
+        const mismatches: Array<{ phase_number: string; issue_number: number; local_state: string; remote_state: string }> = [];
+        const missing_remote: Array<{ phase_number: string; issue_number: number }> = [];
+
+        for (const [phaseNum, phaseMapping] of Object.entries(mapping.phases)) {
+          const issueNumber = phaseMapping.tracking_issue.number;
+          if (!issueNumber) continue;
+
+          const issueResult = await getPhaseIssue(issueNumber);
+          if (!issueResult.ok) {
+            if (issueResult.error.includes('NOT_FOUND') || issueResult.error.includes('404')) {
+              missing_remote.push({ phase_number: phaseNum, issue_number: issueNumber });
+            }
+            continue;
+          }
+
+          const localStatus = phaseMapping.tracking_issue.status;
+          const remoteState = issueResult.data.state; // 'open' or 'closed'
+
+          // Map remote state to local status for comparison
+          const expectedStatus = remoteState === 'closed' ? 'Done' : localStatus;
+          if (remoteState === 'closed' && localStatus !== 'Done') {
+            mismatches.push({
+              phase_number: phaseNum,
+              issue_number: issueNumber,
+              local_state: localStatus,
+              remote_state: remoteState,
+            });
+          } else if (remoteState === 'open' && localStatus === 'Done') {
+            mismatches.push({
+              phase_number: phaseNum,
+              issue_number: issueNumber,
+              local_state: localStatus,
+              remote_state: remoteState,
+            });
+          }
+          void expectedStatus; // suppress unused variable warning
+        }
+
+        const in_sync = mismatches.length === 0 && missing_remote.length === 0;
+
+        return mcpSuccess(
+          {
+            in_sync,
+            mismatches,
+            missing_local: [],
+            missing_remote,
+          },
+          in_sync
+            ? 'Local mapping is in sync with GitHub'
+            : `Sync issues found: ${mismatches.length} mismatch(es), ${missing_remote.length} missing remote`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');

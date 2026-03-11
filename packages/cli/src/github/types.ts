@@ -44,6 +44,10 @@ export class AuthError extends Error {
   }
 }
 
+// ---- Close state reason ----------------------------------------------------
+
+export type StateReason = 'completed' | 'not_planned';
+
 // ---- Issue status ----------------------------------------------------------
 
 export type IssueStatus = 'To Do' | 'In Progress' | 'In Review' | 'Done';
@@ -65,6 +69,7 @@ export interface PhaseMapping {
   tracking_issue: TaskIssueMapping;
   plan: string;
   tasks: Record<string, TaskIssueMapping>;
+  body_hash?: string;
 }
 
 // ---- Root mapping file (.planning/github-issues.json) ----------------------

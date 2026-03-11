@@ -16,6 +16,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { planningPath } from '../core/core.js';
 import type { GhResult, IssueMappingFile, PhaseMapping, TaskIssueMapping } from './types.js';
@@ -32,6 +33,33 @@ const MAPPING_FILENAME = 'github-issues.json';
  */
 function mappingFilePath(cwd: string): string {
   return planningPath(cwd, MAPPING_FILENAME);
+}
+
+/**
+ * Compute a SHA-256 hash of an issue body string.
+ * Used for external edit detection (WIRE-06).
+ */
+export function hashBody(body: string): string {
+  return createHash('sha256').update(body).digest('hex');
+}
+
+/**
+ * Update the body_hash for a specific phase in the mapping cache.
+ *
+ * Load-modify-save pattern. Throws if mapping file does not exist.
+ */
+export function updatePhaseBodyHash(cwd: string, phaseNum: string, bodyHash: string): void {
+  const mapping = loadMapping(cwd);
+  if (!mapping) {
+    throw new Error('github-issues.json does not exist. Run project setup first.');
+  }
+
+  if (!mapping.phases[phaseNum]) {
+    throw new Error(`Phase ${phaseNum} not found in mapping file.`);
+  }
+
+  mapping.phases[phaseNum].body_hash = bodyHash;
+  saveMapping(cwd, mapping);
 }
 
 // ---- Public API: Local file I/O --------------------------------------------

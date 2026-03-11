@@ -11,7 +11,7 @@
  * CRITICAL: Never call process.exit() — return GhResult instead.
  */
 
-import type { GhResult } from './types.js';
+import type { GhResult, StateReason } from './types.js';
 import { getOctokit, getRepoInfo, withGhResult } from './client.js';
 
 // ---- Phase Issue Creation ---------------------------------------------------
@@ -200,11 +200,12 @@ export async function postPlanComment(
 /**
  * Close an issue. Optionally post a reason comment before closing.
  *
- * Uses `state_reason: 'completed'` by default.
+ * @param stateReason - 'completed' (default) or 'not_planned' (rollback/cancel)
  */
 export async function closeIssue(
   issueNumber: number,
   reason?: string,
+  stateReason: StateReason = 'completed',
 ): Promise<GhResult<void>> {
   return withGhResult(async () => {
     const octokit = getOctokit();
@@ -225,7 +226,7 @@ export async function closeIssue(
       repo,
       issue_number: issueNumber,
       state: 'closed',
-      state_reason: 'completed' as any,
+      state_reason: stateReason as any,
     });
   });
 }
@@ -252,11 +253,20 @@ export async function reopenIssue(issueNumber: number): Promise<GhResult<void>> 
 /**
  * Fetch a single issue by number.
  *
- * Returns number, id, title, state, and body.
+ * Returns number, id, title, state, body, updated_at, labels, and comments_url.
  */
 export async function getPhaseIssue(
   phaseIssueNumber: number,
-): Promise<GhResult<{ number: number; id: number; title: string; state: string; body: string }>> {
+): Promise<GhResult<{
+  number: number;
+  id: number;
+  title: string;
+  state: string;
+  body: string;
+  updated_at: string;
+  labels: string[];
+  comments_url: string;
+}>> {
   return withGhResult(async () => {
     const octokit = getOctokit();
     const { owner, repo } = await getRepoInfo();
@@ -267,12 +277,19 @@ export async function getPhaseIssue(
       issue_number: phaseIssueNumber,
     });
 
+    const labels = response.data.labels.map(l =>
+      typeof l === 'string' ? l : (l.name ?? ''),
+    ).filter(Boolean);
+
     return {
       number: response.data.number,
       id: response.data.id,
       title: response.data.title,
       state: response.data.state,
       body: response.data.body ?? '',
+      updated_at: response.data.updated_at,
+      labels,
+      comments_url: response.data.comments_url,
     };
   });
 }
@@ -281,11 +298,11 @@ export async function getPhaseIssue(
  * List all sub-issues of a phase Issue.
  *
  * Uses GitHub's native sub-issues API.
- * Returns each sub-issue's number, id, title, and state.
+ * Returns each sub-issue's number, id, title, state, and updated_at.
  */
 export async function listPhaseSubIssues(
   phaseIssueNumber: number,
-): Promise<GhResult<Array<{ number: number; id: number; title: string; state: string }>>> {
+): Promise<GhResult<Array<{ number: number; id: number; title: string; state: string; updated_at: string }>>> {
   return withGhResult(async () => {
     const octokit = getOctokit();
     const { owner, repo } = await getRepoInfo();
@@ -301,6 +318,7 @@ export async function listPhaseSubIssues(
       id: issue.id as number,
       title: issue.title as string,
       state: issue.state as string,
+      updated_at: (issue.updated_at as string) ?? '',
     }));
 
     return subIssues;
