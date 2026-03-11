@@ -43,7 +43,7 @@ Check if `--auto` flag is present in $ARGUMENTS.
 INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init init-existing)
 ```
 
-Parse JSON for: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `mapper_model`, `commit_docs`, `project_exists`, `planning_exists`, `planning_files`, `has_codebase_map`, `has_existing_code`, `has_package_file`, `has_git`, `has_readme`, `conflict_detected`, `existing_file_count`, `brave_search_available`, `parallelization`, `project_path`, `codebase_dir`.
+Parse JSON for: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `mapper_model`, `commit_docs`, `project_exists`, `planning_exists`, `planning_files`, `has_codebase_map`, `has_existing_code`, `has_package_file`, `has_git`, `has_readme`, `conflict_detected`, `existing_file_count`, `brave_search_available`, `parallelization`, `project_path`, `codebase_dir`, `github_ready`, `has_github_remote`, `gh_authenticated`.
 
 **If `has_existing_code` is false AND `has_package_file` is false:**
 
