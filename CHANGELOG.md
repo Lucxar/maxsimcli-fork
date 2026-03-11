@@ -1,3 +1,10 @@
+## [4.15.2](https://github.com/maystudios/maxsimcli/compare/v4.15.1...v4.15.2) (2026-03-11)
+
+
+### Bug Fixes
+
+* **workflows:** add missing GitHub fields to init workflow Parse JSON instructions ([539487b](https://github.com/maystudios/maxsimcli/commit/539487bb0bc59e818cab72e1e0969f9c2e69760a))
+
 ## [4.15.1](https://github.com/maystudios/maxsimcli/compare/v4.15.0...v4.15.1) (2026-03-11)
 
 
