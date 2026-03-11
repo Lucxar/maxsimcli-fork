@@ -5,20 +5,20 @@ import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 
 describe('install file structure (E2E-03)', () => {
-  it('installs exactly 38 command .md files', () => {
+  it('installs exactly 9 command .md files', () => {
     const installDir = inject('installDir');
     const commandsDir = join(installDir, '.claude', 'commands', 'maxsim');
     expect(existsSync(commandsDir)).toBe(true);
     const files = readdirSync(commandsDir).filter((f) => f.endsWith('.md'));
-    expect(files).toHaveLength(38);
+    expect(files).toHaveLength(9);
   });
 
-  it('installs exactly 15 agent .md files', () => {
+  it('installs exactly 5 agent .md files', () => {
     const installDir = inject('installDir');
     const agentsDir = join(installDir, '.claude', 'agents');
     expect(existsSync(agentsDir)).toBe(true);
     const files = readdirSync(agentsDir).filter((f) => f.endsWith('.md'));
-    expect(files).toHaveLength(15);
+    expect(files).toHaveLength(5);
   });
 
   it('installs maxsim-tools.cjs at expected path', () => {
