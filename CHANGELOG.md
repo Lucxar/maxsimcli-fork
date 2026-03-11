@@ -1,3 +1,10 @@
+# [4.15.0](https://github.com/maystudios/maxsimcli/compare/v4.14.0...v4.15.0) (2026-03-11)
+
+
+### Features
+
+* **agents:** update agent prompts for GitHub I/O, create github-artifact-protocol skill, update installer ([2eaf852](https://github.com/maystudios/maxsimcli/commit/2eaf852bd04d129a5b9b95ceb62e0b14a2aced6f))
+
 # [4.14.0](https://github.com/maystudios/maxsimcli/compare/v4.13.0...v4.14.0) (2026-03-11)
 
 
