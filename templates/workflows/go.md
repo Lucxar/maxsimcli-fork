@@ -1,5 +1,5 @@
 <purpose>
-Auto-detect project state through deep context gathering, surface problems proactively, and dispatch to the appropriate MAXSIM command. Uses the Show + Act pattern: display detection reasoning first, then act immediately.
+Auto-detect project state through live GitHub queries, surface problems proactively, and dispatch to the appropriate MAXSIM command. Uses the Show + Act pattern: display detection reasoning first, then act immediately.
 </purpose>
 
 <required_reading>
@@ -30,19 +30,24 @@ PLANNING_EXISTS=$(test -d .planning && echo "true" || echo "false")
 
 If `.planning/` does not exist, skip all other checks and go directly to the decision tree (Rule 1: No project found).
 
-**2. Load project state (if .planning/ exists):**
+**2. Load local project context (always from local files per WIRE-02):**
 ```bash
-# State snapshot
+# State snapshot (local)
 STATE=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs state-snapshot 2>/dev/null || echo "{}")
-
-# Roadmap analysis
-ROADMAP=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap analyze 2>/dev/null || echo "{}")
 ```
 
-**3. Read key files (if they exist):**
-- `.planning/PROJECT.md` -- project name and vision
-- `.planning/STATE.md` -- blockers, decisions, session continuity
-- `.planning/ROADMAP.md` -- phase structure and progress
+Read local files for project context:
+- `.planning/STATE.md` — blockers, decisions, session continuity
+- `.planning/ROADMAP.md` — phase structure and phase ordering
+
+**3. Live GitHub state (primary source — always-live, no cached state):**
+
+Call `mcp_get_all_progress` to get current state of all phases from GitHub. Returns:
+- `phase_number`, `title`, `issue_number`
+- `total_tasks`, `completed_tasks`, `remaining_tasks`
+- `status` (GitHub board column: To Do / In Progress / In Review / Done)
+
+Call `mcp_detect_interrupted` to check for any phases that were interrupted mid-execution (e.g., agent was stopped while a task was marked in-flight).
 
 **4. Git context:**
 ```bash
@@ -52,20 +57,12 @@ GIT_STATUS=$(git status --porcelain 2>/dev/null | head -20)
 # Recent commits
 RECENT_COMMITS=$(git log --oneline -5 2>/dev/null)
 ```
-
-**5. Phase directory scan:**
-```bash
-# List phase directories and their contents
-ls -1 .planning/phases/ 2>/dev/null
-```
-
-For each phase directory, check for PLAN.md, SUMMARY.md, CONTEXT.md, RESEARCH.md files to determine phase state.
 </step>
 
 <step name="problem_detection">
 **Phase 2: Problem Detection**
 
-Check for problems BEFORE suggesting any action. All problems are blocking -- no severity tiers.
+Check for problems BEFORE suggesting any action. All problems are blocking — no severity tiers.
 
 **Check each of these in order:**
 
@@ -78,7 +75,7 @@ If uncommitted changes exist in `.planning/`:
 ## Problem Detected
 
 **Issue:** Uncommitted changes in .planning/ directory
-**Impact:** State drift -- local planning files may diverge from team or lose work
+**Impact:** State drift — local planning files may diverge from team or lose work
 **Resolution:** Commit planning changes to preserve state
 
 **Files with changes:**
@@ -110,22 +107,18 @@ Resolve this before continuing. Options:
 
 Block until user responds.
 
-**3. Failed verification**
-Check for VERIFICATION.md in the current/latest phase with FAIL status:
-```bash
-grep -l "FAIL\|status: failed" .planning/phases/*/VERIFICATION.md 2>/dev/null | tail -1
-```
-If found:
+**3. Failed verification on GitHub**
+Check if any phase issue has a verification comment with FAIL status (from live GitHub data via `mcp_get_all_progress` — look for phases stuck in "In Review" with a known failure, or check recent comments via `mcp_get_issue_detail` for the current phase issue):
 ```
 ## Problem Detected
 
 **Issue:** Phase verification failed
-**Phase:** {phase number and name}
-**Impact:** Phase is not verified as complete -- may have gaps
+**Phase:** {phase number and name} (GitHub Issue #{issue_number})
+**Impact:** Phase is not verified as complete — may have gaps
 **Resolution:** Re-run verification or fix identified issues
 
 Resolve this before continuing. Options:
-1. View verification results
+1. View verification results (check GitHub issue comments)
 2. Re-execute to fix issues
 3. Skip and continue anyway
 ```
@@ -142,6 +135,8 @@ Block until user responds.
 
 Apply rules in strict precedence order. The FIRST matching rule determines the action.
 
+Use live GitHub data from `mcp_get_all_progress` and `mcp_detect_interrupted` (gathered in Phase 1) as the primary source of truth for phase state. Use local ROADMAP.md for phase ordering only.
+
 ```
 Rule 1: No .planning/ directory?
   -> Action: /maxsim:init
@@ -151,31 +146,35 @@ Rule 2: Has blockers in STATE.md? (not cleared in problem detection)
   -> Action: Surface blocker, suggest resolution
   -> Reasoning: "BLOCKED: {blocker text}"
 
-Rule 3: Active phase has plans but not all executed?
-  -> Check: summaries < plans in current phase directory
+Rule 3: Interrupted phase detected (from mcp_detect_interrupted)?
   -> Action: /maxsim:execute {N}
-  -> Reasoning: "Phase {N} ({name}) has {X} plans, {Y} executed. Ready to continue."
+  -> Reasoning: "Phase {N} ({name}) was interrupted. Resuming execution."
 
-Rule 4: Active phase needs planning? (no PLAN.md files)
-  -> Check: no PLAN.md files in current phase directory
+Rule 4: Phase "In Progress" on GitHub board with incomplete tasks?
+  -> Check: mcp_get_all_progress returns a phase with status="In Progress" and remaining_tasks > 0
+  -> Action: /maxsim:execute {N}
+  -> Reasoning: "Phase {N} ({name}) has {remaining} tasks remaining. Ready to continue."
+
+Rule 5: Phase "To Do" on GitHub board (not yet started)?
+  -> Check: mcp_get_all_progress returns the next unstarted phase (status="To Do")
   -> Action: /maxsim:plan {N}
   -> Reasoning: "Phase {N} ({name}) needs planning."
 
-  Sub-check: Does CONTEXT.md exist?
+  Sub-check: Does local CONTEXT.md exist?
   -> If yes: "Discussion complete, ready for research + planning."
   -> If no: "Starting from discussion stage."
 
-Rule 5: Current phase complete, next phase exists?
-  -> Check: all plans have summaries AND next phase exists in roadmap
-  -> Action: /maxsim:plan {N+1}
-  -> Reasoning: "Phase {N} complete. Next: Phase {N+1} ({name})."
+Rule 6: Current phase "In Review" on GitHub board?
+  -> Check: mcp_get_all_progress returns a phase with status="In Review"
+  -> Action: /maxsim:verify {N}
+  -> Reasoning: "Phase {N} ({name}) is awaiting verification."
 
-Rule 6: All phases complete?
-  -> Check: all phases in roadmap have all plans executed
+Rule 7: All phases "Done" on GitHub board?
+  -> Check: mcp_get_all_progress — all phases have status="Done"
   -> Action: /maxsim:progress
   -> Reasoning: "All phases complete. Milestone ready for review."
 
-Rule 7: None of the above?
+Rule 8: None of the above?
   -> Action: Show interactive menu
   -> Reasoning: "Project state is ambiguous. Here are your options."
 ```
@@ -186,53 +185,55 @@ Rule 7: None of the above?
 
 Once a rule matches, display detection reasoning FIRST, then act immediately.
 
-**Format for auto-dispatch (Rules 1-6):**
+**Format for auto-dispatch (Rules 1-7):**
 
 ```
 ## Detected: {summary of what was found}
 
 **Project:** {project name from PROJECT.md, or "New project"}
 **Milestone:** {milestone from ROADMAP.md, or "Not started"}
-**Current phase:** {phase N - name, or "None"}
-**Status:** {description of current state}
+**Current phase:** {phase N - name, or "None"} (GitHub Issue #{issue_number})
+**GitHub Status:** {board column from live mcp_get_all_progress data}
+**Tasks:** {completed}/{total} complete
 
 **Action:** Running /maxsim:{command} {args}...
 ```
 
 Then immediately dispatch the command using the SlashCommand tool. The user can Ctrl+C if the detection is wrong.
 
-**Important:** Show the detection block, then dispatch. Do not ask for confirmation -- this is Show + Act, not Show + Ask.
+**Important:** Show the detection block, then dispatch. Do not ask for confirmation — this is Show + Act, not Show + Ask.
 </step>
 
 <step name="interactive_menu">
-**Phase 5: Interactive Menu (Rule 7 -- no obvious action)**
+**Phase 5: Interactive Menu (Rule 8 — no obvious action)**
 
-When no clear action is detected, show a contextual menu. The menu items are NOT static -- filter based on what makes sense for the current project state.
+When no clear action is detected, show a contextual menu. The menu items are NOT static — filter based on what makes sense for the current project state (use live GitHub data from mcp_get_all_progress).
 
 ```
 ## Project Status
 
 **Project:** {project name}
 **Milestone:** {milestone}
-**Progress:** {X}/{Y} phases complete
+**GitHub Progress:** {X}/{Y} phases Done on board
 
 What would you like to do?
 
-1. /maxsim:plan {next_phase} -- Plan next phase
-2. /maxsim:quick -- Quick ad-hoc task
-3. /maxsim:progress -- View detailed progress
-4. /maxsim:debug -- Debug an issue
+1. /maxsim:plan {next_phase} — Plan next phase
+2. /maxsim:quick — Quick ad-hoc task
+3. /maxsim:progress — View detailed progress
+4. /maxsim:debug — Debug an issue
 
 Or describe what you'd like to do:
 ```
 
 **Contextual filtering rules:**
-- If phases are planned but not executed: show execute options prominently
-- If all phases are done: show `/maxsim:progress` (offers milestone completion)
+- If phases are "In Progress" on GitHub: show execute options prominently
+- If all phases are "Done" on GitHub: show `/maxsim:progress` (offers milestone completion)
 - If recent git activity suggests debugging: show `/maxsim:debug` prominently
-- If no phases exist: show `/maxsim:plan` prominently
+- If no phases exist on board: show `/maxsim:plan` prominently
 - Always include `/maxsim:quick` as it is always relevant
 - Always include an open-ended fallback ("Or describe what you'd like to do")
+- If GitHub not available (mcp calls fail): fall back to local ROADMAP analysis and note degraded mode
 
 Wait for user selection, then dispatch the chosen command.
 </step>
@@ -242,9 +243,12 @@ Wait for user selection, then dispatch the chosen command.
 <constraints>
 - Never ask for confirmation before dispatching (Show + Act, not Show + Ask)
 - Always surface problems BEFORE suggesting actions
-- All problems block -- no severity tiers, no "warnings"
-- No arguments accepted -- this is pure auto-detection
+- All problems block — no severity tiers, no "warnings"
+- No arguments accepted — this is pure auto-detection
 - No mention of old commands (plan-phase, execute-phase, etc.)
-- Keep initial feedback fast -- show "Analyzing..." before heavy operations
+- Keep initial feedback fast — show "Analyzing..." before heavy operations
+- Primary source for phase state: live GitHub (mcp_get_all_progress, mcp_detect_interrupted)
+- Local reads: STATE.md for blockers/decisions, ROADMAP.md for phase ordering only
 - If context gathering fails (tools not available, etc.), fall back to the interactive menu
 </constraints>
+</output>

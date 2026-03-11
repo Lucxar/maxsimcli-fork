@@ -1,5 +1,5 @@
 <purpose>
-Check project progress, milestone status, and offer milestone completion when all phases are done. Shows GitHub Issues-based progress alongside local ROADMAP.md progress for cross-validation. Detects phase gaps and intelligently routes to the next action.
+Check project progress, milestone status, and offer milestone completion when all phases are done. Reads status from live GitHub queries (always-live, no cached state). Detects phase gaps and intelligently routes to the next action.
 </purpose>
 
 <required_reading>
@@ -37,64 +37,91 @@ If missing both ROADMAP.md and PROJECT.md: suggest `/maxsim:init`.
 </step>
 
 <step name="load">
-**Use structured extraction from maxsim-tools:**
+**Load local project context (always from local files per WIRE-02):**
 
-Instead of reading full files, use targeted tools to get only the data needed for the report:
-- `ROADMAP=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap analyze)`
+Use targeted tools to get data needed for the report:
 - `STATE=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs state-snapshot)`
+
+Read local files for project context:
+- `.planning/config.json` — model profile, workflow flags
+- `.planning/PROJECT.md` — project name and vision
+- `.planning/REQUIREMENTS.md` — requirements context
+- `.planning/STATE.md` — decisions, blockers, metrics
 
 This minimizes orchestrator context usage.
 </step>
 
-<step name="analyze_roadmap">
-**Get comprehensive roadmap analysis (replaces manual parsing):**
+<step name="live_github_phase_overview">
+**Get live phase status from GitHub (primary source — always-live, no cached state):**
 
-```bash
-ROADMAP=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap analyze)
+Call `mcp_get_all_progress` to get progress for all phases. This returns live data from GitHub Issues:
+- `phase_number`, `title`, `issue_number`
+- `total_tasks`, `completed_tasks`, `remaining_tasks`
+- `status` (the GitHub board column: To Do / In Progress / In Review / Done)
+
+Display as formatted table:
+
+```
+## GitHub Issues Progress (Live)
+
+| Phase | Title | Issue | Completed | Total | Remaining | Status |
+|-------|-------|-------|-----------|-------|-----------|--------|
+| 01    | ...   | #12   | 3         | 5     | 2         | In Progress |
+| 02    | ...   | #13   | 0         | 4     | 4         | To Do |
 ```
 
-This returns structured JSON with:
-- All phases with disk status (complete/partial/planned/empty/no_directory)
-- Goal and dependencies per phase
-- Plan and summary counts per phase
-- Aggregated stats: total plans, summaries, progress percent
-- Current and next phase identification
+**Also get board column view:**
 
-Use this instead of manually reading/parsing ROADMAP.md.
+Call `mcp_query_board` with the project number (from init context / config). Group items by status column (To Do, In Progress, In Review, Done). Display column counts and issue details:
+
+```
+## Board Status (Live)
+
+| Column      | Count | Issues |
+|-------------|-------|--------|
+| To Do       | 2     | #13, #14 |
+| In Progress | 1     | #12 |
+| In Review   | 0     | — |
+| Done        | 3     | #9, #10, #11 |
+```
+
+**Cross-validate with local ROADMAP.md:**
+- Run `ROADMAP=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap analyze)` to get local phase data
+- Compare local completion status against GitHub board status
+- Highlight any discrepancies between local and GitHub state in the Issues Detected section
 </step>
 
-<step name="recent">
-**Gather recent work context:**
+<step name="live_github_detail">
+**Per-phase detail (when user requests or for current phase):**
 
-- Find the 2-3 most recent SUMMARY.md files
-- Use `summary-extract` for efficient parsing:
-  ```bash
-  node ~/.claude/maxsim/bin/maxsim-tools.cjs summary-extract <path> --fields one_liner
-  ```
-- This shows "what we've been working on"
-  </step>
+For the current active phase (or any phase requested by user):
+- Call `mcp_get_phase_progress` with the phase issue number to get task-level progress
+- Call `mcp_list_sub_issues` to get individual task status with sub-issue details
+- Display task breakdown with status indicators (✓ done / ⏳ in progress / ○ to do)
+
+**Detect external edits:**
+
+After reading phase data from GitHub, call `mcp_detect_external_edits` for each phase with the stored `body_hash`. Warn in the Issues Detected section if modifications were detected outside the normal workflow.
+</step>
 
 <step name="position">
-**Parse current position from init context and roadmap analysis:**
+**Parse current position from init context and live GitHub data:**
 
-- Use `current_phase` and `next_phase` from `$ROADMAP`
+- Use `current_phase` and `next_phase` from `$ROADMAP` (local) cross-referenced with GitHub board status
 - Note `paused_at` if work was paused (from `$STATE`)
-- Count pending todos: use `init todos` or `list-todos`
-- Check for active debug sessions: `ls .planning/debug/*.md 2>/dev/null | grep -v resolved | wc -l`
-  </step>
+- Count pending todos: use `mcp_list_todos` for live todo count
+- Check for interrupted phases via `mcp_detect_interrupted`
+</step>
 
 <step name="report">
 **Generate progress bar from maxsim-tools, then present rich status report:**
 
 ```bash
-# Get formatted progress bar
+# Get formatted progress bar (local computation)
 PROGRESS_BAR=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs progress phase-bars --raw)
-
-# Get GitHub Issues-based progress (best-effort, may fail if gh not authenticated)
-GH_PROGRESS=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs mcp_get_all_progress 2>/dev/null || echo '{"error": "GitHub not available"}')
 ```
 
-Present (include GitHub Issues progress if available for cross-validation):
+Present (GitHub Issues is the primary progress source; local ROADMAP is cross-validation):
 
 ```
 # [Project Name]
@@ -102,13 +129,15 @@ Present (include GitHub Issues progress if available for cross-validation):
 **Progress:** {PROGRESS_BAR}
 **Profile:** [quality/balanced/budget]
 
-## Recent Work
-- [Phase X, Plan Y]: [what was accomplished - 1 line from summary-extract]
-- [Phase X, Plan Z]: [what was accomplished - 1 line from summary-extract]
+## GitHub Issues Progress (Live)
+[formatted table from mcp_get_all_progress — see live_github_phase_overview step]
+
+## Board Status (Live)
+[column view from mcp_query_board — see live_github_phase_overview step]
 
 ## Current Position
 Phase [N] of [total]: [phase-name]
-Plan [M] of [phase-total]: [status]
+GitHub Status: [board column from live data]
 CONTEXT: [✓ if has_context | - if not]
 
 ## Key Decisions Made
@@ -119,26 +148,16 @@ CONTEXT: [✓ if has_context | - if not]
 - [extract from $STATE.blockers[]]
 - [e.g. jq -r '.blockers[].text' from state-snapshot]
 
-## GitHub Issues Progress
-(If GH_PROGRESS available and not error)
-- Phase completion status from GitHub Issues
-- Cross-validate with local ROADMAP.md progress
-- Highlight any discrepancies between local and GitHub state
-
 ## Issues Detected
 (Only show if gaps found during analysis)
-- Phase [N]: [issue description, e.g., "Verification failed (2 truths unmet)"]
-- Phase [M]: [issue description, e.g., "Plan exists but not executed"]
+- Phase [N]: [issue description, e.g., "External edit detected — body_hash mismatch"]
+- Phase [M]: [issue description, e.g., "Local: complete, GitHub: In Progress — discrepancy"]
 
 ## Pending Todos
 - [count] pending — /maxsim:quick --todo to review
 
-## Active Debug Sessions
-- [count] active — /maxsim:debug to continue
-(Only show this section if count > 0)
-
 ## What's Next
-[Next phase/plan objective from roadmap analyze]
+[Next phase/plan objective from live GitHub data and local roadmap]
 ```
 
 **Performance metrics table truncation:**
@@ -152,54 +171,40 @@ When displaying the performance metrics table from STATE.md (the `## Performance
 </step>
 
 <step name="route">
-**Determine next action based on verified counts.**
+**Determine next action based on live GitHub data.**
 
-**Step 1: Count plans, summaries, and issues in current phase**
+**Step 1: Get live phase state from GitHub**
 
-List files in the current phase directory:
+Call `mcp_get_all_progress` (already fetched above). Identify:
+- Phases with status "In Progress" that have remaining tasks
+- Phases with status "To Do" (not yet started)
+- Phases with status "Done"
 
-```bash
-ls -1 .planning/phases/[current-phase-dir]/*-PLAN.md 2>/dev/null | wc -l
-ls -1 .planning/phases/[current-phase-dir]/*-SUMMARY.md 2>/dev/null | wc -l
-ls -1 .planning/phases/[current-phase-dir]/*-UAT.md 2>/dev/null | wc -l
-```
+**Step 1.5: Check for interrupted or external edit issues**
 
-State: "This phase has {X} plans, {Y} summaries."
+Call `mcp_detect_interrupted` to check for any phases that were interrupted mid-execution. If any are found, note them — they take priority over new work.
 
-**Step 1.5: Check for unaddressed UAT gaps**
-
-Check for UAT.md files with status "diagnosed" (has gaps needing fixes).
-
-```bash
-# Check for diagnosed UAT with gaps
-grep -l "status: diagnosed" .planning/phases/[current-phase-dir]/*-UAT.md 2>/dev/null
-```
-
-Track:
-- `uat_with_gaps`: UAT.md files with status "diagnosed" (gaps need fixing)
-
-**Step 2: Route based on counts**
+**Step 2: Route based on live GitHub status**
 
 | Condition | Meaning | Action |
 |-----------|---------|--------|
-| uat_with_gaps > 0 | UAT gaps need fix plans | Go to **Route E** |
-| summaries < plans | Unexecuted plans exist | Go to **Route A** |
-| summaries = plans AND plans > 0 | Phase complete | Go to Step 3 |
-| plans = 0 | Phase not yet planned | Go to **Route B** |
+| Interrupted phase detected | Work was cut off | Go to **Route A** (resume) |
+| Phase "In Progress" with remaining tasks | Unfinished execution | Go to **Route A** (continue) |
+| Phase "To Do" | Phase not yet started | Go to **Route B** |
+| All phases "Done" | Milestone complete | Go to **Route D** |
 
 ---
 
-**Route A: Unexecuted plan exists**
+**Route A: Phase in progress or interrupted — continue execution**
 
-Find the first PLAN.md without matching SUMMARY.md.
-Read its `<objective>` section.
+Identify the in-progress or interrupted phase (from `mcp_get_all_progress` or `mcp_detect_interrupted`).
 
 ```
 ---
 
 ## ▶ Next Up
 
-**{phase}-{plan}: [Plan Name]** — [objective summary from PLAN.md]
+**Phase {N}: [Phase Name]** — resuming execution
 
 `/maxsim:execute {phase}`
 
@@ -250,50 +255,6 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 
 ---
 
-**Route E: UAT gaps need fix plans**
-
-UAT.md exists with gaps (diagnosed issues). User needs to plan fixes.
-
-```
----
-
-## ⚠ UAT Gaps Found
-
-**{phase_num}-UAT.md** has {N} gaps requiring fixes.
-
-`/maxsim:plan {phase} --gaps`
-
-<sub>`/clear` first → fresh context window</sub>
-
----
-
-**Also available:**
-- `/maxsim:execute {phase}` — execute phase plans (includes verification)
-
----
-```
-
----
-
-**Step 3: Check milestone status (only when phase complete)**
-
-Read ROADMAP.md and identify:
-1. Current phase number
-2. All phase numbers in the current milestone section
-
-Count total phases and identify the highest phase number.
-
-State: "Current phase is {X}. Milestone has {N} phases (highest: {Y})."
-
-**Route based on milestone status:**
-
-| Condition | Meaning | Action |
-|-----------|---------|--------|
-| current phase < highest phase | More phases remain | Go to **Route C** |
-| current phase = highest phase | Milestone complete | Go to **Route D** |
-
----
-
 **Route C: Phase complete, more phases remain**
 
 Read ROADMAP.md to get the next phase's name and goal.
@@ -318,14 +279,14 @@ Read ROADMAP.md to get the next phase's name and goal.
 
 **Route D: Milestone complete**
 
-All phases are done. Offer milestone completion interactively:
+All phases are "Done" on the GitHub board. Offer milestone completion interactively:
 
 ```
 ---
 
 ## Milestone Complete!
 
-All {N} phases are complete. Ready to wrap up?
+All {N} phases are complete (all "Done" on GitHub board). Ready to wrap up?
 
 1. Complete milestone (archive, create release notes) → `/maxsim:init` (detects milestone completion)
 2. Start new milestone → `/maxsim:init` (starts new milestone flow)
@@ -373,21 +334,27 @@ Ready to plan the next milestone.
 - Phase complete but next phase not planned → offer `/maxsim:plan [next]`
 - All work complete → offer milestone completion via `/maxsim:init`
 - Blockers present → highlight before offering to continue
-- Phase gaps detected → surface in Issues Detected section
-- Handoff file exists → mention it, offer `/maxsim:go`
+- External edits detected → surface in Issues Detected section before routing
+- Discrepancy between local ROADMAP and GitHub board → surface in Issues Detected, ask user to reconcile
+- GitHub not available (mcp calls fail) → fall back to local ROADMAP analysis and note degraded mode
   </step>
 
 </process>
 
 <success_criteria>
 
-- [ ] Rich context provided (recent work, decisions, issues)
-- [ ] GitHub Issues progress shown (cross-validated with local ROADMAP)
-- [ ] Phase gaps detected and surfaced in Issues Detected section
+- [ ] Rich context provided (decisions, blockers, issues)
+- [ ] GitHub Issues progress shown as primary source (always-live reads via mcp_get_all_progress)
+- [ ] Board column view shown via mcp_query_board
+- [ ] Per-phase task detail available via mcp_get_phase_progress and mcp_list_sub_issues
+- [ ] External edit detection via mcp_detect_external_edits
+- [ ] Cross-validation between local ROADMAP.md and GitHub board status
+- [ ] Phase gaps and discrepancies detected and surfaced in Issues Detected section
 - [ ] Current position clear with visual progress
 - [ ] What's next clearly explained
-- [ ] Smart routing: /maxsim:execute if plans exist, /maxsim:plan if not
+- [ ] Smart routing: /maxsim:execute if in progress, /maxsim:plan if not started
 - [ ] Milestone completion offered when all phases done
 - [ ] User confirms before any action
 - [ ] Seamless handoff to appropriate maxsim command
       </success_criteria>
+</output>

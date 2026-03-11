@@ -5,7 +5,7 @@ Before executing any step in this workflow, verify:
 </sanity_check>
 
 <purpose>
-Verify phase goal achievement through goal-backward analysis. Check that the codebase delivers what the phase promised, not just that tasks completed.
+Verify phase goal achievement through goal-backward analysis. Check that the codebase delivers what the phase promised, not just that tasks completed. Posts verification results as GitHub comments on the phase issue (no local VERIFICATION.md or UAT.md files are written).
 
 Executed by a verification subagent spawned from execute-phase.md.
 </purpose>
@@ -39,12 +39,15 @@ INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init phase-op "${PHASE_ARG}")
 
 Extract from init JSON: `phase_dir`, `phase_number`, `phase_name`, `has_plans`, `plan_count`.
 
-Then load phase details and list plans/summaries:
+Then load phase details:
 ```bash
 node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap get-phase "${phase_number}"
 grep -E "^| ${phase_number}" .planning/REQUIREMENTS.md 2>/dev/null
-ls "$phase_dir"/*-SUMMARY.md "$phase_dir"/*-PLAN.md 2>/dev/null
 ```
+
+**Get the phase issue number from GitHub (live):**
+
+Call `mcp_get_all_progress` and find the entry where `phase_number` matches. Extract `issue_number` — this is used for posting all verification results as GitHub comments.
 
 Extract **phase goal** from ROADMAP.md (the outcome to verify, not tasks) and **requirements** from REQUIREMENTS.md if it exists.
 </step>
@@ -172,7 +175,7 @@ For each requirement: parse description → identify supporting truths/artifacts
 </step>
 
 <step name="scan_antipatterns">
-Extract files modified in this phase from SUMMARY.md, scan each:
+Extract files modified in this phase from local plan files, scan each:
 
 | Pattern | Search | Severity |
 |---------|--------|----------|
@@ -212,21 +215,105 @@ If gaps_found:
 3. **Order by dependency:** Fix missing → fix stubs → fix wiring → verify.
 </step>
 
-<step name="create_report">
-```bash
-REPORT_PATH="$PHASE_DIR/${PHASE_NUM}-VERIFICATION.md"
+<step name="post_verification_to_github">
+**Post verification results as a GitHub comment (primary output — no local file written).**
+
+Build the verification content in memory using the same structured format as the verification report template. Then call `mcp_post_comment` with `type: 'verification'` on the phase issue:
+
+```
+mcp_post_comment({
+  issue_number: {PHASE_ISSUE_NUMBER},
+  type: 'verification',
+  body: {
+    status: 'passed' | 'gaps_found' | 'human_needed',
+    score: '{verified}/{total}',
+    phase: '{phase_number} — {phase_name}',
+    timestamp: '{ISO timestamp}',
+    truths_checked: [
+      { truth: '...', status: 'VERIFIED | FAILED | UNCERTAIN', evidence: '...' }
+    ],
+    artifacts_verified: [
+      { path: '...', exists: true/false, substantive: true/false, wired: true/false, status: 'VERIFIED | STUB | MISSING | ORPHANED' }
+    ],
+    key_links_validated: [
+      { from: '...', to: '...', via: '...', status: 'WIRED | PARTIAL | NOT_WIRED' }
+    ],
+    antipatterns: [
+      { file: '...', line: N, pattern: '...', severity: 'Blocker | Warning | Info' }
+    ],
+    human_verification_items: [
+      { name: '...', steps: '...', expected: '...', reason: '...' }
+    ],
+    gaps: [
+      { description: '...', fix_plan: '...' }
+    ],
+    fix_plans: [
+      { name: '...', objective: '...', tasks: ['...'] }
+    ]
+  }
+})
 ```
 
-Fill template sections: frontmatter (phase/timestamp/status/score), goal achievement, artifact table, wiring table, requirements coverage, anti-patterns, human verification, gaps summary, fix plans (if gaps_found), metadata.
+The comment is the canonical record of this verification run.
+</step>
 
-See ~/.claude/maxsim/templates/verification-report.md for complete template.
+<step name="run_uat">
+**User Acceptance Testing (UAT):**
+
+Present the human verification items to the user and walk through each one. After the user completes UAT:
+
+Build the UAT results in memory, then post as a GitHub comment by calling `mcp_post_comment` with `type: 'uat'` on the phase issue:
+
+```
+mcp_post_comment({
+  issue_number: {PHASE_ISSUE_NUMBER},
+  type: 'uat',
+  body: {
+    status: 'passed' | 'gaps_found',
+    phase: '{phase_number} — {phase_name}',
+    timestamp: '{ISO timestamp}',
+    items: [
+      { name: '...', result: 'pass | fail', notes: '...' }
+    ],
+    gaps: [
+      { description: '...', severity: 'Blocker | Warning' }
+    ]
+  }
+})
+```
+
+Do NOT write a UAT.md file to `.planning/phases/`.
+</step>
+
+<step name="board_transition">
+**Update GitHub board based on verification outcome.**
+
+**If verification passes AND PR is merged:**
+1. Call `mcp_move_issue` to move the phase issue to the "Done" column on the board
+2. Call `mcp_close_issue` to close the phase issue
+3. Report to orchestrator: phase complete, issue closed
+
+**If verification passes but PR not yet merged:**
+1. Keep the phase issue in "In Review" on the board
+2. Note: board will be updated when PR merges
+
+**If verification fails (gaps_found):**
+1. Check current board column for the phase issue
+2. If in "In Review": call `mcp_move_issue` to move back to "In Progress"
+3. Post failure details as a verification comment (already done in post_verification_to_github step)
+4. Note which gaps need fixing before re-verification
+
+**If human_needed:**
+1. Keep the phase issue in its current column (do not move)
+2. The UAT comment posted above documents what needs human testing
 </step>
 
 <step name="return_to_orchestrator">
-Return status (`passed` | `gaps_found` | `human_needed`), score (N/M must-haves), report path.
+Return status (`passed` | `gaps_found` | `human_needed`), score (N/M must-haves), GitHub issue number and comment URL.
 
-If gaps_found: list gaps + recommended fix plan names.
-If human_needed: list items requiring human testing.
+If gaps_found: list gaps + recommended fix plan names. Phase issue has been moved back to "In Progress" on the board.
+If human_needed: list items requiring human testing. UAT comment posted to GitHub issue.
+If passed: phase issue moved to "Done" and closed on GitHub.
 
 Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execute fixes, re-verify | `human_needed` → present to user.
 </step>
@@ -234,6 +321,7 @@ Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execu
 </process>
 
 <success_criteria>
+- [ ] Phase issue number retrieved from live GitHub via mcp_get_all_progress
 - [ ] Must-haves established (from frontmatter or derived)
 - [ ] All truths verified with status and evidence
 - [ ] All artifacts checked at all three levels
@@ -243,6 +331,9 @@ Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execu
 - [ ] Human verification items identified
 - [ ] Overall status determined
 - [ ] Fix plans generated (if gaps_found)
-- [ ] VERIFICATION.md created with complete report
+- [ ] Verification results posted as GitHub comment via mcp_post_comment (type: 'verification') — NO local VERIFICATION.md written
+- [ ] UAT results posted as GitHub comment via mcp_post_comment (type: 'uat') — NO local UAT.md written
+- [ ] Board transition executed: mcp_move_issue + mcp_close_issue on pass; mcp_move_issue back to In Progress on fail
 - [ ] Results returned to orchestrator
 </success_criteria>
+</output>
