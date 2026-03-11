@@ -39,6 +39,10 @@ Check if `--auto` flag is present in $ARGUMENTS.
 
 **MANDATORY FIRST STEP — Execute these checks before ANY user interaction:**
 
+**If `INIT_CONTEXT` was already loaded by the router** (the init.md workflow runs this before delegating), use that JSON directly — do NOT re-run the CLI command.
+
+**Otherwise**, run:
+
 ```bash
 INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init init-existing)
 ```

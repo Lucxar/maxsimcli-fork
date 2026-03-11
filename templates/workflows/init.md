@@ -72,7 +72,16 @@ Display:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Delegate to @./workflows/new-project.md -- execute the full new-project workflow end-to-end.
+**CRITICAL — Run init context BEFORE delegating:**
+
+```bash
+INIT_CONTEXT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init new-project)
+echo "$INIT_CONTEXT"
+```
+
+Save this JSON output — the sub-workflow will use it as `INIT_CONTEXT` and skip its own init call.
+
+Now delegate to @./workflows/new-project.md — execute the full new-project workflow end-to-end. The `INIT_CONTEXT` JSON is already loaded; the sub-workflow will detect this and skip Step 1's CLI call.
 
 Pass through:
 - `--auto` flag if set
@@ -96,7 +105,16 @@ Display:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Delegate to @./workflows/init-existing.md -- execute the full init-existing workflow end-to-end.
+**CRITICAL — Run init context BEFORE delegating:**
+
+```bash
+INIT_CONTEXT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init init-existing)
+echo "$INIT_CONTEXT"
+```
+
+Save this JSON output — the sub-workflow will use it as `INIT_CONTEXT` and skip its own init call.
+
+Now delegate to @./workflows/init-existing.md — execute the full init-existing workflow end-to-end. The `INIT_CONTEXT` JSON is already loaded; the sub-workflow will detect this and skip Step 1's CLI call.
 
 Pass through:
 - `--auto` flag if set
