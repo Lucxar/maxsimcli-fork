@@ -4,8 +4,25 @@ Before executing any step in this workflow, verify:
 2. `.planning/ROADMAP.md` exists — if not, stop and tell the user to initialize the project.
 </sanity_check>
 
+<deprecation_notice>
+**DEPRECATED — Use plan.md + sub-workflows instead.**
+
+This file (plan-phase.md) is a legacy monolithic workflow that writes artifacts to local `.planning/phases/` directories. It has been superseded by the GitHub-first planning workflow:
+
+- **Canonical orchestrator:** `@./workflows/plan.md`
+- **Discussion stage:** `@./workflows/plan-discuss.md`
+- **Research stage:** `@./workflows/plan-research.md`
+- **Planning stage:** `@./workflows/plan-create.md`
+
+The canonical workflow stores all artifacts (context decisions, research findings, plans) as GitHub Issue comments instead of local files, and uses GitHub Issue state for stage detection and re-entry.
+
+**This file is retained for reference only.** Do not use it for new work. Any fixes or improvements should be made to the canonical sub-workflows above.
+</deprecation_notice>
+
 <purpose>
-Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates researcher, planner, and planner (plan-checking mode) agents with a revision loop (max 3 iterations).
+[LEGACY] Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates researcher, planner, and planner (plan-checking mode) agents with a revision loop (max 3 iterations).
+
+NOTE: This workflow writes artifacts to local `.planning/phases/` directories. The current canonical workflow (plan.md + sub-workflows) stores artifacts on GitHub Issues instead.
 </purpose>
 
 <required_reading>

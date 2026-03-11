@@ -1,7 +1,7 @@
 <purpose>
 Discussion stage sub-workflow for /maxsim:plan. Extracts implementation decisions that downstream agents (researcher, planner) need. Analyzes the phase to identify gray areas, lets the user choose what to discuss, then deep-dives each selected area until satisfied.
 
-This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on running the discussion and writing CONTEXT.md.
+This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on running the discussion and posting the context decisions to GitHub.
 
 You are a thinking partner, not an interviewer. The user is the visionary -- you are the builder. Your job is to capture decisions that will guide research and planning, not to figure out implementation yourself.
 </purpose>
@@ -11,13 +11,13 @@ You are a thinking partner, not an interviewer. The user is the visionary -- you
 </required_reading>
 
 <downstream_awareness>
-**CONTEXT.md feeds into:**
+**Context decisions (posted to GitHub) feed into:**
 
-1. **researcher** -- Reads CONTEXT.md to know WHAT to research
+1. **researcher** -- Reads context comment to know WHAT to research
    - "User wants card-based layout" -> researcher investigates card component patterns
    - "Infinite scroll decided" -> researcher looks into virtualization libraries
 
-2. **planner** -- Reads CONTEXT.md to know WHAT decisions are locked
+2. **planner** -- Reads context comment to know WHAT decisions are locked
    - "Pull-to-refresh on mobile" -> planner includes that in task specs
    - "Claude's Discretion: loading skeleton" -> planner can decide approach
 
@@ -125,7 +125,7 @@ Phase: "API documentation"
 
 ## Step 1: Initialize
 
-Phase number, name, and directory come from the orchestrator context.
+Phase number, name, directory, and GitHub issue number come from the orchestrator context.
 
 ```bash
 INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init phase-op "${PHASE}")
@@ -133,31 +133,34 @@ INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init phase-op "${PHASE}")
 
 Parse JSON for: `commit_docs`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `has_research`, `has_context`, `has_plans`, `plan_count`, `roadmap_exists`, `planning_exists`.
 
+Also extract `phase_issue_number` passed from the orchestrator.
+
 **If `phase_found` is false:** Error -- the orchestrator should have caught this, but fail safe.
 
 ## Step 2: Check Existing Context
 
-Check if CONTEXT.md already exists using `has_context` from init.
-
-```bash
-ls ${phase_dir}/*-CONTEXT.md 2>/dev/null
+Check if a context comment already exists on the phase GitHub Issue by calling:
+```
+mcp_get_issue_detail(issue_number={phase_issue_number})
 ```
 
-**If exists:**
+Look for a comment that contains `<!-- maxsim:type=context -->`.
+
+**If a context comment exists:**
 
 Ask the user (via natural conversation):
 ```
-Phase {phase_number} already has context. What would you like to do?
+Phase {phase_number} already has context on GitHub Issue #{phase_issue_number}. What would you like to do?
 1. Update it -- review and revise existing context
 2. View it -- show me what's there
 3. Use as-is -- keep existing context and return to orchestrator
 ```
 
-- If "Update": Load existing CONTEXT.md, continue to Step 3.
-- If "View": Display CONTEXT.md contents, then offer update/use-as-is.
+- If "Update": Load existing context comment content, continue to Step 3.
+- If "View": Display context comment contents, then offer update/use-as-is.
 - If "Use as-is": Return control to orchestrator.
 
-**If doesn't exist:** Continue to Step 3.
+**If no context comment exists:** Continue to Step 3.
 
 ## Step 3: Analyze Phase
 
@@ -264,24 +267,14 @@ Back to [current area]: [return to current question]"
 Track deferred ideas internally.
 </process>
 
-## Step 6: Write Context
+## Step 6: Post Context to GitHub
 
-Create CONTEXT.md capturing decisions made.
-
-**Find or create phase directory:**
-
-Use values from init: `phase_dir`, `phase_slug`, `padded_phase`.
-
-If `phase_dir` is null (phase exists in roadmap but no directory):
-```bash
-mkdir -p ".planning/phases/${padded_phase}-${phase_slug}"
-```
-
-**File location:** `${phase_dir}/${padded_phase}-CONTEXT.md`
+Build the context content in memory, then post it as a comment on the phase GitHub Issue.
 
 **Structure the content by what was discussed:**
 
 ```markdown
+<!-- maxsim:type=context -->
 # Phase {X} Context: {Name}
 
 **Phase Goal:** {goal from ROADMAP.md}
@@ -319,20 +312,24 @@ mkdir -p ".planning/phases/${padded_phase}-${phase_slug}"
 *Decisions: {N} across {M} areas*
 ```
 
-Write the file.
-
-**Commit context:**
-```bash
-node .claude/maxsim/bin/maxsim-tools.cjs commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+Post the comment to GitHub:
 ```
+mcp_post_comment(
+  issue_number={phase_issue_number},
+  type="context",
+  content={context_content_above}
+)
+```
+
+Context decisions are posted as a GitHub comment on phase issue #{phase_issue_number}. No local CONTEXT.md file is written.
 
 ## Step 7: Return to Orchestrator
 
-After writing CONTEXT.md, return control to the plan.md orchestrator. Do NOT show gate confirmation or next steps -- the orchestrator handles the gate between Discussion and Research.
+After posting the context comment to GitHub, return control to the plan.md orchestrator. Do NOT show gate confirmation or next steps -- the orchestrator handles the gate between Discussion and Research.
 
 Display a brief completion message:
 ```
-Discussion complete. CONTEXT.md written to {path}.
+Discussion complete. Context decisions posted to GitHub Issue #{phase_issue_number}.
 ```
 
 <success_criteria>
@@ -341,7 +338,8 @@ Discussion complete. CONTEXT.md written to {path}.
 - User selected which areas to discuss
 - Each selected area explored until user satisfied
 - Scope creep redirected to deferred ideas
-- CONTEXT.md captures actual decisions, not vague vision
+- Context comment captures actual decisions (not vague vision) with <!-- maxsim:type=context --> marker
+- Context posted to GitHub Issue #{phase_issue_number} as a comment (no local CONTEXT.md written)
 - Deferred ideas preserved for future phases
 - Control returned to orchestrator without showing gate or next steps
 </success_criteria>

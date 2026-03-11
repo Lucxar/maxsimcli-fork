@@ -1,7 +1,7 @@
 <purpose>
-Planning stage sub-workflow for /maxsim:plan. Spawns the planner agent to create PLAN.md files, then optionally spawns the planner (in plan-checking mode) for verification with a revision loop.
+Planning stage sub-workflow for /maxsim:plan. Spawns the planner agent to create plan content, posts plans to GitHub as comments on the phase issue, creates task sub-issues, and moves the phase board card to "In Progress". Optionally spawns the planner (in plan-checking mode) for verification with a revision loop.
 
-This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on creating and verifying plans.
+This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on creating, verifying, and publishing plans to GitHub.
 </purpose>
 
 <process>
@@ -15,6 +15,7 @@ The orchestrator provides phase context. Verify we have what we need:
 - `commit_docs`
 - `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `research_path`
 - `phase_req_ids` (requirement IDs that this phase must address)
+- `phase_issue_number` (GitHub Issue number for the phase)
 - `--skip-verify` flag presence
 
 ## Step 2: Resolve Models
@@ -26,37 +27,39 @@ CHECKER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model planner -
 
 ## Step 3: Check Existing Plans
 
-```bash
-ls "${phase_dir}"/*-PLAN.md 2>/dev/null
+Query the phase GitHub Issue for existing plan comments:
+```
+mcp_get_issue_detail(issue_number={phase_issue_number})
 ```
 
-**If plans exist:** Offer options via natural conversation:
+Look for comments that contain `<!-- maxsim:type=plan -->`.
+
+**If plan comment(s) exist:** Offer options via natural conversation:
 ```
-Phase {phase_number} already has plan(s):
-{list of existing plan files}
+Phase {phase_number} already has plan(s) on GitHub Issue #{phase_issue_number}.
 
 1. Add more plans (keep existing)
 2. View existing plans
-3. Re-plan from scratch (deletes existing plans)
+3. Re-plan from scratch (deletes existing plan comments)
 ```
 
 - If "Add more": Continue to Step 4 with existing plans preserved.
-- If "View": Display plan files, then re-offer options.
-- If "Re-plan": Delete existing PLAN.md files, continue to Step 4.
+- If "View": Display plan comment contents, then re-offer options.
+- If "Re-plan": Delete existing plan comments from the issue, continue to Step 4.
 
-**If no plans exist:** Continue to Step 4.
+**If no plan comments exist:** Continue to Step 4.
 
 ## Step 4: Gather Context Paths
 
-Extract file paths from the orchestrator context (provided via init JSON):
+Extract file paths and GitHub context from the orchestrator context (provided via init JSON):
 
 ```bash
 STATE_PATH=$(echo "$INIT" | jq -r '.state_path // empty')
 ROADMAP_PATH=$(echo "$INIT" | jq -r '.roadmap_path // empty')
 REQUIREMENTS_PATH=$(echo "$INIT" | jq -r '.requirements_path // empty')
-RESEARCH_PATH=$(echo "$INIT" | jq -r '.research_path // empty')
-CONTEXT_PATH=$(echo "$INIT" | jq -r '.context_path // empty')
 ```
+
+Context and research content will be read from GitHub Issue #{phase_issue_number} comments (identified by `<!-- maxsim:type=context -->` and `<!-- maxsim:type=research -->` markers) rather than from local files.
 
 ## Step 5: Spawn Planner
 
@@ -65,20 +68,20 @@ Display:
 Planning Phase {phase_number}: {phase_name}...
 ```
 
-Construct the planner prompt:
+Construct the planner prompt. The planner must return plan content as structured markdown in its response (not write local files):
 
 ```markdown
 <planning_context>
 **Phase:** {phase_number}
 **Mode:** standard
 
-<files_to_read>
+<context_sources>
+- GitHub Issue #{phase_issue_number} context comment (USER DECISIONS -- locked choices from discussion stage)
+- GitHub Issue #{phase_issue_number} research comment (Technical Research findings)
 - {state_path} (Project State)
 - {roadmap_path} (Roadmap)
 - {requirements_path} (Requirements)
-- {context_path} (USER DECISIONS from discussion stage)
-- {research_path} (Technical Research)
-</files_to_read>
+</context_sources>
 
 **Phase requirement IDs (every ID MUST appear in a plan's `requirements` field):** {phase_req_ids}
 
@@ -87,16 +90,31 @@ Construct the planner prompt:
 </planning_context>
 
 <downstream_consumer>
-Output consumed by /maxsim:execute. Plans need:
+Output consumed by /maxsim:execute via GitHub Issue comments. Plans need:
 - Frontmatter (wave, depends_on, files_modified, autonomous)
 - Tasks in XML format
 - Verification criteria
 - must_haves for goal-backward verification
 </downstream_consumer>
 
+<output_format>
+Return each plan as a separate fenced code block with a plan number header.
+Do NOT write local PLAN.md files -- plans will be posted to GitHub by the orchestrator.
+
+Example structure:
+## Plan 01
+
+```yaml
+# frontmatter here
+```
+
+<tasks>
+...
+</tasks>
+</output_format>
+
 <quality_gate>
-- [ ] PLAN.md files created in phase directory
-- [ ] Each plan has valid frontmatter
+- [ ] Each plan returned in response with valid frontmatter
 - [ ] Tasks are specific and actionable
 - [ ] Dependencies correctly identified
 - [ ] Waves assigned for parallel execution
@@ -120,18 +138,16 @@ Task(
 Parse the planner's return message:
 
 - **`## PLANNING COMPLETE`:**
-  Validate PLAN.md files were created:
-  ```bash
-  ls "${phase_dir}"/*-PLAN.md 2>/dev/null | wc -l
-  ```
+  Extract the plan content from the planner's response. Parse out individual plans (each is a separate fenced block with a plan number header).
 
-  If plans found:
-  - Display plan count and filenames.
+  If plans found in response:
+  - Display plan count.
+  - Store plans in memory as `plans_content` array.
   - If `--skip-verify` flag is set OR `plan_checker_enabled` is false: skip to Step 9.
   - Otherwise: continue to Step 7 (verification).
 
-  If no plans found:
-  - Error: "Planner reported complete but no PLAN.md files found."
+  If no plans in response:
+  - Error: "Planner reported complete but returned no plan content."
   - Offer: retry or abort.
 
 - **`## CHECKPOINT REACHED`:**
@@ -157,20 +173,23 @@ Display:
 Verifying plans...
 ```
 
-Construct the checker prompt:
+Construct the checker prompt. Pass the in-memory `plans_content` directly:
 
 ```markdown
 <verification_context>
 **Phase:** {phase_number}
 **Phase Goal:** {goal from ROADMAP}
 
-<files_to_read>
-- {phase_dir}/*-PLAN.md (Plans to verify)
+<plans_to_verify>
+{plans_content -- the plan(s) returned by the planner in step 5}
+</plans_to_verify>
+
+<context_sources>
+- GitHub Issue #{phase_issue_number} context comment (USER DECISIONS)
+- GitHub Issue #{phase_issue_number} research comment (Technical Research)
 - {roadmap_path} (Roadmap)
 - {requirements_path} (Requirements)
-- {context_path} (USER DECISIONS from discussion stage)
-- {research_path} (Technical Research)
-</files_to_read>
+</context_sources>
 
 **Phase requirement IDs (MUST ALL be covered):** {phase_req_ids}
 
@@ -214,17 +233,20 @@ Task(
   Sending plans back for revision... (iteration {iteration_count}/3)
   ```
 
-  Construct revision prompt:
+  Construct revision prompt. Pass the current in-memory `plans_content` directly:
 
   ```markdown
   <revision_context>
   **Phase:** {phase_number}
   **Mode:** revision
 
-  <files_to_read>
-  - {phase_dir}/*-PLAN.md (Existing plans)
-  - {context_path} (USER DECISIONS from discussion stage)
-  </files_to_read>
+  <existing_plans>
+  {plans_content -- current in-memory plan content}
+  </existing_plans>
+
+  <context_sources>
+  - GitHub Issue #{phase_issue_number} context comment (USER DECISIONS)
+  </context_sources>
 
   **Checker issues:** {structured_issues_from_checker}
   </revision_context>
@@ -232,7 +254,7 @@ Task(
   <instructions>
   Make targeted updates to address checker issues.
   Do NOT replan from scratch unless issues are fundamental.
-  Return what changed.
+  Return the full revised plan content (same format as original -- one fenced block per plan).
   </instructions>
   ```
 
@@ -267,32 +289,98 @@ Task(
   - If "Provide guidance": Get user input, re-spawn planner with user guidance, reset iteration_count, go to Step 7.
   - If "Abort": Exit workflow.
 
-## Step 9: Commit Plans
+## Step 9: Post Plans to GitHub
 
-If `commit_docs` is true:
+After verification passes (or is skipped), post each plan as a separate comment on the phase GitHub Issue.
 
-```bash
-node .claude/maxsim/bin/maxsim-tools.cjs commit "docs(${padded_phase}): create phase plan" --files "${phase_dir}"
+For each plan in `plans_content`:
+
+```
+mcp_post_plan_comment(
+  phase_issue_number={phase_issue_number},
+  plan_number={plan_number},  // e.g. "01", "02"
+  plan_content="<!-- maxsim:type=plan -->\n" + {plan_content}
+)
 ```
 
-## Step 10: Return to Orchestrator
+If posting any plan comment fails:
+- Report which plans failed to post.
+- Offer retry for failed plans.
+- Do not proceed to task creation until all plans are successfully posted.
 
-After plans are created and optionally verified, return control to the plan.md orchestrator. Do NOT show gate confirmation or next steps -- the orchestrator handles the final gate.
+Display:
+```
+Plans posted to GitHub Issue #{phase_issue_number}: {plan_count} plan(s).
+```
+
+## Step 10: Create Task Sub-Issues
+
+Parse tasks from the posted plans. For each `<task>` element in the plan XML, extract:
+- `id` (e.g. "1.1", "1.2")
+- `title`
+- `description` / body content
+
+Call `mcp_batch_create_tasks` with the full tasks array and the phase issue number:
+
+```
+mcp_batch_create_tasks(
+  phase_issue_number={phase_issue_number},
+  tasks=[
+    { id: "1.1", title: "Task title", description: "Task body" },
+    ...
+  ]
+)
+```
+
+Each task becomes a GitHub sub-issue linked to the phase issue.
+
+**If batch creation fails (partial or total):**
+- Report which task IDs failed to create.
+- Offer: retry failed tasks, skip and continue, or abort.
+- Do not proceed to board transition until task creation succeeds or user accepts partial failure.
+
+Display:
+```
+Task sub-issues created: {task_count} tasks linked to Issue #{phase_issue_number}.
+```
+
+## Step 11: Move Phase to In Progress
+
+After all plans are posted and task sub-issues are created, move the phase issue to "In Progress" on the project board:
+
+```
+mcp_move_issue(
+  issue_number={phase_issue_number},
+  status="In Progress"
+)
+```
+
+Display:
+```
+Phase #{phase_issue_number} moved to "In Progress" on the board.
+```
+
+## Step 12: Return to Orchestrator
+
+After plans are posted, task sub-issues created, and the phase moved to "In Progress", return control to the plan.md orchestrator. Do NOT show gate confirmation or next steps -- the orchestrator handles the final gate.
 
 Display a brief completion message:
 ```
-Planning complete. {plan_count} plan(s) created in {phase_dir}.
+Planning complete. {plan_count} plan(s) posted to GitHub Issue #{phase_issue_number}. {task_count} task sub-issues created.
 ```
 
 </process>
 
 <success_criteria>
 - Planner and checker models resolved from config
-- Existing plans detected and handled (add/view/replan options)
-- Planner agent spawned with full context (STATE.md, ROADMAP.md, REQUIREMENTS.md, CONTEXT.md, RESEARCH.md)
-- PLAN.md files created and validated
+- Existing plans detected from GitHub Issue comments and handled (add/view/replan options)
+- Planner agent spawned with context from GitHub Issue comments (context + research) and local files (state, roadmap, requirements)
+- Plan content returned from planner as in-memory document (no local PLAN.md files written)
 - Checker verification loop runs (max 3 iterations) unless --skip-verify
-- Revision loop sends issues back to planner for targeted fixes
-- Plan files committed if commit_docs is true
+- Revision loop passes in-memory plan content to planner for targeted fixes
+- Plans posted to GitHub Issue #{phase_issue_number} as comments with <!-- maxsim:type=plan --> markers
+- Task sub-issues created via mcp_batch_create_tasks linked to phase issue
+- Phase issue moved to "In Progress" via mcp_move_issue
+- Failed task creation surfaced with retry option (WIRE-07)
 - Control returned to orchestrator without showing gate or next steps
 </success_criteria>

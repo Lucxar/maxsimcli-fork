@@ -23,7 +23,7 @@ Load phase state in one call:
 INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init plan-phase "$PHASE")
 ```
 
-Parse JSON for: `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `has_context`, `has_research`, `has_plans`, `plan_count`, `plans`, `commit_docs`, `researcher_model`, `planner_model`, `checker_model`, `research_enabled`, `plan_checker_enabled`, `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `research_path`, `phase_req_ids`.
+Parse JSON for: `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `has_context`, `has_research`, `has_plans`, `plan_count`, `plans`, `commit_docs`, `researcher_model`, `planner_model`, `checker_model`, `research_enabled`, `plan_checker_enabled`, `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `research_path`, `phase_req_ids`, `phase_issue_number`.
 
 **If `phase_found` is false:**
 ```
@@ -39,46 +39,57 @@ Extract from $ARGUMENTS: phase number (integer or decimal like `2.1`), flags (`-
 
 **If no phase number:** Detect next unplanned phase from roadmap using the `plans` and `has_context`/`has_research` fields.
 
-## 3. Detect Current Stage
+## 3. Stage Detection (GitHub-First)
 
-Determine where to start based on artifacts that already exist:
+Detect planning stage by querying the phase GitHub Issue:
 
-| Condition | Stage | Action |
-|-----------|-------|--------|
-| `plan_count > 0` | Already planned | Go to **Re-entry flow** (step 4) |
-| `has_research == true` AND `plan_count == 0` | Planning | Start at **Planning stage** (step 7) |
-| `has_context == true` AND `has_research == false` | Research | Start at **Research stage** (step 6) |
-| None of the above | Discussion | Start at **Discussion stage** (step 5) |
+1. Get `phase_issue_number` from the init context parsed above.
+2. **If no `phase_issue_number` exists:** The phase has not been set up on GitHub yet.
+   - Call `mcp_create_phase_issue` to create the issue (uses roadmap data).
+   - Store the returned issue number as `phase_issue_number`.
+3. Call `mcp_get_issue_detail` with `phase_issue_number` to read the phase issue body and comments.
+4. Check issue comments for existing artifacts using HTML marker comments:
+   - Has a comment containing `<!-- maxsim:type=context -->`? → Discussion stage complete
+   - Has a comment containing `<!-- maxsim:type=research -->`? → Research stage complete
+   - Has a comment containing `<!-- maxsim:type=plan -->`? → Planning stage complete
+5. Determine next stage from the GitHub state:
+
+| GitHub Issue State | Stage | Action |
+|--------------------|-------|--------|
+| Has `type=plan` comment | Already planned | Go to **Re-entry flow** (step 4) |
+| Has `type=research`, no `type=plan` | Planning | Start at **Planning stage** (step 7) |
+| Has `type=context`, no `type=research` | Research | Start at **Research stage** (step 6) |
+| No marker comments | Discussion | Start at **Discussion stage** (step 5) |
 
 Display detected stage:
 ```
 Phase {phase_number}: {phase_name}
+GitHub Issue: #{phase_issue_number}
 Current stage: {Discussion | Research | Planning | Already planned}
 ```
 
 ## 4. Re-entry Flow (Already Planned)
 
-When `plan_count > 0`, the phase has existing plans. Show status and offer options.
+When a `type=plan` comment exists on the phase issue, the phase has been planned. Show status and offer options.
 
 Display:
 ```
 ## Phase {phase_number} Already Planned
 
-**Plans:** {plan_count} plan(s)
-**Plan files:** {list of plan filenames from `plans` array}
-**Phase directory:** {phase_dir}
+**Plans:** posted as comment(s) on GitHub Issue #{phase_issue_number}
+**Phase Issue:** https://github.com/{owner}/{repo}/issues/{phase_issue_number}
 
 **Options:**
 1. View existing plans
-2. Re-plan from scratch (deletes existing plans, restarts from Discussion)
+2. Re-plan from scratch (deletes plan comments, restarts from Discussion)
 3. Execute phase -- run /maxsim:execute {phase_number}
 4. Done (exit)
 ```
 
 Wait for user choice via natural conversation.
 
-- **View:** Display contents of each PLAN.md file, then re-show options.
-- **Re-plan:** Delete existing PLAN.md files, reset to Discussion stage (step 5).
+- **View:** Display contents of each `type=plan` comment from the issue, then re-show options.
+- **Re-plan:** Delete existing plan/context/research comments from the phase issue, reset to Discussion stage (step 5).
 - **Execute:** Display `/maxsim:execute {phase_number}` and exit.
 - **Done:** Exit workflow.
 
@@ -88,13 +99,13 @@ Delegate to the discussion sub-workflow for full discussion logic:
 
 @./workflows/plan-discuss.md
 
-Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`, `commit_docs`, `roadmap_path`, `state_path`.
+Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`, `commit_docs`, `roadmap_path`, `state_path`, `phase_issue_number`.
 
-**After discussion completes (CONTEXT.md written):**
+**After discussion completes (context posted as GitHub comment):**
 
-Refresh state to pick up the newly created CONTEXT.md:
-```bash
-INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init plan-phase "$PHASE")
+Re-query the phase issue to verify the `type=context` comment now exists:
+```
+mcp_get_issue_detail(issue_number={phase_issue_number})
 ```
 
 Show gate:
@@ -103,10 +114,10 @@ Show gate:
 
 **Captured:** {N} decisions across {M} areas
 **Locked decisions:**
-{bullet list of key decisions from CONTEXT.md}
+{bullet list of key decisions from context comment}
 
 **Claude's discretion:** {list of areas where Claude decides}
-**Context file:** {path to CONTEXT.md}
+**GitHub Issue:** #{phase_issue_number} (context posted as comment)
 
 Continue to research? [Yes / Review context / Re-discuss area]
 ```
@@ -114,7 +125,7 @@ Continue to research? [Yes / Review context / Re-discuss area]
 Wait for user response via natural conversation (not AskUserQuestion).
 
 - **Yes:** Advance to Research stage (step 6).
-- **Review context:** Display CONTEXT.md contents, then re-show gate.
+- **Review context:** Display context comment contents, then re-show gate.
 - **Re-discuss area:** Loop back to discussion sub-workflow with the area to re-discuss.
 
 ## 6. Research Stage
@@ -123,22 +134,22 @@ Delegate to the research sub-workflow:
 
 @./workflows/plan-research.md
 
-Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`, `commit_docs`, `researcher_model`, `research_enabled`, `has_research`, `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `phase_req_ids`. Also pass the `--force-research` flag if present in $ARGUMENTS.
+Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`, `commit_docs`, `researcher_model`, `research_enabled`, `has_research`, `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `phase_req_ids`, `phase_issue_number`. Also pass the `--force-research` flag if present in $ARGUMENTS.
 
-**After research completes (RESEARCH.md written or already exists):**
+**After research completes (research posted as GitHub comment or already exists):**
 
-Refresh state:
-```bash
-INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init plan-phase "$PHASE")
+Re-query the phase issue to verify the `type=research` comment now exists:
+```
+mcp_get_issue_detail(issue_number={phase_issue_number})
 ```
 
 Show gate:
 ```
 ## Gate: Research Complete
 
-**Key findings:** {3-5 bullet summary from RESEARCH.md}
-**Confidence:** {HIGH/MEDIUM/LOW from RESEARCH.md metadata}
-**File:** {path to RESEARCH.md}
+**Key findings:** {3-5 bullet summary from research comment}
+**Confidence:** {HIGH/MEDIUM/LOW from research content}
+**GitHub Issue:** #{phase_issue_number} (research posted as comment)
 
 Continue to planning? [Yes / Review research / Re-research]
 ```
@@ -146,7 +157,7 @@ Continue to planning? [Yes / Review research / Re-research]
 Wait for user response via natural conversation.
 
 - **Yes:** Advance to Planning stage (step 7).
-- **Review research:** Display RESEARCH.md contents, then re-show gate.
+- **Review research:** Display research comment contents, then re-show gate.
 - **Re-research:** Loop back to research sub-workflow with `--force-research`.
 
 ## 7. Planning Stage
@@ -155,13 +166,13 @@ Delegate to the planning sub-workflow:
 
 @./workflows/plan-create.md
 
-Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`, `commit_docs`, `planner_model`, `checker_model`, `plan_checker_enabled`, `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `research_path`, `phase_req_ids`. Also pass the `--skip-verify` flag if present in $ARGUMENTS.
+Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`, `commit_docs`, `planner_model`, `checker_model`, `plan_checker_enabled`, `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `research_path`, `phase_req_ids`, `phase_issue_number`. Also pass the `--skip-verify` flag if present in $ARGUMENTS.
 
-**After planning completes (PLAN.md files created):**
+**After planning completes (plans posted as GitHub comments and task sub-issues created):**
 
-Refresh state:
-```bash
-INIT=$(node .claude/maxsim/bin/maxsim-tools.cjs init plan-phase "$PHASE")
+Re-query the phase issue to verify `type=plan` comments exist:
+```
+mcp_get_issue_detail(issue_number={phase_issue_number})
 ```
 
 Show final gate:
@@ -172,9 +183,11 @@ Show final gate:
 **Wave structure:**
 | Wave | Plans | What it builds |
 |------|-------|----------------|
-{wave summary from plan frontmatter}
+{wave summary from plan comment frontmatter}
 
-**Plan files:** {list of PLAN.md paths}
+**GitHub Issue:** #{phase_issue_number} (plans posted as comments)
+**Task sub-issues:** {task_count} tasks created as linked sub-issues
+**Board status:** Phase moved to "In Progress"
 
 Ready to execute? Run `/maxsim:execute {phase_number}`
 ```
@@ -186,13 +199,12 @@ This is the final gate -- no confirmation needed. The user's next action is to r
 At any point during the workflow, if context is getting full (conversation is long, many tool calls made), recommend checkpointing before `/clear`.
 
 **Checkpoint protocol:**
-1. Post a checkpoint comment to the phase's GitHub Issue (if issue tracking is active):
-```bash
-# Use MCP tool to post checkpoint
-mcp_post_plan_comment(
-  phase_issue_number={issue_number},
-  plan_number="checkpoint",
-  plan_content="## MAXSIM Checkpoint\n\n**Command:** /maxsim:plan\n**Stage:** {current_stage} ({stage_num}/3)\n**Completed:**\n{list of completed stages with summaries}\n**Resume from:** {next_stage}\n**Timestamp:** {ISO timestamp}"
+1. Post a checkpoint comment to the phase's GitHub Issue:
+```
+mcp_post_comment(
+  issue_number={phase_issue_number},
+  type="checkpoint",
+  content="## MAXSIM Checkpoint\n\n**Command:** /maxsim:plan\n**Stage:** {current_stage} ({stage_num}/3)\n**Completed:**\n{list of completed stages with summaries}\n**Resume from:** {next_stage}\n**Timestamp:** {ISO timestamp}"
 )
 ```
 
@@ -200,10 +212,10 @@ mcp_post_plan_comment(
 ```
 Context is filling up. Recommended: save progress and /clear.
 
-Your progress has been checkpointed. Re-run `/maxsim:plan {phase_number}` after /clear -- it will detect completed stages and resume from {next_stage}.
+Your progress has been checkpointed on GitHub Issue #{phase_issue_number}. Re-run `/maxsim:plan {phase_number}` after /clear -- it will detect completed stages from GitHub and resume from {next_stage}.
 ```
 
-The stage detection in step 3 handles resume automatically -- completed stages produce artifacts (CONTEXT.md, RESEARCH.md, PLAN.md) that are detected on re-entry.
+The stage detection in step 3 handles resume automatically -- completed stages produce marker comments (`<!-- maxsim:type=context -->`, `<!-- maxsim:type=research -->`, `<!-- maxsim:type=plan -->`) that are detected on re-entry.
 
 ## 9. Update State
 
@@ -212,20 +224,22 @@ After all stages complete, update STATE.md:
 ```bash
 node .claude/maxsim/bin/maxsim-tools.cjs state record-session \
   --stopped-at "Phase ${PHASE} planned" \
-  --resume-file "${phase_dir}"
+  --resume-file "GitHub Issue #${phase_issue_number}"
 ```
 
 </process>
 
 <success_criteria>
 - [ ] Phase validated against roadmap
-- [ ] Current stage correctly detected from artifacts
-- [ ] Re-entry flow works for already-planned phases
+- [ ] Phase GitHub Issue created if it does not exist
+- [ ] Current stage correctly detected from GitHub Issue comments (not local files)
+- [ ] Re-entry flow works for already-planned phases (reads plan comments from GitHub)
 - [ ] Discussion stage delegates to plan-discuss.md sub-workflow
 - [ ] Research stage delegates to plan-research.md sub-workflow
 - [ ] Planning stage delegates to plan-create.md sub-workflow
 - [ ] Gate confirmation shown after each stage transition
 - [ ] User confirms before advancing to next stage
-- [ ] Checkpoint-before-clear pattern available
+- [ ] Checkpoint-before-clear posts to GitHub Issue and resumes via GitHub detection
 - [ ] No stage-specific logic inline -- all delegated to sub-workflows
 </success_criteria>
+</output>

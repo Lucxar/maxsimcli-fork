@@ -1,7 +1,7 @@
 <purpose>
-Research stage sub-workflow for /maxsim:plan. Spawns the researcher agent with phase context to produce RESEARCH.md.
+Research stage sub-workflow for /maxsim:plan. Spawns the researcher agent with phase context to produce research findings, then posts them to GitHub as a comment on the phase issue.
 
-This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on running research and validating the output.
+This file is loaded by the plan.md orchestrator. It does NOT handle gate confirmations or stage routing -- the orchestrator handles that. This sub-workflow focuses ONLY on running research and posting the output to GitHub.
 </purpose>
 
 <process>
@@ -12,9 +12,10 @@ The orchestrator provides phase context. Verify we have what we need:
 
 - `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_slug`
 - `researcher_model`, `research_enabled`
-- `has_research` (whether RESEARCH.md already exists)
+- `has_research` (whether a research comment already exists on the phase issue)
 - `state_path`, `roadmap_path`, `requirements_path`, `context_path`
 - `phase_req_ids` (requirement IDs that this phase must address)
+- `phase_issue_number` (GitHub Issue number for the phase)
 - `--force-research` flag presence
 
 ## Step 2: Resolve Researcher Model
@@ -25,18 +26,20 @@ RESEARCHER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model resear
 
 ## Step 3: Check Existing Research
 
+Determine whether a research comment already exists on the phase GitHub Issue by checking for a comment containing `<!-- maxsim:type=research -->`. This is reflected in the `has_research` flag passed from the orchestrator (which performs the GitHub query).
+
 **If `has_research` is true AND `--force-research` is NOT set:**
 
-Research already exists. Display:
+Research already exists as a GitHub comment on Issue #{phase_issue_number}. Display:
 ```
-Using existing research from: {research_path}
+Using existing research from GitHub Issue #{phase_issue_number}.
 ```
 
 Return control to orchestrator -- no need to re-research.
 
 **If `has_research` is true AND `--force-research` IS set:**
 
-Continue to Step 4 (re-research will overwrite existing RESEARCH.md).
+Continue to Step 4 (re-research will post a new research comment, replacing the old one).
 
 **If `has_research` is false:**
 
@@ -67,7 +70,7 @@ Display:
 Researching Phase {phase_number}: {phase_name}...
 ```
 
-Construct the research prompt:
+Construct the research prompt. The researcher must return its findings as a structured markdown document (not write to a local file -- the orchestrator will post findings to GitHub):
 
 ```markdown
 <objective>
@@ -76,7 +79,7 @@ Answer: "What do I need to know to PLAN this phase well?"
 </objective>
 
 <files_to_read>
-- {context_path} (USER DECISIONS -- locked choices that constrain research)
+- GitHub Issue #{phase_issue_number} context comment (USER DECISIONS -- locked choices that constrain research)
 - {requirements_path} (Project requirements)
 - {state_path} (Project decisions and history)
 </files_to_read>
@@ -90,7 +93,8 @@ Answer: "What do I need to know to PLAN this phase well?"
 </additional_context>
 
 <output>
-Write to: {phase_dir}/{padded_phase}-RESEARCH.md
+Return findings as a structured markdown document in your response.
+Do NOT write to a local file -- findings will be posted to GitHub by the orchestrator.
 </output>
 ```
 
@@ -110,30 +114,25 @@ Task(
 Parse the researcher's return message:
 
 - **`## RESEARCH COMPLETE`:**
-  Validate RESEARCH.md was created:
-  ```bash
-  test -f "${phase_dir}/${padded_phase}-RESEARCH.md" && echo "FOUND" || echo "MISSING"
+  Extract the research findings document from the researcher's response.
+
+  Post research findings to GitHub:
+  ```
+  mcp_post_comment(
+    issue_number={phase_issue_number},
+    type="research",
+    content="<!-- maxsim:type=research -->\n" + {research_findings_document}
+  )
   ```
 
-  If FOUND:
-  - If `commit_docs` is true:
-    ```bash
-    node .claude/maxsim/bin/maxsim-tools.cjs commit "docs(${padded_phase}): research phase domain" --files "${phase_dir}/${padded_phase}-RESEARCH.md"
-    ```
-  - Display confirmation:
-    ```
-    Research complete. RESEARCH.md written to {path}.
-    ```
-  - Return control to orchestrator.
+  Research findings are posted as a GitHub comment on phase issue #{phase_issue_number}. No local RESEARCH.md file is written.
 
-  If MISSING:
-  - Error: "Researcher reported complete but RESEARCH.md not found at expected path."
-  - Check for alternative paths:
-    ```bash
-    ls "${phase_dir}"/*RESEARCH* 2>/dev/null
-    ```
-  - If found elsewhere, note the actual path and continue.
-  - If truly missing, offer: retry or skip research.
+  Display confirmation:
+  ```
+  Research complete. Findings posted to GitHub Issue #{phase_issue_number}.
+  ```
+
+  Return control to orchestrator.
 
 - **`## RESEARCH BLOCKED`:**
   Display the blocker reason. Offer options:
@@ -147,7 +146,7 @@ Parse the researcher's return message:
   Wait for user choice.
 
   - If "Provide context": Get additional info, re-spawn researcher with augmented prompt.
-  - If "Skip": Return to orchestrator without RESEARCH.md.
+  - If "Skip": Return to orchestrator without posting research comment.
   - If "Abort": Exit workflow.
 
 - **`## RESEARCH INCONCLUSIVE`:**
@@ -163,15 +162,16 @@ Parse the researcher's return message:
 
 ## Step 7: Return to Orchestrator
 
-After RESEARCH.md is validated (or research is skipped), return control to the plan.md orchestrator. Do NOT show gate confirmation or next steps -- the orchestrator handles the gate between Research and Planning.
+After research is posted to GitHub (or research is skipped), return control to the plan.md orchestrator. Do NOT show gate confirmation or next steps -- the orchestrator handles the gate between Research and Planning.
 
 </process>
 
 <success_criteria>
 - Researcher model resolved from config
-- Existing research detected and reused (unless --force-research)
-- researcher agent spawned with full context (CONTEXT.md, requirements, state)
-- RESEARCH.md created and validated
+- Existing research detected from GitHub Issue comment (<!-- maxsim:type=research --> marker) and reused unless --force-research
+- researcher agent spawned with full context (GitHub context comment, requirements, state)
+- Research findings returned from researcher as document, then posted as GitHub comment on Issue #{phase_issue_number}
+- No local RESEARCH.md file written
 - Blocked/inconclusive scenarios handled with user options
 - Control returned to orchestrator without showing gate or next steps
 </success_criteria>
