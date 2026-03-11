@@ -60,6 +60,28 @@ Lightweight requirements for rapid exploration.
 - [ ] **HOOK-03**: Update checker hook (local-only, simplified)
 - [ ] **HOOK-04**: Remove context monitor hook (Claude Code handles this natively)
 
+### GitHub Workflow Wiring
+
+- [ ] **WIRE-01**: `/maxsim:init` calls `mcp_github_setup` to create Project Board, labels, and milestone
+- [ ] **WIRE-02**: `/maxsim:plan` calls `mcp_create_phase_issue` to create GitHub Issues for phases
+- [ ] **WIRE-03**: `/maxsim:execute` calls `mcp_move_issue` and `mcp_post_completion` to track progress on GitHub
+- [ ] **WIRE-04**: `/maxsim:progress` reads status from `mcp_query_board` in addition to local `.planning/`
+- [ ] **WIRE-05**: A sync mechanism exists to push local `.planning/` changes to GitHub Issues
+
+### Cleanup
+
+- [ ] **CLEAN-01**: Remove all dashboard-bridge references from workflows (DASHBOARD_ACTIVE, mcp__maxsim-dashboard__)
+- [ ] **CLEAN-02**: Statusline optionally sources phase/progress from GitHub Issues (graceful fallback to local)
+
+### Spec Maintenance
+
+- [ ] **RECON-01**: REQUIREMENTS.md, ROADMAP.md, STATE.md accurately reflect codebase state
+
+### Drift Detection
+
+- [ ] **DRIFT-01**: `/maxsim:check-drift` produces structured DRIFT-REPORT.md with severity-tiered findings
+- [ ] **DRIFT-02**: `/maxsim:realign` corrects divergence in either direction (to-code or to-spec)
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -108,10 +130,20 @@ Lightweight requirements for rapid exploration.
 | HOOK-02 | Phase 6: Hook System | Pending |
 | HOOK-03 | Phase 6: Hook System | Pending |
 | HOOK-04 | Phase 6: Hook System | Pending |
+| WIRE-01 | Phase 7: GitHub Workflow Integration | Pending |
+| WIRE-02 | Phase 7: GitHub Workflow Integration | Pending |
+| WIRE-03 | Phase 7: GitHub Workflow Integration | Pending |
+| WIRE-04 | Phase 7: GitHub Workflow Integration | Pending |
+| WIRE-05 | Phase 7: GitHub Workflow Integration | Pending |
+| CLEAN-01 | Phase 8: Stale Reference Cleanup | Pending |
+| CLEAN-02 | Phase 8: Stale Reference Cleanup | Pending |
+| RECON-01 | Phase 9: Spec Reconciliation | Pending |
+| DRIFT-01 | Phase 10: Drift Detection & Realignment | Pending |
+| DRIFT-02 | Phase 10: Drift Detection & Realignment | Pending |
 
 **Coverage:**
-- v5.0 requirements: 28 total
-- Mapped to phases: 28
+- v5.0 requirements: 38 total
+- Mapped to phases: 38
 - Unmapped: 0
 
 ---
