@@ -118,6 +118,55 @@
   - [x] Plan 01 (Wave 1): Rewrite statusline + remove context monitor [HOOK-01, HOOK-04]
   - [ ] Plan 02 (Wave 2): Add sync-reminder hook + update checker backup [HOOK-02, HOOK-03]
 
+### Phase 7: GitHub Workflow Integration
+**Goal**: Every MAXSIM workflow (init, plan, execute, progress) creates, updates, and reads GitHub Issues automatically — `.planning/` becomes a local cache, GitHub Issues is the source of truth
+**Depends on**: Phase 6
+**Requirements**: WIRE-01, WIRE-02, WIRE-03, WIRE-04, WIRE-05
+**Success Criteria** (what must be TRUE):
+  1. Running `/maxsim:init` calls `mcp_github_setup` to create a Project Board, labels, and milestone on the user's GitHub repo
+  2. Running `/maxsim:plan N` calls `mcp_create_phase_issue` to create a GitHub Issue for the phase with requirements and success criteria
+  3. Running `/maxsim:execute N` calls `mcp_move_issue` to move issues to "In Progress" / "Done" as plans complete, and posts completion comments
+  4. Running `/maxsim:progress` reads status from `mcp_query_board` / `mcp_get_issue_detail` instead of (or in addition to) local `.planning/` files
+  5. A sync command or workflow exists that pushes local `.planning/` changes to GitHub Issues (fulfills HOOK-02 sync mechanism)
+**Plans**: 7 plans in 4 waves
+  - [ ] Plan 01 (Wave 1): MCP tool enhancements + new tools + backend changes [WIRE-01, WIRE-03, WIRE-05]
+  - [ ] Plan 02 (Wave 1): Init context updates -- add GitHub mapping data to init functions [WIRE-03, WIRE-05]
+  - [ ] Plan 03 (Wave 2): Init workflow rewrites -- new-project.md, init-existing.md [WIRE-01, WIRE-03]
+  - [ ] Plan 04 (Wave 2): Plan workflow rewrites -- plan.md, plan-create.md, plan-discuss.md, plan-research.md, plan-phase.md [WIRE-01, WIRE-02]
+  - [ ] Plan 05 (Wave 3): Execute workflow rewrites -- execute.md, execute-plan.md, execute-phase.md [WIRE-03, WIRE-04]
+  - [ ] Plan 06 (Wave 3): Progress + go + verify workflow rewrites [WIRE-04, WIRE-05]
+  - [ ] Plan 07 (Wave 4): Agent updates + github-artifact-protocol skill + installer + cleanup [WIRE-02, WIRE-05]
+
+### Phase 8: Stale Reference Cleanup
+**Goal**: No dead references to removed features remain in workflows, and statusline sources data from GitHub when available
+**Depends on**: Phase 7
+**Requirements**: CLEAN-01, CLEAN-02
+**Success Criteria** (what must be TRUE):
+  1. `grep -r "dashboard-bridge\|DASHBOARD_ACTIVE\|maxsim-dashboard" templates/` returns 0 matches
+  2. Statusline hook optionally reads phase/progress from GitHub Issues when `gh` is authenticated (falls back to local `.planning/` gracefully)
+**Plans**: Not yet planned (run /maxsim:plan 8 to break down)
+
+### Phase 9: Spec Reconciliation
+**Goal**: All `.planning/` spec files (REQUIREMENTS.md, ROADMAP.md, STATE.md) accurately reflect the actual state of the codebase
+**Depends on**: Phase 8
+**Requirements**: RECON-01
+**Success Criteria** (what must be TRUE):
+  1. Every requirement in REQUIREMENTS.md has a correct checkbox status (checked = implemented, unchecked = not implemented) verified against code
+  2. ROADMAP.md progress table matches disk status (plan summaries exist = complete)
+  3. STATE.md metrics match actual counts (phases complete, plans complete)
+**Plans**: Not yet planned (run /maxsim:plan 9 to break down)
+
+### Phase 10: Drift Detection & Realignment
+**Goal**: Users can detect spec-code divergence and realign in either direction via built-in commands
+**Depends on**: Phase 7
+**Requirements**: DRIFT-01, DRIFT-02
+**Success Criteria** (what must be TRUE):
+  1. `/maxsim:check-drift` scans the codebase against `.planning/` spec and produces a structured DRIFT-REPORT.md with severity-tiered findings
+  2. `/maxsim:realign to-code` updates `.planning/` to match code reality (per-item interactive approval)
+  3. `/maxsim:realign to-spec` generates fix phases for implementation gaps (grouped, capped at 5)
+  4. Both commands are documented in `/maxsim:help` and available as installed commands
+**Plans**: Not yet planned (run /maxsim:plan 10 to break down)
+
 ## Dependency Graph
 
 ```
@@ -169,52 +218,10 @@ Unmapped: 0
 | 4. Prompt & Skill Architecture | 5/5 | Complete | 2026-03-10 |
 | 5. Parallel Execution Model | 5/5 | Complete | 2026-03-10 |
 | 6. Hook System | 2/2 | Complete | 2026-03-11 |
-| 7. GitHub Workflow Integration | 0/0 | Not Started | - |
+| 7. GitHub Workflow Integration | 0/7 | Planned | - |
 | 8. Stale Reference Cleanup | 0/0 | Not Started | - |
 | 9. Spec Reconciliation | 0/0 | Not Started | - |
 | 10. Drift Detection & Realignment | 0/0 | Not Started | - |
-
-### Phase 7: GitHub Workflow Integration
-**Goal**: Every MAXSIM workflow (init, plan, execute, progress) creates, updates, and reads GitHub Issues automatically — `.planning/` becomes a local cache, GitHub Issues is the source of truth
-**Depends on**: Phase 6
-**Requirements**: WIRE-01, WIRE-02, WIRE-03, WIRE-04, WIRE-05
-**Success Criteria** (what must be TRUE):
-  1. Running `/maxsim:init` calls `mcp_github_setup` to create a Project Board, labels, and milestone on the user's GitHub repo
-  2. Running `/maxsim:plan N` calls `mcp_create_phase_issue` to create a GitHub Issue for the phase with requirements and success criteria
-  3. Running `/maxsim:execute N` calls `mcp_move_issue` to move issues to "In Progress" / "Done" as plans complete, and posts completion comments
-  4. Running `/maxsim:progress` reads status from `mcp_query_board` / `mcp_get_issue_detail` instead of (or in addition to) local `.planning/` files
-  5. A sync command or workflow exists that pushes local `.planning/` changes to GitHub Issues (fulfills HOOK-02 sync mechanism)
-**Plans**: Not yet planned (run /maxsim:plan 7 to break down)
-
-### Phase 8: Stale Reference Cleanup
-**Goal**: No dead references to removed features remain in workflows, and statusline sources data from GitHub when available
-**Depends on**: Phase 7
-**Requirements**: CLEAN-01, CLEAN-02
-**Success Criteria** (what must be TRUE):
-  1. `grep -r "dashboard-bridge\|DASHBOARD_ACTIVE\|maxsim-dashboard" templates/` returns 0 matches
-  2. Statusline hook optionally reads phase/progress from GitHub Issues when `gh` is authenticated (falls back to local `.planning/` gracefully)
-**Plans**: Not yet planned (run /maxsim:plan 8 to break down)
-
-### Phase 9: Spec Reconciliation
-**Goal**: All `.planning/` spec files (REQUIREMENTS.md, ROADMAP.md, STATE.md) accurately reflect the actual state of the codebase
-**Depends on**: Phase 8
-**Requirements**: RECON-01
-**Success Criteria** (what must be TRUE):
-  1. Every requirement in REQUIREMENTS.md has a correct checkbox status (checked = implemented, unchecked = not implemented) verified against code
-  2. ROADMAP.md progress table matches disk status (plan summaries exist = complete)
-  3. STATE.md metrics match actual counts (phases complete, plans complete)
-**Plans**: Not yet planned (run /maxsim:plan 9 to break down)
-
-### Phase 10: Drift Detection & Realignment
-**Goal**: Users can detect spec-code divergence and realign in either direction via built-in commands
-**Depends on**: Phase 7
-**Requirements**: DRIFT-01, DRIFT-02
-**Success Criteria** (what must be TRUE):
-  1. `/maxsim:check-drift` scans the codebase against `.planning/` spec and produces a structured DRIFT-REPORT.md with severity-tiered findings
-  2. `/maxsim:realign to-code` updates `.planning/` to match code reality (per-item interactive approval)
-  3. `/maxsim:realign to-spec` generates fix phases for implementation gaps (grouped, capped at 5)
-  4. Both commands are documented in `/maxsim:help` and available as installed commands
-**Plans**: Not yet planned (run /maxsim:plan 10 to break down)
 
 ---
 *Roadmap created: 2026-03-09*
@@ -243,3 +250,4 @@ Unmapped: 0
 *Phase 04 complete: 2026-03-10*
 *Phase 05 planned: 2026-03-10*
 *Phase 06 planned: 2026-03-10*
+*Phase 07 planned: 2026-03-11*
