@@ -65,6 +65,53 @@ Parse JSON for: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `co
 git init
 ```
 
+## 1b. GitHub Prerequisites Gate
+
+**This gate is MANDATORY. Do not proceed if it fails.**
+
+Parse init context for `has_github_remote` and `gh_authenticated`:
+
+1. If `has_github_remote` is false:
+   - STOP. Tell user:
+     ```
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      MAXSIM ► NO GITHUB REMOTE FOUND
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+     MAXSIM requires a GitHub remote to track phases as Issues.
+
+     To fix: git remote add origin <your-repo-url>
+
+     Then re-run /maxsim:init.
+     ```
+   - Do NOT proceed with project setup.
+
+2. If `gh_authenticated` is false:
+   - STOP. Tell user:
+     ```
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      MAXSIM ► GITHUB CLI NOT AUTHENTICATED
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+     MAXSIM requires GitHub CLI authentication to create phase issues.
+
+     To fix: gh auth login
+
+     Then re-run /maxsim:init.
+     ```
+   - Do NOT proceed with project setup.
+
+3. Both checks passed — call `mcp_github_setup` with the project name as the milestone title:
+   ```
+   mcp_github_setup({ milestone_title: "[project name]" })
+   ```
+
+4. If `mcp_github_setup` fails:
+   - STOP with the error message returned by the tool.
+   - Do not fall back to local-only mode.
+
+5. Record the `project_number` and board details returned by `mcp_github_setup` for use in the Phase Issue Creation step.
+
 ## 2. Brownfield Offer
 
 **If auto mode:** Skip to Step 4 (assume greenfield, synthesize PROJECT.md from provided document).
@@ -1254,7 +1301,48 @@ Use AskUserQuestion:
 node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: create roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
 ```
 
-## 8b. Agent Dry-Run Validation
+## 8b. Create Phase Issues on GitHub
+
+After the roadmap is finalized and committed, create a GitHub Issue for each phase. This is a mandatory step — phase tracking lives in GitHub, not in local `.planning/phases/` files (per WIRE-02).
+
+Display banner:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MAXSIM ► CREATING GITHUB PHASE ISSUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+1. Parse `.planning/ROADMAP.md` to extract all phases. For each phase, collect:
+   - `phase_number` (e.g., `01`, `02`)
+   - `phase_name` (e.g., "Foundation")
+   - `goal` (the phase goal statement)
+   - `requirements` (list of REQ-IDs mapped to this phase)
+   - `success_criteria` (list of observable outcomes)
+
+2. For each phase, call `mcp_create_phase_issue`:
+   ```
+   mcp_create_phase_issue({
+     phase_number: "[phase_number]",
+     phase_name: "[phase_name]",
+     goal: "[goal]",
+     requirements: ["REQ-01", "REQ-02", ...],
+     success_criteria: ["criterion 1", "criterion 2", ...]
+   })
+   ```
+   The tool auto-adds each issue to the project board with "To Do" status.
+
+3. Track results per phase. If any phase issue creation fails:
+   - Log which phases succeeded and which failed.
+   - Offer targeted retry for failed phases only (do not re-create successful ones).
+
+4. Report completion:
+   ```
+   ✓ Created {N} phase issues on GitHub Project Board #{project_number}
+   ```
+
+**Note:** Per WIRE-02, phase-level artifact files (PLAN.md, SUMMARY.md, RESEARCH.md, CONTEXT.md) are NOT created in `.planning/phases/` during init. These live exclusively as GitHub Issue comments and bodies. The following local files are still created and committed: PROJECT.md, REQUIREMENTS.md, config.json, STATE.md, ROADMAP.md.
+
+## 8c. Agent Dry-Run Validation
 
 **Always runs after all documents are generated — this is the quality gate for init output.**
 
@@ -1328,8 +1416,9 @@ Present completion summary:
 | Research       | `.planning/research/`       |
 | Requirements   | `.planning/REQUIREMENTS.md` |
 | Roadmap        | `.planning/ROADMAP.md`      |
+| Phase Issues   | GitHub Project Board #{project_number} |
 
-**[N] phases** | **[X] requirements** | Ready to build ✓
+**[N] phases** | **[X] requirements** | **[N] GitHub issues created** | Ready to build ✓
 ```
 
 **If auto mode:**
@@ -1397,6 +1486,9 @@ Exit skill and invoke SlashCommand("/maxsim:plan 1 --auto")
 - [ ] Requirements gathered (from research or conversation)
 - [ ] User scoped each category (v1/v2/out of scope)
 - [ ] REQUIREMENTS.md created with REQ-IDs → **committed**
+- [ ] GitHub remote detected (gate passed)
+- [ ] GitHub CLI authenticated (gate passed)
+- [ ] `mcp_github_setup` called successfully — project_number recorded
 - [ ] planner (roadmap mode) spawned with context
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
@@ -1405,6 +1497,7 @@ Exit skill and invoke SlashCommand("/maxsim:plan 1 --auto")
 - [ ] REQUIREMENTS.md traceability updated
 - [ ] CONVENTIONS.md generated with 4 must-have sections (Tech Stack, File Layout, Error Handling, Testing)
 - [ ] NO-GOS.md populated from confirmed no-gos during questioning
+- [ ] `mcp_create_phase_issue` called for every phase — all issues on board with "To Do" status
 - [ ] Agent dry-run validation passed (Quality Score >= 7)
 - [ ] User knows next step is `/maxsim:plan 1`
 

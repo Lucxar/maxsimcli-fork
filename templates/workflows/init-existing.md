@@ -73,6 +73,53 @@ Use AskUserQuestion:
 git init
 ```
 
+## Step 1b: GitHub Prerequisites Gate
+
+**This gate is MANDATORY. Do not proceed if it fails.**
+
+Parse init context for `has_github_remote` and `gh_authenticated`:
+
+1. If `has_github_remote` is false:
+   - STOP. Tell user:
+     ```
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      MAXSIM ► NO GITHUB REMOTE FOUND
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+     MAXSIM requires a GitHub remote to track phases as Issues.
+
+     To fix: git remote add origin <your-repo-url>
+
+     Then re-run /maxsim:init.
+     ```
+   - Do NOT proceed with initialization.
+
+2. If `gh_authenticated` is false:
+   - STOP. Tell user:
+     ```
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      MAXSIM ► GITHUB CLI NOT AUTHENTICATED
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+     MAXSIM requires GitHub CLI authentication to create phase issues.
+
+     To fix: gh auth login
+
+     Then re-run /maxsim:init.
+     ```
+   - Do NOT proceed with initialization.
+
+3. Both checks passed — call `mcp_github_setup` with the project name as the milestone title:
+   ```
+   mcp_github_setup({ milestone_title: "[project name]" })
+   ```
+
+4. If `mcp_github_setup` fails:
+   - STOP with the error message returned by the tool.
+   - Do not fall back to local-only mode.
+
+5. Record the `project_number` and board details returned by `mcp_github_setup` for use in the Phase Issue Creation step.
+
 ## Step 2: Conflict Resolution
 
 **If auto mode:** Skip dialog. If `conflict_detected`, use merge behavior automatically (keep existing files, fill gaps, always re-scan codebase). Proceed to Step 3.
@@ -1110,6 +1157,47 @@ If "Approve": continue.
 If "Adjust phases": get feedback, re-spawn roadmapper with revision context, re-present. Loop until approved.
 If "Review full file": display raw `cat .planning/ROADMAP.md`, then re-ask.
 
+### 9c-ii: Create Phase Issues on GitHub
+
+After the roadmap is finalized (approved or auto-mode), create a GitHub Issue for each phase. This is a mandatory step — phase tracking lives in GitHub, not in local `.planning/phases/` files (per WIRE-02).
+
+Display banner:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MAXSIM ► CREATING GITHUB PHASE ISSUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+1. Parse `.planning/ROADMAP.md` to extract all phases. For each phase, collect:
+   - `phase_number` (e.g., `01`, `02`)
+   - `phase_name` (e.g., "Foundation")
+   - `goal` (the phase goal statement)
+   - `requirements` (list of REQ-IDs mapped to this phase)
+   - `success_criteria` (list of observable outcomes)
+
+2. For each phase, call `mcp_create_phase_issue`:
+   ```
+   mcp_create_phase_issue({
+     phase_number: "[phase_number]",
+     phase_name: "[phase_name]",
+     goal: "[goal]",
+     requirements: ["REQ-01", "REQ-02", ...],
+     success_criteria: ["criterion 1", "criterion 2", ...]
+   })
+   ```
+   The tool auto-adds each issue to the project board with "To Do" status.
+
+3. Track results per phase. If any phase issue creation fails:
+   - Log which phases succeeded and which failed.
+   - Offer targeted retry for failed phases only (do not re-create successful ones).
+
+4. Report completion:
+   ```
+   ✓ Created {N} phase issues on GitHub Project Board #{project_number}
+   ```
+
+**Note:** Per WIRE-02, phase-level artifact files (PLAN.md, SUMMARY.md, RESEARCH.md, CONTEXT.md) are NOT created in `.planning/phases/` during init. These live exclusively as GitHub Issue comments and bodies. The following local files are still created and committed: PROJECT.md, REQUIREMENTS.md, config.json, STATE.md, ROADMAP.md.
+
 ### 9d: STATE.md
 
 **Skip if merge mode and file exists with all required headers.**
@@ -1311,6 +1399,7 @@ Created:
   ✓ .planning/ROADMAP.md          -- [Milestone name] + [N] phases
   ✓ .planning/STATE.md            -- Pre-populated project memory
   ✓ .planning/codebase/           -- Full codebase analysis (4 docs + structure)
+  ✓ GitHub Project Board #{project_number} -- [N] phase issues created with "To Do" status
 ```
 
 If auto mode, append:
@@ -1367,6 +1456,9 @@ Print next steps:
 
 - [ ] .planning/ directory created (or merged)
 - [ ] Git repo initialized (if not already)
+- [ ] GitHub remote detected (gate passed)
+- [ ] GitHub CLI authenticated (gate passed)
+- [ ] `mcp_github_setup` called successfully — project_number recorded
 - [ ] Conflict detection completed (merge/overwrite/cancel dialog)
 - [ ] Codebase scan completed (4 mapper agents spawned)
 - [ ] README validated against scan findings
@@ -1378,6 +1470,7 @@ Print next steps:
 - [ ] PROJECT.md created with brownfield extra sections
 - [ ] REQUIREMENTS.md created with stage-aware format
 - [ ] ROADMAP.md created with 3-5 concrete phases (no TBD)
+- [ ] `mcp_create_phase_issue` called for every phase — all issues on board with "To Do" status
 - [ ] STATE.md created with pre-populated decisions and blockers
 - [ ] config.json created with workflow settings
 - [ ] .planning/codebase/ populated with scan documents
