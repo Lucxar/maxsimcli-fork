@@ -1,3 +1,10 @@
+# [4.13.0](https://github.com/maystudios/maxsimcli/compare/v4.12.0...v4.13.0) (2026-03-11)
+
+
+### Features
+
+* **workflows:** rewrite progress, go, and verify workflows for live GitHub reads and comment posting ([4804a40](https://github.com/maystudios/maxsimcli/commit/4804a40fde7075fce21a3c2ebcb400937f271ab1))
+
 # [4.12.0](https://github.com/maystudios/maxsimcli/compare/v4.11.0...v4.12.0) (2026-03-11)
 
 
