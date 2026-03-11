@@ -1,3 +1,12 @@
+# [4.10.0](https://github.com/maystudios/maxsimcli/compare/v4.9.0...v4.10.0) (2026-03-11)
+
+
+### Features
+
+* add realignment phases 7-10 from drift report ([e3e87e1](https://github.com/maystudios/maxsimcli/commit/e3e87e18249dcf971700c8cf413aa96d42e054c3))
+* **init:** add GitHub mapping data to workflow init contexts ([ccc25ed](https://github.com/maystudios/maxsimcli/commit/ccc25ed300a82ced53d1338614b64910cba98da3))
+* **mcp:** enhance GitHub tools and add batch-create, external-edit-detection, sync-check tools ([b3edaf9](https://github.com/maystudios/maxsimcli/commit/b3edaf9479f39b7a183013c98c83007c247ae82e))
+
 # [4.9.0](https://github.com/maystudios/maxsimcli/compare/v4.8.0...v4.9.0) (2026-03-11)
 
 
