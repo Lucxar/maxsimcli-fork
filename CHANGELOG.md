@@ -1,3 +1,10 @@
+# [4.11.0](https://github.com/maystudios/maxsimcli/compare/v4.10.0...v4.11.0) (2026-03-11)
+
+
+### Features
+
+* **workflows:** wire mcp_github_setup and phase issue creation into init workflows ([fe30a97](https://github.com/maystudios/maxsimcli/commit/fe30a979957e9a480fc6e98bc9e60d51d2f428e2))
+
 # [4.10.0](https://github.com/maystudios/maxsimcli/compare/v4.9.0...v4.10.0) (2026-03-11)
 
 
