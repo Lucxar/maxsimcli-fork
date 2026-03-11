@@ -1,3 +1,10 @@
+## [4.15.1](https://github.com/maystudios/maxsimcli/compare/v4.15.0...v4.15.1) (2026-03-11)
+
+
+### Bug Fixes
+
+* **workflows:** add missing "In Review" board transition before verification ([70031e6](https://github.com/maystudios/maxsimcli/commit/70031e6691334834281cc74d94f0985d6bc531d2))
+
 # [4.15.0](https://github.com/maystudios/maxsimcli/compare/v4.14.0...v4.15.0) (2026-03-11)
 
 
