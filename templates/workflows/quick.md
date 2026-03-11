@@ -592,7 +592,7 @@ INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init todos)
 mkdir -p .planning/todos/pending .planning/todos/done
 ```
 
-Extract from init JSON: `todo_count`, `todos`, `pending_dir`, `date`, `timestamp`.
+Extract from init JSON: `todo_count`, `todos`, `pending_dir`, `date`, `timestamp`, `github_ready`.
 
 ---
 
@@ -669,7 +669,9 @@ files: []
 TBD
 ```
 
-5. Best-effort GitHub Issue with 'todo' label: `node ~/.claude/maxsim/bin/maxsim-tools.cjs todos add "$TITLE" "$PRIORITY" 2>/dev/null || true`
+5. Best-effort GitHub Issue creation:
+   - Always attempt: `node ~/.claude/maxsim/bin/maxsim-tools.cjs todos add "$TITLE" "$PRIORITY" 2>/dev/null || true`
+   - If `github_ready` is true in init context: also call `mcp_create_todo_issue` with title, priority, area, and description to create a tracked GitHub Issue linked to the todo file
 6. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: capture todo - ${TITLE}" --files .planning/todos/pending/${date}-${slug}.md`
 7. Confirm: "Saved: ${TITLE} (priority: ${PRIORITY})"
 
