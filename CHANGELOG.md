@@ -1,3 +1,10 @@
+# [4.14.0](https://github.com/maystudios/maxsimcli/compare/v4.13.0...v4.14.0) (2026-03-11)
+
+
+### Features
+
+* **workflows:** rewrite execute workflows for GitHub-first plan reading, per-task board transitions, and summary posting ([9d47215](https://github.com/maystudios/maxsimcli/commit/9d472159835a65058cd5d72a7a2265e4d58394c4))
+
 # [4.13.0](https://github.com/maystudios/maxsimcli/compare/v4.12.0...v4.13.0) (2026-03-11)
 
 
