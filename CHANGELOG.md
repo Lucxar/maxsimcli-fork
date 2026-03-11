@@ -1,3 +1,10 @@
+## [4.15.3](https://github.com/maystudios/maxsimcli/compare/v4.15.2...v4.15.3) (2026-03-11)
+
+
+### Bug Fixes
+
+* **workflows:** move init CLI call into router to prevent workflow freelancing ([242e943](https://github.com/maystudios/maxsimcli/commit/242e9438968e90012c7ccc5b3180380a628c7154))
+
 ## [4.15.2](https://github.com/maystudios/maxsimcli/compare/v4.15.1...v4.15.2) (2026-03-11)
 
 
