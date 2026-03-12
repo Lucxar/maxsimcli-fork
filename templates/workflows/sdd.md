@@ -32,15 +32,16 @@ Parse JSON for: `executor_model`, `verifier_model`, `commit_docs`, `phase_found`
 </step>
 
 <step name="discover_plans">
-Find incomplete plans — skip any plan that already has a matching SUMMARY.md:
+Find incomplete plans by querying GitHub Issues (the source of truth for plans and completion status):
 
-```bash
-PLAN_INDEX=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs phase-plan-index "${PHASE_NUMBER}")
+```
+mcp_get_issue_detail(issue_number: phase_issue_number)
+mcp_list_sub_issues(issue_number: phase_issue_number)
 ```
 
-Parse JSON for: `plans[]` (each with `id`, `objective`, `files_modified`, `task_count`, `has_summary`), `incomplete`.
+Parse plan comments (`<!-- maxsim:type=plan -->`) from the phase issue. A plan is complete when all its task sub-issues are closed.
 
-**Filtering:** Skip plans where `has_summary: true`. If all plans complete: "All plans in phase already have summaries" — exit.
+**Filtering:** Skip plans where all task sub-issues are closed. If all plans complete: "All plans in phase are already complete" — exit.
 
 Report:
 ```
@@ -58,11 +59,7 @@ Report:
 </step>
 
 <step name="load_plan">
-For each incomplete plan, read the plan file and extract the ordered task list:
-
-```bash
-cat ${PHASE_DIR}/${PLAN_FILE}
-```
+For each incomplete plan, read the plan content from the GitHub Issue comment (loaded in discover_plans) and extract the ordered task list.
 
 Extract for each task:
 - **Task number** (sequential order in plan)
@@ -325,14 +322,7 @@ Display task completion:
 </step>
 
 <step name="create_summary">
-After all tasks in a plan complete, create SUMMARY.md:
-
-```bash
-# Get the summary template
-cat ~/.claude/maxsim/templates/summary.md
-```
-
-Create `{phase}-{plan}-SUMMARY.md` in the phase directory. Include:
+After all tasks in a plan complete, build the summary content in memory and post it as a GitHub comment on the phase issue. Include:
 
 **Frontmatter:** phase, plan, subsystem, tags, requires/provides/affects, tech-stack, key-files.created/modified, key-decisions, requirements-completed (copy from PLAN.md frontmatter), duration, completed date.
 
@@ -356,12 +346,19 @@ Create `{phase}-{plan}-SUMMARY.md` in the phase directory. Include:
 - Deviations (if any)
 - Issues encountered
 
-Use `node ~/.claude/maxsim/bin/maxsim-tools.cjs` for template operations as needed.
+Post summary to GitHub:
+```
+mcp_post_comment(
+  issue_number: phase_issue_number,
+  type: "summary",
+  body: {summary_content}
+)
+```
 
 Self-check:
 - Verify first 2 files from `key-files.created` exist on disk
 - Check `git log --oneline --all --grep="{phase}-{plan}"` returns commits
-- Append `## Self-Check: PASSED` or `## Self-Check: FAILED`
+- Append `## Self-Check: PASSED` or `## Self-Check: FAILED` to summary content before posting
 </step>
 
 <step name="update_state">
@@ -396,23 +393,27 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs requirements mark-complete ${REQ_IDS}
 Task code already committed per-task. Commit planning artifacts:
 
 ```bash
-node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): complete SDD execution" --files .planning/phases/${PHASE_DIR_NAME}/${PHASE}-${PLAN}-SUMMARY.md .planning/STATE.md .planning/ROADMAP.md .planning/REQUIREMENTS.md
+node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs({phase}-{plan}): complete SDD execution" --files .planning/STATE.md .planning/ROADMAP.md .planning/REQUIREMENTS.md
 ```
+
+Note: No local SUMMARY.md is committed -- summary was posted to GitHub as a comment.
 </step>
 
 <step name="offer_next">
 After all plans in the phase are processed:
 
-```bash
-ls -1 .planning/phases/${PHASE_DIR_NAME}/*-PLAN.md 2>/dev/null | wc -l
-ls -1 .planning/phases/${PHASE_DIR_NAME}/*-SUMMARY.md 2>/dev/null | wc -l
+Check completion by querying the phase issue's task sub-issues:
 ```
+mcp_list_sub_issues(issue_number: phase_issue_number)
+```
+
+Count open vs closed sub-issues to determine completion.
 
 | Condition | Route | Action |
 |-----------|-------|--------|
-| summaries < plans | **A: More plans** | Find next incomplete plan. Show next plan, suggest `/maxsim:execute {phase}` (SDD mode) to continue. |
-| summaries = plans, more phases exist | **B: Phase done** | Show completion, suggest `/maxsim:execute {phase}` (verification) then `/maxsim:plan {next}`. |
-| summaries = plans, last phase | **C: Milestone done** | Show banner, suggest `/maxsim:progress` (milestone completion) + `/maxsim:execute` (verification). |
+| open sub-issues remain | **A: More plans** | Find next incomplete plan (by open sub-issues). Show next plan, suggest `/maxsim:execute {phase}` (SDD mode) to continue. |
+| all sub-issues closed, more phases exist | **B: Phase done** | Show completion, suggest `/maxsim:execute {phase}` (verification) then `/maxsim:plan {next}`. |
+| all sub-issues closed, last phase | **C: Milestone done** | Show banner, suggest `/maxsim:progress` (milestone completion) + `/maxsim:execute` (verification). |
 
 All routes: recommend `/clear` first for fresh context.
 </step>
@@ -428,5 +429,5 @@ All routes: recommend `/clear` first for fresh context.
 </failure_handling>
 
 <resumption>
-Re-run `/maxsim:execute {phase}` (SDD mode) — discover_plans finds completed SUMMARYs, skips them, resumes from first incomplete plan. Within a plan, completed tasks (those with commits matching the plan pattern) can be detected and skipped.
+Re-run `/maxsim:execute {phase}` (SDD mode) — discover_plans queries GitHub for task sub-issue status, skips plans with all sub-issues closed, resumes from first incomplete plan. Within a plan, completed tasks (those with commits matching the plan pattern) can be detected and skipped.
 </resumption>

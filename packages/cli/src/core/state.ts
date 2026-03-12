@@ -22,6 +22,8 @@ import type {
   CmdResult,
 } from './types.js';
 import { cmdOk, cmdErr } from './types.js';
+import { getAllPhasesProgress } from '../github/sync.js';
+import { loadMapping } from '../github/mapping.js';
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
@@ -284,23 +286,42 @@ export async function cmdStateUpdateProgress(cwd: string, raw: boolean): Promise
 
   let content = await fsp.readFile(statePath, 'utf-8');
 
-  const phasesDir = phasesPath(cwd);
   let totalPlans = 0;
   let totalSummaries = 0;
+  let usedGitHub = false;
 
-  if (await pathExistsInternal(phasesDir)) {
-    const phaseDirs = (await fsp.readdir(phasesDir, { withFileTypes: true }))
-      .filter(e => e.isDirectory()).map(e => e.name);
-    const counts = await Promise.all(phaseDirs.map(async (dir) => {
-      const files = await fsp.readdir(path.join(phasesDir, dir));
-      return {
-        plans: files.filter(f => isPlanFile(f)).length,
-        summaries: files.filter(f => isSummaryFile(f)).length,
-      };
-    }));
-    for (const c of counts) {
-      totalPlans += c.plans;
-      totalSummaries += c.summaries;
+  // Try GitHub first for progress data
+  try {
+    const mapping = loadMapping(cwd);
+    if (mapping && Object.keys(mapping.phases).length > 0) {
+      const ghResult = await getAllPhasesProgress();
+      if (ghResult.ok) {
+        for (const entry of ghResult.data) {
+          totalPlans += entry.progress.total;
+          totalSummaries += entry.progress.completed;
+        }
+        usedGitHub = true;
+      }
+    }
+  } catch { /* GitHub not available — fall back to local */ }
+
+  // Fallback: scan local filesystem
+  if (!usedGitHub) {
+    const phasesDir = phasesPath(cwd);
+    if (await pathExistsInternal(phasesDir)) {
+      const phaseDirs = (await fsp.readdir(phasesDir, { withFileTypes: true }))
+        .filter(e => e.isDirectory()).map(e => e.name);
+      const counts = await Promise.all(phaseDirs.map(async (dir) => {
+        const files = await fsp.readdir(path.join(phasesDir, dir));
+        return {
+          plans: files.filter(f => isPlanFile(f)).length,
+          summaries: files.filter(f => isSummaryFile(f)).length,
+        };
+      }));
+      for (const c of counts) {
+        totalPlans += c.plans;
+        totalSummaries += c.summaries;
+      }
     }
   }
 

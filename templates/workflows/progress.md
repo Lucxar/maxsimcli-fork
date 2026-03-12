@@ -85,10 +85,9 @@ Call `mcp_query_board` with the project number (from init context / config). Gro
 | Done        | 3     | #9, #10, #11 |
 ```
 
-**Cross-validate with local ROADMAP.md:**
-- Run `ROADMAP=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap analyze)` to get local phase data
-- Compare local completion status against GitHub board status
-- Highlight any discrepancies between local and GitHub state in the Issues Detected section
+**Cross-reference with local ROADMAP.md (for phase ordering only -- GitHub is authoritative for status):**
+- Run `ROADMAP=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs roadmap analyze)` to get local phase ordering data
+- If local ROADMAP phase list differs from GitHub Issues, note in Issues Detected section (GitHub is the source of truth)
 </step>
 
 <step name="live_github_detail">
@@ -217,9 +216,9 @@ Identify the in-progress or interrupted phase (from `mcp_get_all_progress` or `m
 
 **Route B: Phase needs planning**
 
-Check if `{phase_num}-CONTEXT.md` exists in phase directory.
+Check if a `<!-- maxsim:type=context -->` comment exists on the phase GitHub Issue.
 
-**If CONTEXT.md exists:**
+**If context comment exists:**
 
 ```
 ---
@@ -236,7 +235,7 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 ---
 ```
 
-**If CONTEXT.md does NOT exist:**
+**If no context comment exists:**
 
 ```
 ---
@@ -244,7 +243,7 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 ## ▶ Next Up
 
 **Phase {N}: {Name}** — {Goal from ROADMAP.md}
-<sub>No context yet — /maxsim:plan will start with discussion</sub>
+<sub>No context comment yet — /maxsim:plan will start with discussion</sub>
 
 `/maxsim:plan {phase}`
 
@@ -335,8 +334,8 @@ Ready to plan the next milestone.
 - All work complete → offer milestone completion via `/maxsim:init`
 - Blockers present → highlight before offering to continue
 - External edits detected → surface in Issues Detected section before routing
-- Discrepancy between local ROADMAP and GitHub board → surface in Issues Detected, ask user to reconcile
-- GitHub not available (mcp calls fail) → fall back to local ROADMAP analysis and note degraded mode
+- Discrepancy between local ROADMAP and GitHub board → surface in Issues Detected (GitHub is authoritative)
+- GitHub not available (mcp calls fail) → note degraded mode, recommend resolving GitHub connectivity
   </step>
 
 </process>
@@ -348,7 +347,7 @@ Ready to plan the next milestone.
 - [ ] Board column view shown via mcp_query_board
 - [ ] Per-phase task detail available via mcp_get_phase_progress and mcp_list_sub_issues
 - [ ] External edit detection via mcp_detect_external_edits
-- [ ] Cross-validation between local ROADMAP.md and GitHub board status
+- [ ] Cross-reference local ROADMAP.md for phase ordering (GitHub is authoritative for status)
 - [ ] Phase gaps and discrepancies detected and surfaced in Issues Detected section
 - [ ] Current position clear with visual progress
 - [ ] What's next clearly explained

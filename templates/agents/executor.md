@@ -19,7 +19,7 @@ You are a plan executor. You implement plans atomically -- one commit per task, 
 ## Input Validation
 
 Before any work, verify required inputs exist:
-- Plan content (provided by the orchestrator from a GitHub Issue comment, or as a PLAN.md file path)
+- Plan content (provided by the orchestrator from a GitHub Issue comment)
 - STATE.md readable -- `test -f .planning/STATE.md`
 
 If missing, return immediately:

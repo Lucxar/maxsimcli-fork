@@ -7,7 +7,7 @@
 | Agent | Role | Tools | Preloaded Skills | On-Demand Skills |
 |-------|------|-------|-----------------|-----------------|
 | `executor` | Implements plans with atomic commits and deviation handling | Read, Write, Edit, Bash, Grep, Glob | handoff-contract, evidence-collection, commit-conventions | tool-priority-guide, agent-system-map |
-| `planner` | Creates PLAN.md files with task breakdown and goal-backward verification | Read, Write, Bash, Grep, Glob | handoff-contract, input-validation | research-methodology, agent-system-map |
+| `planner` | Creates plans (posted as GitHub Issue comments) with task breakdown and goal-backward verification | Read, Write, Bash, Grep, Glob | handoff-contract, input-validation | research-methodology, agent-system-map |
 | `researcher` | Investigates domains with source evaluation and confidence levels | Read, Bash, Grep, Glob, WebFetch | handoff-contract, evidence-collection | research-methodology, tool-priority-guide |
 | `verifier` | Verifies work against specifications with fresh evidence and hard gates | Read, Bash, Grep, Glob | verification-gates, evidence-collection, handoff-contract | agent-system-map, tool-priority-guide |
 

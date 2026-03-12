@@ -77,18 +77,9 @@ export interface PhaseCompleteResult {
 
 // ─── Stub scaffolding ───────────────────────────────────────────────────────
 
-export async function scaffoldPhaseStubs(dirPath: string, phaseId: string, name: string): Promise<void> {
-  const today = todayISO();
-  await Promise.all([
-    fsp.writeFile(
-      path.join(dirPath, `${phaseId}-CONTEXT.md`),
-      `# Phase ${phaseId} Context: ${name}\n\n**Created:** ${today}\n**Phase goal:** [To be defined during /maxsim:discuss-phase]\n\n---\n\n_Context will be populated by /maxsim:discuss-phase_\n`,
-    ),
-    fsp.writeFile(
-      path.join(dirPath, `${phaseId}-RESEARCH.md`),
-      `# Phase ${phaseId}: ${name} - Research\n\n**Researched:** Not yet\n**Domain:** TBD\n**Confidence:** TBD\n\n---\n\n_Research will be populated by /maxsim:research-phase_\n`,
-    ),
-  ]);
+export async function scaffoldPhaseStubs(_dirPath: string, _phaseId: string, _name: string): Promise<void> {
+  // No-op: CONTEXT.md and RESEARCH.md are now stored as GitHub Issue comments.
+  // Function signature retained for backward compatibility.
 }
 
 // ─── Core functions ─────────────────────────────────────────────────────────
@@ -511,35 +502,23 @@ export async function cmdFindPhase(cwd: string, phase: string | undefined): Prom
     return cmdErr('phase identifier required');
   }
 
-  const phasesDirPath = phasesPath(cwd);
-  const normalized = normalizePhaseName(phase);
-
   const notFound = { found: false, directory: null, phase_number: null, phase_name: null, plans: [] as string[], summaries: [] as string[] };
 
   try {
-    const dirs = await listSubDirs(phasesDirPath, true);
-
-    const match = dirs.find(d => d.startsWith(normalized));
-    if (!match) {
+    // Delegates to findPhaseInternal which tries GitHub first, then local
+    const info = await findPhaseInternal(cwd, phase);
+    if (!info) {
       return cmdOk(notFound, '');
     }
 
-    const dirMatch = match.match(/^(\d+[A-Z]?(?:\.\d+)?)-?(.*)/i);
-    const phaseNumber = dirMatch ? dirMatch[1] : normalized;
-    const phaseName = dirMatch && dirMatch[2] ? dirMatch[2] : null;
-
-    const phaseDir = path.join(phasesDirPath, match);
-    const phaseFiles = await fsp.readdir(phaseDir);
-    const plans = phaseFiles.filter(isPlanFile).sort();
-    const summaries = phaseFiles.filter(isSummaryFile).sort();
-
     const result = {
       found: true,
-      directory: path.join('.planning', 'phases', match),
-      phase_number: phaseNumber,
-      phase_name: phaseName,
-      plans,
-      summaries,
+      directory: info.directory,
+      phase_number: info.phase_number,
+      phase_name: info.phase_name,
+      plans: info.plans,
+      summaries: info.summaries,
+      source: info.source ?? 'local',
     };
 
     return cmdOk(result, result.directory);
@@ -555,17 +534,62 @@ export async function cmdPhasePlanIndex(cwd: string, phase: string | undefined):
     return cmdErr('phase required for phase-plan-index');
   }
 
-  const phasesDirPath = phasesPath(cwd);
   const normalized = normalizePhaseName(phase);
 
+  // Try GitHub first via findPhaseInternal (which tries GitHub, then local)
+  try {
+    const ghInfo = await findPhaseInternal(cwd, phase);
+    if (ghInfo && ghInfo.source === 'github') {
+      // Build a simplified index from GitHub sub-issue data
+      const plans: Array<{
+        id: string;
+        wave: number;
+        autonomous: boolean;
+        objective: string | null;
+        files_modified: string[];
+        task_count: number;
+        has_summary: boolean;
+      }> = [];
+      const waves: Record<string, string[]> = {};
+      const incomplete: string[] = [];
+
+      const completedSet = new Set(ghInfo.summaries);
+
+      for (const planName of ghInfo.plans) {
+        const hasSummary = completedSet.has(planName);
+        if (!hasSummary) {
+          incomplete.push(planName);
+        }
+
+        plans.push({
+          id: planName,
+          wave: 1,
+          autonomous: true,
+          objective: null,
+          files_modified: [],
+          task_count: 1,
+          has_summary: hasSummary,
+        });
+
+        if (!waves['1']) waves['1'] = [];
+        waves['1'].push(planName);
+      }
+
+      return cmdOk({ phase: normalized, plans, waves, incomplete, has_checkpoints: false, source: 'github' });
+    }
+  } catch (e) {
+    debugLog('phase-plan-index-github-failed', e);
+  }
+
+  // Fallback: local filesystem scanning
+  const phasesDirPath = phasesPath(cwd);
+
   let phaseDir: string | null = null;
-  let phaseDirName: string | null = null;
   try {
     const dirs = await listSubDirs(phasesDirPath, true);
     const match = dirs.find(d => d.startsWith(normalized));
     if (match) {
       phaseDir = path.join(phasesDirPath, match);
-      phaseDirName = match;
     }
   } catch (e) {
     debugLog('phase-plan-index-failed', e);

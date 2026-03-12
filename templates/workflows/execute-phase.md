@@ -109,17 +109,12 @@ When `phase_issue_number` is set (GitHub integration active):
 
 **Filtering:** Skip plans where `has_summary: true`. If `--gaps-only`: also skip non-gap_closure plans. If all filtered: "No matching incomplete plans" → exit.
 
-**Fallback -- no GitHub integration:**
+**If GitHub integration is NOT active** (`phase_issue_number` is not set):
 
-When `phase_issue_number` is not set, use local file scanning:
-
-```bash
-PLAN_INDEX=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs phase-plan-index "${PHASE_NUMBER}")
+GitHub Issues is the source of truth for plans. Report the error and exit:
 ```
-
-Parse JSON for: `phase`, `plans[]` (each with `id`, `wave`, `autonomous`, `objective`, `files_modified`, `task_count`, `has_summary`), `waves` (map of wave number → plan IDs), `incomplete`, `has_checkpoints`.
-
-**Skip plans where `has_summary: true`** (local SUMMARY.md file present). If `--gaps-only`: also skip non-gap_closure plans.
+GitHub integration required. Ensure GitHub Issues is configured: run /maxsim:init to set up.
+```
 
 Report:
 ```
@@ -307,7 +302,7 @@ For each wave:
 
 1. **Describe what's being built (BEFORE spawning):**
 
-   Read each plan's `<objective>` from the plan comment content (or local PLAN.md in fallback). Extract what's being built and why.
+   Read each plan's `<objective>` from the plan comment content. Extract what's being built and why.
 
    ```
    ---
@@ -550,12 +545,6 @@ When GitHub integration is active, look for `<!-- maxsim:type=uat -->` comments 
 mcp_get_issue_detail(issue_number: parent_phase_issue_number)
 ```
 
-As fallback, check local files:
-```bash
-PARENT_INFO=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs find-phase "${PARENT_PHASE}" --raw)
-# Extract directory from PARENT_INFO JSON, then find UAT file in that directory
-```
-
 **If no parent UAT found:** Skip this step (gap-closure may have been triggered by VERIFICATION.md instead).
 
 **3. Update UAT gap statuses:**
@@ -611,11 +600,6 @@ mcp_get_issue_detail(issue_number: phase_issue_number)
 ```
 
 Look for `<!-- maxsim:type=verification -->` comment and parse `status:` field.
-
-Fallback:
-```bash
-grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
-```
 
 | Status | Action |
 |--------|--------|
@@ -758,7 +742,7 @@ Plan content passed directly from GitHub comments to subagents — no local PLAN
 - **Dependency chain breaks:** Wave 1 fails → Wave 2 dependents likely fail → user chooses attempt or skip
 - **All agents in wave fail:** Systemic issue → stop, report for investigation
 - **Checkpoint unresolvable:** "Skip this plan?" or "Abort phase execution?" → record partial progress in STATE.md
-- **GitHub integration unavailable:** Fall back to local file I/O for all plan reading and summary writing
+- **GitHub integration unavailable:** Report error — GitHub Issues is the source of truth for plans and summaries
 </failure_handling>
 
 <resumption>

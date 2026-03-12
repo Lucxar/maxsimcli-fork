@@ -108,8 +108,9 @@ export function roadmapPath(cwd: string): string { return planningPath(cwd, 'ROA
 export function configPath(cwd: string): string { return planningPath(cwd, 'config.json'); }
 export function phasesPath(cwd: string): string { return planningPath(cwd, 'phases'); }
 
-/** Phase-file predicates. */
+/** Phase-file predicates. @deprecated Use GitHub Issues for plan/summary tracking. Local fallback only. */
 export const isPlanFile = (f: string): boolean => f.endsWith('-PLAN.md') || f === 'PLAN.md';
+/** @deprecated Use GitHub Issues for plan/summary tracking. Local fallback only. */
 export const isSummaryFile = (f: string): boolean => f.endsWith('-SUMMARY.md') || f === 'SUMMARY.md';
 
 /** Strip suffix to get plan/summary ID. */
@@ -408,13 +409,27 @@ async function searchPhaseInDir(baseDir: string, relBase: string, normalized: st
 export async function findPhaseInternal(cwd: string, phase: string): Promise<PhaseSearchResult | null> {
   if (!phase) return null;
 
-  const pd = phasesPath(cwd);
   const normalized = normalizePhaseName(phase);
 
-  const current = await searchPhaseInDir(pd, path.join('.planning', 'phases'), normalized);
-  if (current) return current;
+  // Try GitHub first if mapping exists
+  try {
+    const { findPhaseFromGitHub } = await import('../github/sync.js');
+    const ghResult = await findPhaseFromGitHub(cwd, normalized);
+    if (ghResult) return ghResult;
+  } catch {
+    // GitHub not available — fall through to local
+    debugLog('find-phase-github-fallback', 'GitHub lookup failed, falling back to local');
+  }
 
-  // Search new archive location: .planning/archive/<milestone>/
+  // Fall back to local filesystem scanning
+  const pd = phasesPath(cwd);
+  const current = await searchPhaseInDir(pd, path.join('.planning', 'phases'), normalized);
+  if (current) {
+    current.source = 'local';
+    return current;
+  }
+
+  // Search archive location: .planning/archive/<milestone>/
   const archiveDir = planningPath(cwd, 'archive');
   if (await pathExistsInternal(archiveDir)) {
     try {
@@ -431,6 +446,7 @@ export async function findPhaseInternal(cwd: string, phase: string): Promise<Pha
         const result = await searchPhaseInDir(versionPath, relBase, normalized);
         if (result) {
           result.archived = versionName;
+          result.source = 'local';
           return result;
         }
       }

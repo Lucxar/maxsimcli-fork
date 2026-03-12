@@ -160,7 +160,7 @@ Rule 5: Phase "To Do" on GitHub board (not yet started)?
   -> Action: /maxsim:plan {N}
   -> Reasoning: "Phase {N} ({name}) needs planning."
 
-  Sub-check: Does local CONTEXT.md exist?
+  Sub-check: Does a context comment exist on the phase GitHub Issue?
   -> If yes: "Discussion complete, ready for research + planning."
   -> If no: "Starting from discussion stage."
 
@@ -233,7 +233,7 @@ Or describe what you'd like to do:
 - If no phases exist on board: show `/maxsim:plan` prominently
 - Always include `/maxsim:quick` as it is always relevant
 - Always include an open-ended fallback ("Or describe what you'd like to do")
-- If GitHub not available (mcp calls fail): fall back to local ROADMAP analysis and note degraded mode
+- If GitHub not available (mcp calls fail): note degraded mode, recommend resolving GitHub connectivity
 
 Wait for user selection, then dispatch the chosen command.
 </step>

@@ -111,15 +111,43 @@ export async function cmdMilestoneComplete(
   let totalTasks = 0;
   const accomplishments: string[] = [];
 
+  // Try GitHub first for phase/plan/task counts
+  let usedGitHubCounts = false;
+  try {
+    const { loadMapping } = await import('../github/mapping.js');
+    const mapping = loadMapping(cwd);
+    if (mapping && Object.keys(mapping.phases).length > 0) {
+      const { getAllPhasesProgress } = await import('../github/sync.js');
+      const ghResult = await getAllPhasesProgress();
+      if (ghResult.ok && ghResult.data.length > 0) {
+        for (const p of ghResult.data) {
+          phaseCount++;
+          totalPlans += p.progress.total;
+          totalTasks += p.progress.total; // Each sub-issue is a task
+        }
+        usedGitHubCounts = true;
+      }
+    }
+  } catch (e) {
+    // GitHub not available — fall through to local
+    debugLog('milestone-complete-github-fallback', e);
+  }
+
+  // Local scanning: always needed for accomplishments (frontmatter extraction),
+  // and as fallback for counts if GitHub was not available
   try {
     const dirs = await listSubDirs(phasesDir, true);
 
     for (const dir of dirs) {
-      phaseCount++;
+      if (!usedGitHubCounts) {
+        phaseCount++;
+      }
       const phaseFiles = await fsp.readdir(path.join(phasesDir, dir));
       const plans = phaseFiles.filter(isPlanFile);
       const summaries = phaseFiles.filter(isSummaryFile);
-      totalPlans += plans.length;
+      if (!usedGitHubCounts) {
+        totalPlans += plans.length;
+      }
 
       for (const s of summaries) {
         try {
@@ -128,8 +156,10 @@ export async function cmdMilestoneComplete(
           if (fm['one-liner']) {
             accomplishments.push(String(fm['one-liner']));
           }
-          const taskMatches = content.match(/##\s*Task\s*\d+/gi) || [];
-          totalTasks += taskMatches.length;
+          if (!usedGitHubCounts) {
+            const taskMatches = content.match(/##\s*Task\s*\d+/gi) || [];
+            totalTasks += taskMatches.length;
+          }
         } catch (e) {
           debugLog(e);
         }

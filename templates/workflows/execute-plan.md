@@ -51,25 +51,13 @@ mcp_detect_external_edits(issue_number: phase_issue_number)
 
 If external edits detected: warn user and offer to re-read the plan before proceeding.
 
-**Fallback -- no GitHub context:**
+**If no GitHub context is available:**
 
-If no `phase_issue_number` or `plan_comment_body` was passed:
+GitHub Issues is the source of truth for plans. If no `phase_issue_number` or `plan_comment_body` was passed, report the error and exit:
 
-```bash
-# Use plans/summaries from INIT JSON, or list files
-ls .planning/phases/XX-name/*-PLAN.md 2>/dev/null | sort
-ls .planning/phases/XX-name/*-SUMMARY.md 2>/dev/null | sort
 ```
-
-Find first PLAN without matching SUMMARY. Decimal phases supported (`01.1-hotfix/`).
-
-<if mode="yolo">
-Auto-approve: `⚡ Execute {phase}-{plan}-PLAN.md [Plan X of Y for Phase Z]` → parse_segments.
-</if>
-
-<if mode="interactive" OR="custom with gates.execute_next_plan true">
-Present plan identification, wait for confirmation.
-</if>
+Plan content must be provided via GitHub Issue comment. Ensure GitHub integration is configured.
+```
 </step>
 
 <step name="record_start_time">
@@ -144,12 +132,7 @@ Pattern B only (verify-only checkpoints). Skip for A/C.
 
 The plan content IS the execution instructions. Follow exactly. If plan references CONTEXT.md: honor user's vision throughout.
 
-When plan was loaded from a GitHub comment (github_context passed): the plan content is already in memory from the load_plan_from_github step.
-
-When plan is loaded from a local file (fallback):
-```bash
-cat .planning/phases/XX-name/{phase}-{plan}-PLAN.md
-```
+The plan content is already in memory from the load_plan_from_github step (loaded from the GitHub Issue comment passed by the orchestrator).
 </step>
 
 <step name="pre_execution_gates">
@@ -193,7 +176,7 @@ fi
 node ~/.claude/maxsim/bin/maxsim-tools.cjs phases list --type summaries --raw
 # Extract the second-to-last summary from the JSON result
 ```
-If previous phase has unresolved issues (check summary comments on phase issue or local SUMMARY.md "Issues Encountered" / "Next Phase Readiness" blockers): AskUserQuestion(header="Previous Issues", options: "Proceed anyway" | "Address first" | "Review previous").
+If previous phase has unresolved issues (check summary comments on phase issue for "Issues Encountered" / "Next Phase Readiness" blockers): AskUserQuestion(header="Previous Issues", options: "Proceed anyway" | "Address first" | "Review previous").
 </step>
 
 <step name="execute">
@@ -449,7 +432,7 @@ mcp_post_comment(
 
 Record the comment URL/ID as `SUMMARY_COMMENT_ID` for future reference.
 
-**Fallback (no GitHub integration):** Write `{phase}-{plan}-SUMMARY.md` to `.planning/phases/XX-name/` as before.
+GitHub Issues is the source of truth -- summaries are always posted as GitHub comments.
 </step>
 
 <step name="review_cycle">
@@ -1038,7 +1021,7 @@ mcp_post_comment(
 )
 ```
 
-**Fallback (no GitHub integration):** Write VERIFICATION.md and UAT.md to the phase directory as before.
+GitHub Issues is the source of truth -- verification and UAT results are always posted as GitHub comments.
 </step>
 
 <step name="update_codebase_map">
@@ -1065,12 +1048,6 @@ mcp_list_sub_issues(issue_number: phase_issue_number)
 ```
 
 Count open vs closed sub-issues. Map closed count to plans complete.
-
-Fallback (no GitHub):
-```bash
-ls -1 .planning/phases/[current-phase-dir]/*-PLAN.md 2>/dev/null | wc -l
-ls -1 .planning/phases/[current-phase-dir]/*-SUMMARY.md 2>/dev/null | wc -l
-```
 
 | Condition | Route | Action |
 |-----------|-------|--------|

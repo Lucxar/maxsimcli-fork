@@ -16,7 +16,9 @@
  */
 
 import { getOctokit, getRepoInfo, withGhResult } from './client.js';
-import type { GhResult } from './types.js';
+import type { GhResult, IssueMappingFile } from './types.js';
+import type { PhaseSearchResult } from '../core/types.js';
+import { loadMapping } from './mapping.js';
 
 // ---- Types -----------------------------------------------------------------
 
@@ -256,4 +258,116 @@ export async function getAllPhasesProgress(): Promise<
 
     return results;
   });
+}
+
+// ---- Find Phase from GitHub ------------------------------------------------
+
+/**
+ * Populate a PhaseSearchResult from GitHub Issues data.
+ *
+ * Looks up the phase in the local mapping cache, then queries GitHub for
+ * sub-issue counts and comments to derive plans/summaries/research status.
+ *
+ * Returns null if:
+ * - No mapping file exists
+ * - Phase not found in mapping
+ * - GitHub API call fails
+ *
+ * @param cwd - Project root directory
+ * @param phaseNum - Normalized phase number (e.g., "01", "02A")
+ */
+export async function findPhaseFromGitHub(
+  cwd: string,
+  phaseNum: string,
+): Promise<PhaseSearchResult | null> {
+  let mapping: IssueMappingFile | null;
+  try {
+    mapping = loadMapping(cwd);
+  } catch {
+    return null;
+  }
+  if (!mapping) return null;
+
+  const phaseMapping = mapping.phases[phaseNum];
+  if (!phaseMapping) return null;
+
+  const issueNumber = phaseMapping.tracking_issue.number;
+  if (!issueNumber) return null;
+
+  // Get sub-issue progress from GitHub
+  const progressResult = await checkPhaseProgress(issueNumber);
+  if (!progressResult.ok) return null;
+
+  const { tasks, completed, total } = progressResult.data;
+
+  // Get issue details for the phase name
+  let phaseName: string | null = null;
+  let phaseSlug: string | null = null;
+  try {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
+    const issue = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+    const titleMatch = issue.data.title.match(/\[Phase\s+\S+\]\s*(.*)/);
+    if (titleMatch) {
+      phaseName = titleMatch[1].trim();
+      phaseSlug = phaseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+  } catch {
+    // Non-critical — we can still return without the name
+  }
+
+  // Derive plan-like and summary-like counts from sub-issues
+  // Each sub-issue represents a task/plan. Closed = completed (has summary equivalent).
+  const planNames = tasks.map(t => `task-${t.number}`);
+  const summaryNames = tasks.filter(t => t.state === 'closed').map(t => `task-${t.number}`);
+  const completedSet = new Set(summaryNames);
+  const incompletePlans = planNames.filter(p => !completedSet.has(p));
+
+  // Check for research/context/verification via issue comments
+  let hasResearch = false;
+  let hasContext = false;
+  let hasVerification = false;
+  try {
+    const octokit = getOctokit();
+    const { owner, repo } = await getRepoInfo();
+    const comments = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      per_page: 100,
+    });
+    for (const comment of comments.data) {
+      const body = comment.body ?? '';
+      if (body.includes('<!-- maxsim:type=research -->') || body.includes('## Research') || body.startsWith('## Phase') && body.includes('Research')) {
+        hasResearch = true;
+      }
+      if (body.includes('<!-- maxsim:type=context -->') || body.includes('## Context')) {
+        hasContext = true;
+      }
+      if (body.includes('<!-- maxsim:type=verification -->') || body.includes('## Verification')) {
+        hasVerification = true;
+      }
+    }
+  } catch {
+    // Non-critical — default to false
+  }
+
+  return {
+    found: true,
+    directory: `.planning/phases/${phaseNum}-${phaseSlug || 'unknown'}`,
+    phase_number: phaseNum,
+    phase_name: phaseName,
+    phase_slug: phaseSlug,
+    plans: planNames,
+    summaries: summaryNames,
+    incomplete_plans: incompletePlans,
+    has_research: hasResearch,
+    has_context: hasContext,
+    has_verification: hasVerification,
+    source: 'github',
+  };
 }

@@ -87,10 +87,13 @@ When GitHub integration is active (`phase_issue_number` is set):
    - `plan_count`: total plan comments found
    - `incomplete_count`: count of incomplete plans
 
-When GitHub integration is NOT active (no `phase_issue_number`), fall back to local file scanning:
-```bash
-PLAN_INDEX=$(node .claude/maxsim/bin/maxsim-tools.cjs phase-plan-index "${PHASE_NUMBER}")
+When GitHub integration is NOT active (no `phase_issue_number`):
 ```
+No plans found for Phase {phase_number}. GitHub Issues is the source of truth for plans.
+
+Ensure GitHub integration is configured: run /maxsim:init to set up GitHub Issues.
+```
+Exit workflow.
 
 ### 2b. Check for External Edits (WIRE-06)
 
@@ -332,11 +335,6 @@ mcp_get_issue_detail(issue_number: phase_issue_number)
 
 Look for the `<!-- maxsim:type=verification -->` comment and parse the `status:` field from its body.
 
-Also fall back to reading locally:
-```bash
-grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
-```
-
 **If `passed`:** Show verification gate and proceed to completion.
 
 ```
@@ -510,7 +508,7 @@ Display final results:
 
 <success_criteria>
 - [ ] Phase validated against roadmap
-- [ ] Plan inventory loaded from GitHub issue comments (falling back to local files if no GitHub integration)
+- [ ] Plan inventory loaded from GitHub issue comments (GitHub Issues is the source of truth)
 - [ ] External edit detection warns user if phase issue was modified externally
 - [ ] Current state correctly detected from task sub-issue closure and summary comments
 - [ ] Re-entry flow works for already-executed phases

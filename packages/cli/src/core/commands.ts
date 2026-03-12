@@ -168,6 +168,10 @@ export function cmdVerifyPathExists(cwd: string, targetPath: string | undefined,
 
 // ─── History digest ─────────────────────────────────────────────────────────
 
+// TODO(github-ssot): Eventually read summary data from GitHub Issue comments
+// instead of local SUMMARY.md files. For now, local file reading is the primary
+// path since archived phases still have local files and frontmatter extraction
+// is tightly coupled to the local YAML format.
 export async function cmdHistoryDigest(cwd: string, raw: boolean): Promise<CmdResult> {
   const phasesDir = phasesPath(cwd);
   const digest: {
@@ -499,39 +503,77 @@ export async function cmdProgressRender(cwd: string, format: string, raw: boolea
   let totalPlans = 0;
   let totalSummaries = 0;
 
+  // Try GitHub first for progress data
+  let usedGitHub = false;
   try {
-    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
-    const dirs = entries
-      .filter(e => e.isDirectory())
-      .map(e => e.name)
-      .sort((a, b) => {
-        const aNum = parseFloat(a.match(/^(\d+(?:\.\d+)?)/)?.[1] || '0');
-        const bNum = parseFloat(b.match(/^(\d+(?:\.\d+)?)/)?.[1] || '0');
-        return aNum - bNum;
-      });
+    const { loadMapping } = await import('../github/mapping.js');
+    const mapping = loadMapping(cwd);
+    if (mapping && Object.keys(mapping.phases).length > 0) {
+      const { getAllPhasesProgress } = await import('../github/sync.js');
+      const ghResult = await getAllPhasesProgress();
+      if (ghResult.ok && ghResult.data.length > 0) {
+        for (const p of ghResult.data) {
+          const planCount = p.progress.total;
+          const summaryCount = p.progress.completed;
+          totalPlans += planCount;
+          totalSummaries += summaryCount;
 
-    for (const dir of dirs) {
-      const dm = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
-      const phaseNum = dm ? dm[1] : dir;
-      const phaseName = dm && dm[2] ? dm[2].replace(/-/g, ' ') : '';
-      const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
-      const planCount = phaseFiles.filter(f => isPlanFile(f)).length;
-      const summaryCount = phaseFiles.filter(f => isSummaryFile(f)).length;
+          let status: string;
+          if (planCount === 0) status = 'Pending';
+          else if (summaryCount >= planCount) status = 'Complete';
+          else if (summaryCount > 0) status = 'In Progress';
+          else status = 'Planned';
 
-      totalPlans += planCount;
-      totalSummaries += summaryCount;
+          // Extract name from title: "[Phase XX] Name" -> "Name"
+          const titleMatch = p.title.match(/\[Phase\s+\S+\]\s*(.*)/);
+          const phaseName = titleMatch ? titleMatch[1].replace(/-/g, ' ') : '';
 
-      let status: string;
-      if (planCount === 0) status = 'Pending';
-      else if (summaryCount >= planCount) status = 'Complete';
-      else if (summaryCount > 0) status = 'In Progress';
-      else status = 'Planned';
-
-      phases.push({ number: phaseNum, name: phaseName, plans: planCount, summaries: summaryCount, status });
+          phases.push({ number: p.phaseNumber, name: phaseName, plans: planCount, summaries: summaryCount, status });
+        }
+        usedGitHub = true;
+      }
     }
   } catch (e) {
-    /* optional op, ignore */
-    debugLog(e);
+    // GitHub not available — fall through to local scanning
+    debugLog('progress-render-github-fallback', e);
+  }
+
+  // Fallback: local filesystem scanning
+  if (!usedGitHub) {
+    try {
+      const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+      const dirs = entries
+        .filter(e => e.isDirectory())
+        .map(e => e.name)
+        .sort((a, b) => {
+          const aNum = parseFloat(a.match(/^(\d+(?:\.\d+)?)/)?.[1] || '0');
+          const bNum = parseFloat(b.match(/^(\d+(?:\.\d+)?)/)?.[1] || '0');
+          return aNum - bNum;
+        });
+
+      for (const dir of dirs) {
+        const dm = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
+        const phaseNum = dm ? dm[1] : dir;
+        const phaseName = dm && dm[2] ? dm[2].replace(/-/g, ' ') : '';
+        const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
+        const planCount = phaseFiles.filter(f => isPlanFile(f)).length;
+        const summaryCount = phaseFiles.filter(f => isSummaryFile(f)).length;
+
+        totalPlans += planCount;
+        totalSummaries += summaryCount;
+
+        let status: string;
+        if (planCount === 0) status = 'Pending';
+        else if (summaryCount >= planCount) status = 'Complete';
+        else if (summaryCount > 0) status = 'In Progress';
+        else status = 'Planned';
+
+        phases.push({ number: phaseNum, name: phaseName, plans: planCount, summaries: summaryCount, status });
+      }
+    } catch (e) {
+      /* optional op, ignore */
+      debugLog(e);
+    }
   }
 
   const percent = totalPlans > 0 ? Math.min(100, Math.round((totalSummaries / totalPlans) * 100)) : 0;

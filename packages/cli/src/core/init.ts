@@ -393,27 +393,6 @@ async function extractReqIds(cwd: string, phase: string): Promise<string | null>
   return (reqExtracted && reqExtracted !== 'TBD') ? reqExtracted : null;
 }
 
-// ─── Helper: scan phase dir for artifact files ──────────────────────────────
-
-interface PhaseArtifacts { context_path?: string; research_path?: string; verification_path?: string; uat_path?: string; }
-
-function scanPhaseArtifacts(cwd: string, phaseDirectory: string): PhaseArtifacts {
-  const result: PhaseArtifacts = {};
-  const phaseDirFull = path.join(cwd, phaseDirectory);
-  try {
-    const files = fs.readdirSync(phaseDirFull);
-    const contextFile = files.find(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
-    if (contextFile) result.context_path = path.join(phaseDirectory, contextFile);
-    const researchFile = files.find(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-    if (researchFile) result.research_path = path.join(phaseDirectory, researchFile);
-    const verificationFile = files.find(f => f.endsWith('-VERIFICATION.md') || f === 'VERIFICATION.md');
-    if (verificationFile) result.verification_path = path.join(phaseDirectory, verificationFile);
-    const uatFile = files.find(f => f.endsWith('-UAT.md') || f === 'UAT.md');
-    if (uatFile) result.uat_path = path.join(phaseDirectory, uatFile);
-  } catch (e) { debugLog(e); }
-  return result;
-}
-
 // ─── Helper: cross-platform code file detection ─────────────────────────────
 
 const CODE_EXTENSIONS = new Set(['.ts', '.js', '.py', '.go', '.rs', '.swift', '.java']);
@@ -544,13 +523,6 @@ export async function cmdInitPlanPhase(cwd: string, phase: string | undefined): 
   };
   if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
-  }
-  if (phaseInfo?.directory) {
-    const artifacts = scanPhaseArtifacts(cwd, phaseInfo.directory);
-    if (artifacts.context_path) result.context_path = artifacts.context_path;
-    if (artifacts.research_path) result.research_path = artifacts.research_path;
-    if (artifacts.verification_path) result.verification_path = artifacts.verification_path;
-    if (artifacts.uat_path) result.uat_path = artifacts.uat_path;
   }
   return cmdOk(result);
 }
@@ -717,13 +689,6 @@ export async function cmdInitPhaseOp(cwd: string, phase: string | undefined): Pr
   if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
-  if (phaseInfo?.directory) {
-    const artifacts = scanPhaseArtifacts(cwd, phaseInfo.directory);
-    if (artifacts.context_path) result.context_path = artifacts.context_path;
-    if (artifacts.research_path) result.research_path = artifacts.research_path;
-    if (artifacts.verification_path) result.verification_path = artifacts.verification_path;
-    if (artifacts.uat_path) result.uat_path = artifacts.uat_path;
-  }
   return cmdOk(result);
 }
 
@@ -769,12 +734,28 @@ export async function cmdInitMilestoneOp(cwd: string): Promise<CmdResult> {
   const milestone = await getMilestoneInfo(cwd);
   let phaseCount = 0;
   let completedPhases = 0;
-  const phasesDir = phasesPath(cwd);
+
+  // Try GitHub first for phase completion data
+  let ghSourced = false;
   try {
-    const dirs = await listSubDirs(phasesDir);
-    phaseCount = dirs.length;
-    for (const dir of dirs) { try { const phaseFiles = fs.readdirSync(path.join(phasesDir, dir)); if (phaseFiles.some(f => isSummaryFile(f))) completedPhases++; } catch (e) { debugLog(e); } }
-  } catch (e) { debugLog(e); }
+    const { getAllPhasesProgress } = await import('../github/sync.js');
+    const ghResult = await getAllPhasesProgress();
+    if (ghResult.ok && ghResult.data.length > 0) {
+      phaseCount = ghResult.data.length;
+      completedPhases = ghResult.data.filter(p => p.progress.completed === p.progress.total && p.progress.total > 0).length;
+      ghSourced = true;
+    }
+  } catch { /* GitHub not available */ }
+
+  // Fall back to local filesystem scanning
+  if (!ghSourced) {
+    const phasesDir = phasesPath(cwd);
+    try {
+      const dirs = await listSubDirs(phasesDir);
+      phaseCount = dirs.length;
+      for (const dir of dirs) { try { const phaseFiles = fs.readdirSync(path.join(phasesDir, dir)); if (phaseFiles.some(f => isSummaryFile(f))) completedPhases++; } catch (e) { debugLog(e); } }
+    } catch (e) { debugLog(e); }
+  }
   const archiveDir = planningPath(cwd, 'archive');
   let archivedMilestones: string[] = [];
   try { archivedMilestones = await listSubDirs(archiveDir); } catch (e) { debugLog(e); }
@@ -869,28 +850,53 @@ export async function cmdInitProgress(cwd: string): Promise<CmdResult> {
   const config = await loadConfig(cwd);
   const milestone = await getMilestoneInfo(cwd);
   const ghCtx = getGitHubContext(cwd);
-  const progressPhasesDir = phasesPath(cwd);
   const phases: ProgressPhaseInfo[] = [];
   let currentPhase: ProgressPhaseInfo | null = null;
   let nextPhase: ProgressPhaseInfo | null = null;
+
+  // Try GitHub first for phase progress data
+  let ghSourced = false;
   try {
-    const dirs = await listSubDirs(progressPhasesDir, true);
-    for (const dir of dirs) {
-      const match = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
-      const phaseNumber = match ? match[1] : dir;
-      const phaseName = match && match[2] ? match[2] : null;
-      const phaseDirPath = path.join(progressPhasesDir, dir);
-      const phaseFiles = fs.readdirSync(phaseDirPath);
-      const plansList = phaseFiles.filter(f => isPlanFile(f));
-      const summaries = phaseFiles.filter(f => isSummaryFile(f));
-      const hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-      const status = summaries.length >= plansList.length && plansList.length > 0 ? 'complete' : plansList.length > 0 ? 'in_progress' : hasResearch ? 'researched' : 'pending';
-      const phaseInfoItem: ProgressPhaseInfo = { number: phaseNumber, name: phaseName, directory: path.join('.planning', 'phases', dir), status, plan_count: plansList.length, summary_count: summaries.length, has_research: hasResearch };
-      phases.push(phaseInfoItem);
-      if (!currentPhase && (status === 'in_progress' || status === 'researched')) currentPhase = phaseInfoItem;
-      if (!nextPhase && status === 'pending') nextPhase = phaseInfoItem;
+    const { getAllPhasesProgress } = await import('../github/sync.js');
+    const ghResult = await getAllPhasesProgress();
+    if (ghResult.ok && ghResult.data.length > 0) {
+      for (const entry of ghResult.data) {
+        const { total, completed, tasks } = entry.progress;
+        const hasResearch = false; // GitHub progress doesn't track research separately
+        const status = completed === total && total > 0 ? 'complete' : completed > 0 ? 'in_progress' : 'pending';
+        const titleMatch = entry.title.match(/\[Phase\s+\S+\]\s*(.*)/);
+        const phaseName = titleMatch ? titleMatch[1].trim() : null;
+        const phaseInfoItem: ProgressPhaseInfo = { number: entry.phaseNumber, name: phaseName, directory: `.planning/phases/${entry.phaseNumber}-${phaseName ? phaseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : 'unknown'}`, status, plan_count: total, summary_count: completed, has_research: hasResearch };
+        phases.push(phaseInfoItem);
+        if (!currentPhase && (status === 'in_progress')) currentPhase = phaseInfoItem;
+        if (!nextPhase && status === 'pending') nextPhase = phaseInfoItem;
+      }
+      ghSourced = true;
     }
-  } catch (e) { debugLog(e); }
+  } catch { /* GitHub not available */ }
+
+  // Fall back to local filesystem scanning
+  if (!ghSourced) {
+    const progressPhasesDir = phasesPath(cwd);
+    try {
+      const dirs = await listSubDirs(progressPhasesDir, true);
+      for (const dir of dirs) {
+        const match = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
+        const phaseNumber = match ? match[1] : dir;
+        const phaseName = match && match[2] ? match[2] : null;
+        const phaseDirPath = path.join(progressPhasesDir, dir);
+        const phaseFiles = fs.readdirSync(phaseDirPath);
+        const plansList = phaseFiles.filter(f => isPlanFile(f));
+        const summaries = phaseFiles.filter(f => isSummaryFile(f));
+        const hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
+        const status = summaries.length >= plansList.length && plansList.length > 0 ? 'complete' : plansList.length > 0 ? 'in_progress' : hasResearch ? 'researched' : 'pending';
+        const phaseInfoItem: ProgressPhaseInfo = { number: phaseNumber, name: phaseName, directory: path.join('.planning', 'phases', dir), status, plan_count: plansList.length, summary_count: summaries.length, has_research: hasResearch };
+        phases.push(phaseInfoItem);
+        if (!currentPhase && (status === 'in_progress' || status === 'researched')) currentPhase = phaseInfoItem;
+        if (!nextPhase && status === 'pending') nextPhase = phaseInfoItem;
+      }
+    } catch (e) { debugLog(e); }
+  }
   let pausedAt: string | null = null;
   try { const state = fs.readFileSync(planningPath(cwd, 'STATE.md'), 'utf-8'); const pauseMatch = state.match(/\*\*Paused At:\*\*\s*(.+)/); if (pauseMatch) pausedAt = pauseMatch[1].trim(); } catch (e) { debugLog(e); }
   const result: ProgressContext = {
@@ -1001,11 +1007,6 @@ export async function cmdInitPlanner(cwd: string, phase: string | undefined): Pr
   if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
   }
-  if (phaseInfo?.directory) {
-    const artifacts = scanPhaseArtifacts(cwd, phaseInfo.directory);
-    if (artifacts.context_path) result.context_path = artifacts.context_path;
-    if (artifacts.research_path) result.research_path = artifacts.research_path;
-  }
   return cmdOk(result);
 }
 
@@ -1034,10 +1035,6 @@ export async function cmdInitResearcher(cwd: string, phase: string | undefined):
   };
   if (await pathExistsInternal(planningPath(cwd, 'CONVENTIONS.md'))) {
     result.conventions_path = '.planning/CONVENTIONS.md';
-  }
-  if (phaseInfo?.directory) {
-    const artifacts = scanPhaseArtifacts(cwd, phaseInfo.directory);
-    if (artifacts.context_path) result.context_path = artifacts.context_path;
   }
   return cmdOk(result);
 }

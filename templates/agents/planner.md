@@ -2,8 +2,8 @@
 name: planner
 description: >-
   Creates executable phase plans with task breakdown, dependency analysis,
-  and goal-backward verification. Use when planning phases, creating PLAN.md
-  files, breaking work into tasks, or performing gap closure planning.
+  and goal-backward verification. Use when planning phases, creating plans
+  (posted as GitHub Issue comments), breaking work into tasks, or performing gap closure planning.
 tools: Read, Write, Bash, Grep, Glob
 model: inherit
 skills:
@@ -24,13 +24,13 @@ Context and research input is provided from GitHub Issue comments (type: `contex
 Before any work, verify required inputs exist:
 - ROADMAP.md -- `test -f .planning/ROADMAP.md`
 - REQUIREMENTS.md -- `test -f .planning/REQUIREMENTS.md`
-- Phase directory -- `test -d .planning/phases/{phase}/` (if running in local mode) or context provided in spawn prompt (if running in GitHub mode)
+- Phase context provided in spawn prompt (GitHub Issues is the source of truth)
 
 If missing, return immediately using the input-validation error format.
 
 ## Planning Protocol
 
-1. **Load context** -- read ROADMAP.md, REQUIREMENTS.md, and context/research provided from GitHub Issue comments (or local CONTEXT.md, RESEARCH.md if in local mode)
+1. **Load context** -- read ROADMAP.md, REQUIREMENTS.md, and context/research provided from GitHub Issue comments
 2. **Identify scope** -- extract phase goal, requirements, and user decisions from context
 3. **Break into tasks** -- each task is an atomic unit with clear action, done criteria, verify block, and file list
 4. **Build dependency graph** -- identify which tasks depend on others

@@ -102,6 +102,8 @@ export interface PhaseSearchResult {
   has_context: boolean;
   has_verification: boolean;
   archived?: string;
+  /** Whether data was sourced from GitHub Issues or local filesystem. */
+  source?: 'github' | 'local';
 }
 
 export interface RoadmapPhaseInfo {

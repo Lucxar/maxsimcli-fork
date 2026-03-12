@@ -10,6 +10,8 @@ import path from 'node:path';
 import { normalizePhaseName, getPhasePattern, findPhaseInternal, roadmapPath, phasesPath, listSubDirs, isPlanFile, isSummaryFile, debugLog, todayISO, safeReadFile } from './core.js';
 import { cmdOk, cmdErr } from './types.js';
 import type { PhaseStatus, RoadmapPhase, RoadmapMilestone, RoadmapAnalysis, CmdResult } from './types.js';
+import { getAllPhasesProgress } from '../github/sync.js';
+import { loadMapping } from '../github/mapping.js';
 
 // ─── Roadmap commands ────────────────────────────────────────────────────────
 
@@ -75,6 +77,24 @@ export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
     parsedPhases.push({ phaseNum, phaseName, goal, depends_on, normalized: normalizePhaseName(phaseNum), checkboxPattern: new RegExp(`-\\s*\\[(x| )\\]\\s*.*Phase\\s+${phaseNum.replace('.', '\\.')}`, 'i') });
   }
 
+  // Try GitHub first for phase progress data
+  let ghPhaseProgress: Map<string, { total: number; completed: number }> | null = null;
+  try {
+    const mapping = loadMapping(cwd);
+    if (mapping && Object.keys(mapping.phases).length > 0) {
+      const ghResult = await getAllPhasesProgress();
+      if (ghResult.ok) {
+        ghPhaseProgress = new Map();
+        for (const entry of ghResult.data) {
+          ghPhaseProgress.set(entry.phaseNumber, {
+            total: entry.progress.total,
+            completed: entry.progress.completed,
+          });
+        }
+      }
+    }
+  } catch { /* GitHub not available — fall back to local */ }
+
   let allDirs: string[] = [];
   try { allDirs = await listSubDirs(phasesDir); } catch { /* phases dir may not exist */ }
 
@@ -85,22 +105,36 @@ export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
       let summaryCount = 0;
       let hasContext = false;
       let hasResearch = false;
-      try {
-        const dirMatch = allDirs.find(d => d.startsWith(p.normalized + '-') || d === p.normalized);
-        if (dirMatch) {
-          const phaseFiles = await fsp.readdir(path.join(phasesDir, dirMatch));
-          planCount = phaseFiles.filter(f => isPlanFile(f)).length;
-          summaryCount = phaseFiles.filter(f => isSummaryFile(f)).length;
-          hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
-          hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-          if (summaryCount >= planCount && planCount > 0) diskStatus = 'complete';
-          else if (summaryCount > 0) diskStatus = 'partial';
-          else if (planCount > 0) diskStatus = 'planned';
-          else if (hasResearch) diskStatus = 'researched';
-          else if (hasContext) diskStatus = 'discussed';
-          else diskStatus = 'empty';
-        }
-      } catch (e) { debugLog(e); }
+
+      // If GitHub data is available for this phase, use it
+      const ghData = ghPhaseProgress?.get(p.phaseNum);
+      if (ghData) {
+        planCount = ghData.total;
+        summaryCount = ghData.completed;
+        if (summaryCount >= planCount && planCount > 0) diskStatus = 'complete';
+        else if (summaryCount > 0) diskStatus = 'partial';
+        else if (planCount > 0) diskStatus = 'planned';
+        else diskStatus = 'empty';
+      } else {
+        // Fallback: scan local filesystem
+        try {
+          const dirMatch = allDirs.find(d => d.startsWith(p.normalized + '-') || d === p.normalized);
+          if (dirMatch) {
+            const phaseFiles = await fsp.readdir(path.join(phasesDir, dirMatch));
+            planCount = phaseFiles.filter(f => isPlanFile(f)).length;
+            summaryCount = phaseFiles.filter(f => isSummaryFile(f)).length;
+            hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
+            hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
+            if (summaryCount >= planCount && planCount > 0) diskStatus = 'complete';
+            else if (summaryCount > 0) diskStatus = 'partial';
+            else if (planCount > 0) diskStatus = 'planned';
+            else if (hasResearch) diskStatus = 'researched';
+            else if (hasContext) diskStatus = 'discussed';
+            else diskStatus = 'empty';
+          }
+        } catch (e) { debugLog(e); }
+      }
+
       const checkboxMatch = content.match(p.checkboxPattern);
       const roadmapComplete = checkboxMatch ? checkboxMatch[1] === 'x' : false;
       return { number: p.phaseNum, name: p.phaseName, goal: p.goal, depends_on: p.depends_on, plan_count: planCount, summary_count: summaryCount, has_context: hasContext, has_research: hasResearch, disk_status: diskStatus, roadmap_complete: roadmapComplete };
