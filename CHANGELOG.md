@@ -1,3 +1,11 @@
+## [5.0.2](https://github.com/maystudios/maxsimcli/compare/v5.0.1...v5.0.2) (2026-03-12)
+
+
+### Bug Fixes
+
+* **github-ssot:** complete migration to GitHub Issues as sole source of truth ([2bf86bf](https://github.com/maystudios/maxsimcli/commit/2bf86bf6065048e859a2b760b2c4a04209c6da87))
+* **todos:** remove local file system — GitHub Issues is sole source of truth ([de98df1](https://github.com/maystudios/maxsimcli/commit/de98df18f88040b58cea32d576907a889151e9f9))
+
 ## [5.0.1](https://github.com/maystudios/maxsimcli/compare/v5.0.0...v5.0.1) (2026-03-12)
 
 
