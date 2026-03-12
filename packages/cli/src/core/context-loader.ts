@@ -15,7 +15,6 @@ import {
   findPhaseInternal,
   debugLog,
   listSubDirs,
-  isSummaryFile,
 } from './core.js';
 import type { CmdResult } from './types.js';
 import { cmdOk } from './types.js';
@@ -112,35 +111,10 @@ function loadRoadmapContext(cwd: string): ContextFile[] {
   return files;
 }
 
-async function loadPhaseContext(cwd: string, phase: string): Promise<ContextFile[]> {
-  const files: ContextFile[] = [];
-  const phaseInfo = await findPhaseInternal(cwd, phase);
-  if (!phaseInfo?.directory) return files;
-
-  const phaseDir = phaseInfo.directory;
-
-  // Add phase-specific files
-  try {
-    const phaseFiles = fs.readdirSync(path.join(cwd, phaseDir));
-    for (const f of phaseFiles) {
-      const relPath = path.join(phaseDir, f);
-      if (f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md') {
-        addIfExists(files, cwd, relPath, 'phase-context');
-      } else if (f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md') {
-        addIfExists(files, cwd, relPath, 'phase-research');
-      } else if (f.endsWith('-PLAN.md')) {
-        addIfExists(files, cwd, relPath, 'phase-plan');
-      } else if (f.endsWith('-SUMMARY.md')) {
-        addIfExists(files, cwd, relPath, 'phase-summary');
-      } else if (f.endsWith('-VERIFICATION.md') || f === 'VERIFICATION.md') {
-        addIfExists(files, cwd, relPath, 'phase-verification');
-      }
-    }
-  } catch (e) {
-    debugLog('context-loader-phase-files-failed', e);
-  }
-
-  return files;
+async function loadPhaseContext(_cwd: string, _phase: string): Promise<ContextFile[]> {
+  // Phase artifacts (CONTEXT, RESEARCH, PLAN, SUMMARY, VERIFICATION) are now
+  // stored as GitHub Issue comments. Workflows load them directly from GitHub.
+  return [];
 }
 
 async function loadArtefakteContext(cwd: string, phase?: string): Promise<ContextFile[]> {

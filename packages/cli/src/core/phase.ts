@@ -19,8 +19,6 @@ import {
   roadmapPath,
   statePath,
   planningPath,
-  isPlanFile,
-  isSummaryFile,
   planId,
   summaryId,
   listSubDirs,
@@ -41,10 +39,6 @@ import type {
 } from './types.js';
 
 // ─── Core result types ──────────────────────────────────────────────────────
-
-export interface PhaseCreateOptions {
-  includeStubs?: boolean;
-}
 
 export interface PhaseAddResult {
   phase_number: number;
@@ -75,16 +69,9 @@ export interface PhaseCompleteResult {
   requirements_updated: boolean;
 }
 
-// ─── Stub scaffolding ───────────────────────────────────────────────────────
-
-export async function scaffoldPhaseStubs(_dirPath: string, _phaseId: string, _name: string): Promise<void> {
-  // No-op: CONTEXT.md and RESEARCH.md are now stored as GitHub Issue comments.
-  // Function signature retained for backward compatibility.
-}
-
 // ─── Core functions ─────────────────────────────────────────────────────────
 
-export async function phaseAddCore(cwd: string, description: string, options?: PhaseCreateOptions): Promise<PhaseAddResult> {
+export async function phaseAddCore(cwd: string, description: string): Promise<PhaseAddResult> {
   const rmPath = roadmapPath(cwd);
   let content: string;
   try {
@@ -110,10 +97,6 @@ export async function phaseAddCore(cwd: string, description: string, options?: P
   await fsp.mkdir(dirPath, { recursive: true });
   await fsp.writeFile(path.join(dirPath, '.gitkeep'), '');
 
-  if (options?.includeStubs) {
-    await scaffoldPhaseStubs(dirPath, paddedNum, description);
-  }
-
   const phaseEntry = `\n### Phase ${newPhaseNum}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${maxPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /maxsim:plan ${newPhaseNum} to break down)\n`;
 
   let updatedContent: string;
@@ -135,7 +118,7 @@ export async function phaseAddCore(cwd: string, description: string, options?: P
   };
 }
 
-export async function phaseInsertCore(cwd: string, afterPhase: string, description: string, options?: PhaseCreateOptions): Promise<PhaseInsertResult> {
+export async function phaseInsertCore(cwd: string, afterPhase: string, description: string): Promise<PhaseInsertResult> {
   const rmPath = roadmapPath(cwd);
   let content: string;
   try {
@@ -175,10 +158,6 @@ export async function phaseInsertCore(cwd: string, afterPhase: string, descripti
 
   await fsp.mkdir(dirPath, { recursive: true });
   await fsp.writeFile(path.join(dirPath, '.gitkeep'), '');
-
-  if (options?.includeStubs) {
-    await scaffoldPhaseStubs(dirPath, decimalPhase, description);
-  }
 
   const phaseEntry = `\n### Phase ${decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /maxsim:plan ${decimalPhase} to break down)\n`;
 
@@ -591,7 +570,7 @@ export async function cmdPhaseAdd(cwd: string, description: string | undefined):
   }
 
   try {
-    const result = await phaseAddCore(cwd, description, { includeStubs: false });
+    const result = await phaseAddCore(cwd, description);
     return cmdOk(
       { phase_number: result.phase_number, padded: result.padded, name: result.description, slug: result.slug, directory: result.directory },
       result.padded,
@@ -609,7 +588,7 @@ export async function cmdPhaseInsert(cwd: string, afterPhase: string | undefined
   }
 
   try {
-    const result = await phaseInsertCore(cwd, afterPhase, description, { includeStubs: false });
+    const result = await phaseInsertCore(cwd, afterPhase, description);
     return cmdOk(
       { phase_number: result.phase_number, after_phase: result.after_phase, name: result.description, slug: result.slug, directory: result.directory },
       result.phase_number,

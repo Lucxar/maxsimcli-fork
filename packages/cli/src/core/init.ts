@@ -22,8 +22,6 @@ import {
   phasesPath,
   todayISO,
   listSubDirs,
-  isSummaryFile,
-  isPlanFile,
 } from './core.js';
 
 import { cmdOk, cmdErr } from './types.js';
@@ -150,8 +148,6 @@ export interface PlanPhaseContext {
   roadmap_path: string;
   requirements_path: string;
   conventions_path?: string;
-  context_path?: string;
-  research_path?: string;
   verification_path?: string;
   uat_path?: string;
   github_ready: boolean;
@@ -257,8 +253,6 @@ export interface PhaseOpContext {
   roadmap_path: string;
   requirements_path: string;
   conventions_path?: string;
-  context_path?: string;
-  research_path?: string;
   verification_path?: string;
   uat_path?: string;
 }

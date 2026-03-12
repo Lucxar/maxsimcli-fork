@@ -15,7 +15,6 @@ import path from 'node:path';
 
 import type { CmdResult } from '../core/index.js';
 import { generateSlugInternal, todayISO, planningPath } from '../core/core.js';
-import { parseTodoFrontmatter } from '../core/commands.js';
 
 import {
   requireAuth,
@@ -1195,7 +1194,7 @@ export async function cmdGitHubDetectInterrupted(
 // ---- 22. cmdGitHubAddTodo ---------------------------------------------------
 
 /**
- * Create a new todo as a GitHub Issue with local file cache.
+ * Create a new todo as a GitHub Issue. GitHub Issues is the sole source of truth.
  */
 export async function cmdGitHubAddTodo(
   cwd: string,
@@ -1210,53 +1209,19 @@ export async function cmdGitHubAddTodo(
       return { ok: false, error: 'No .planning/ directory found. Project not detected.' };
     }
 
-    const today = todayISO();
-    const slug = generateSlugInternal(title) || 'untitled';
-    const timestamp = Date.now();
-    const filename = `${timestamp}-${slug}.md`;
     const areaVal = area || 'general';
 
-    // Primary: Create GitHub Issue with 'todo' label
-    let githubIssueNumber: number | undefined;
-    let githubError: string | undefined;
-
-    try {
-      requireAuth();
-      const ghResult = await createTodoIssue(title, description ?? undefined, areaVal, phase ?? undefined);
-      if (ghResult.ok) {
-        githubIssueNumber = ghResult.data.number;
-      } else {
-        githubError = `GitHub issue creation failed: ${ghResult.error}`;
-      }
-    } catch (e) {
-      if (e instanceof AuthError) {
-        githubError = `GitHub auth not available: ${e.message}`;
-      } else {
-        githubError = `GitHub operation failed: ${(e as Error).message}`;
-      }
+    requireAuth();
+    const ghResult = await createTodoIssue(title, description ?? undefined, areaVal, phase ?? undefined);
+    if (!ghResult.ok) {
+      return { ok: false, error: `GitHub issue creation failed: ${ghResult.error}` };
     }
-
-    if (!githubIssueNumber && !githubError) {
-      githubError = 'GitHub issue creation returned no issue number';
-    }
-
-    // Cache: Write local file
-    const pendingDir = planningPath(root, 'todos', 'pending');
-    fs.mkdirSync(pendingDir, { recursive: true });
-
-    const issueRef = githubIssueNumber ? `\ngithub_issue: ${githubIssueNumber}` : '';
-    const content = `---\ncreated: ${today}\ntitle: ${title}\narea: ${areaVal}\nphase: ${phase || 'unassigned'}${issueRef}\n---\n${description || ''}\n`;
-
-    fs.writeFileSync(path.join(pendingDir, filename), content, 'utf-8');
 
     const data: Record<string, unknown> = {
-      file: filename,
-      path: `.planning/todos/pending/${filename}`,
       title,
       area: areaVal,
-      github_issue: githubIssueNumber ?? null,
+      github_issue: ghResult.data.number,
     };
-    if (githubError) data.github_error = githubError;
 
     return {
       ok: true,
@@ -1264,6 +1229,9 @@ export async function cmdGitHubAddTodo(
       rawValue: data,
     };
   } catch (e) {
+    if (e instanceof AuthError) {
+      return { ok: false, error: `GitHub auth required for todo creation: ${e.message}` };
+    }
     return { ok: false, error: (e as Error).message };
   }
 }
@@ -1271,7 +1239,8 @@ export async function cmdGitHubAddTodo(
 // ---- 23. cmdGitHubCompleteTodo ----------------------------------------------
 
 /**
- * Mark a todo as completed. Closes the GitHub Issue and moves local cache file.
+ * Mark a todo as completed. Closes the GitHub Issue directly.
+ * todoId is the GitHub issue number.
  */
 export async function cmdGitHubCompleteTodo(
   cwd: string,
@@ -1284,60 +1253,25 @@ export async function cmdGitHubCompleteTodo(
       return { ok: false, error: 'No .planning/ directory found. Project not detected.' };
     }
 
-    const pendingDir = planningPath(root, 'todos', 'pending');
-    const completedDir = planningPath(root, 'todos', 'completed');
-    const sourcePath = path.join(pendingDir, todoId);
-
-    if (!fs.existsSync(sourcePath)) {
-      return { ok: false, error: `Todo not found in pending: ${todoId}` };
-    }
-
-    let content = fs.readFileSync(sourcePath, 'utf-8');
     const today = todayISO();
+    const issueNumber = githubIssueNumber ?? parseInt(todoId, 10);
 
-    let issueNumber = githubIssueNumber ?? undefined;
-    if (!issueNumber) {
-      const issueMatch = content.match(/github_issue:\s*(\d+)/);
-      if (issueMatch) {
-        issueNumber = parseInt(issueMatch[1], 10);
-      }
+    if (!issueNumber || isNaN(issueNumber)) {
+      return { ok: false, error: `Invalid todo/issue number: ${todoId}` };
     }
 
-    // Primary: Close GitHub Issue
-    let githubClosed = false;
-    let githubWarning: string | undefined;
-
-    if (issueNumber) {
-      try {
-        requireAuth();
-        const closeResult = await closeIssue(issueNumber, `Todo completed: ${todoId}`);
-        githubClosed = closeResult.ok;
-        if (!closeResult.ok) {
-          githubWarning = `GitHub issue close failed: ${closeResult.error}`;
-        }
-      } catch (e) {
-        if (e instanceof AuthError) {
-          githubWarning = `GitHub auth not available: ${e.message}`;
-        } else {
-          githubWarning = `GitHub operation failed: ${(e as Error).message}`;
-        }
-      }
+    requireAuth();
+    const closeResult = await closeIssue(issueNumber, `Todo completed on ${today}`);
+    if (!closeResult.ok) {
+      return { ok: false, error: `GitHub issue close failed: ${closeResult.error}` };
     }
-
-    // Cache: Move local file from pending to completed
-    fs.mkdirSync(completedDir, { recursive: true });
-    content = `completed: ${today}\n` + content;
-    fs.writeFileSync(path.join(completedDir, todoId), content, 'utf-8');
-    fs.unlinkSync(sourcePath);
 
     const data: Record<string, unknown> = {
       completed: true,
-      file: todoId,
       date: today,
-      github_closed: githubClosed,
-      github_issue: issueNumber ?? null,
+      github_closed: true,
+      github_issue: issueNumber,
     };
-    if (githubWarning) data.github_warning = githubWarning;
 
     return {
       ok: true,
@@ -1345,6 +1279,9 @@ export async function cmdGitHubCompleteTodo(
       rawValue: data,
     };
   } catch (e) {
+    if (e instanceof AuthError) {
+      return { ok: false, error: `GitHub auth required for todo completion: ${e.message}` };
+    }
     return { ok: false, error: (e as Error).message };
   }
 }
@@ -1352,7 +1289,7 @@ export async function cmdGitHubCompleteTodo(
 // ---- 24. cmdGitHubListTodos -------------------------------------------------
 
 /**
- * List todo items from GitHub Issues (primary). Falls back to local cache if unavailable.
+ * List todo items from GitHub Issues. GitHub Issues is the sole source of truth.
  */
 export async function cmdGitHubListTodos(
   cwd: string,
@@ -1365,102 +1302,32 @@ export async function cmdGitHubListTodos(
       return { ok: false, error: 'No .planning/ directory found. Project not detected.' };
     }
 
-    // Primary: Query GitHub Issues with 'todo' label
-    try {
-      requireAuth();
-      const ghState = status === 'completed' ? 'closed'
-        : status === 'all' ? 'all'
-        : 'open';
-      const ghResult = await listTodoIssues(ghState as 'open' | 'closed' | 'all');
+    requireAuth();
+    const ghState = status === 'completed' ? 'closed'
+      : status === 'all' ? 'all'
+      : 'open';
+    const ghResult = await listTodoIssues(ghState as 'open' | 'closed' | 'all');
 
-      if (ghResult.ok) {
-        let todos = ghResult.data;
-
-        if (area) {
-          todos = todos.filter(t => t.area === area);
-        }
-
-        const data = {
-          count: todos.length,
-          source: 'github',
-          todos: todos.map(t => ({
-            github_issue: t.number,
-            title: t.title,
-            area: t.area,
-            status: t.state === 'open' ? 'pending' : 'completed',
-            created: t.created_at,
-          })),
-        };
-
-        return {
-          ok: true,
-          result: JSON.stringify(data, null, 2),
-          rawValue: data,
-        };
-      }
-    } catch {
-      // GitHub unavailable -- fall through to local cache
+    if (!ghResult.ok) {
+      return { ok: false, error: `GitHub todo list failed: ${ghResult.error}` };
     }
 
-    // Fallback: Read from local cache
-    const todosBase = planningPath(root, 'todos');
-    const dirs: string[] = [];
-    const statusVal = status || 'pending';
+    let todos = ghResult.data;
 
-    if (statusVal === 'pending' || statusVal === 'all') {
-      dirs.push(path.join(todosBase, 'pending'));
-    }
-    if (statusVal === 'completed' || statusVal === 'all') {
-      dirs.push(path.join(todosBase, 'completed'));
-    }
-
-    const todos: Array<{
-      file: string;
-      created: string;
-      title: string;
-      area: string;
-      status: string;
-      path: string;
-      github_issue?: number;
-    }> = [];
-
-    for (const dir of dirs) {
-      const dirStatus = dir.endsWith('pending') ? 'pending' : 'completed';
-
-      let files: string[] = [];
-      try {
-        files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
-      } catch {
-        continue;
-      }
-
-      for (const file of files) {
-        try {
-          const fileContent = fs.readFileSync(path.join(dir, file), 'utf-8');
-          const fm = parseTodoFrontmatter(fileContent);
-
-          if (area && fm.area !== area) continue;
-
-          const issueMatch = fileContent.match(/github_issue:\s*(\d+)/);
-          todos.push({
-            file,
-            created: fm.created,
-            title: fm.title,
-            area: fm.area,
-            status: dirStatus,
-            path: `.planning/todos/${dirStatus}/${file}`,
-            ...(issueMatch ? { github_issue: parseInt(issueMatch[1], 10) } : {}),
-          });
-        } catch {
-          // Skip unreadable files
-        }
-      }
+    if (area) {
+      todos = todos.filter(t => t.area === area);
     }
 
     const data = {
       count: todos.length,
-      source: 'local_cache',
-      todos,
+      source: 'github',
+      todos: todos.map(t => ({
+        github_issue: t.number,
+        title: t.title,
+        area: t.area,
+        status: t.state === 'open' ? 'pending' : 'completed',
+        created: t.created_at,
+      })),
     };
 
     return {
@@ -1469,6 +1336,9 @@ export async function cmdGitHubListTodos(
       rawValue: data,
     };
   } catch (e) {
+    if (e instanceof AuthError) {
+      return { ok: false, error: `GitHub auth required for todo listing: ${e.message}` };
+    }
     return { ok: false, error: (e as Error).message };
   }
 }

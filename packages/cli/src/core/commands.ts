@@ -23,10 +23,8 @@ import {
   rethrowCliSignals,
   findPhaseInternal,
   todayISO,
-  planningPath,
   phasesPath,
   listSubDirs,
-  isPlanFile,
   isSummaryFile,
   debugLog,
 } from './core.js';
@@ -107,7 +105,7 @@ export function cmdCurrentTimestamp(format: TimestampFormat, raw: boolean): CmdR
 // ─── Todos ──────────────────────────────────────────────────────────────────
 
 export async function cmdListTodos(cwd: string, area: string | undefined, raw: boolean): Promise<CmdResult> {
-  // Primary: Query GitHub Issues with 'todo' label
+  // GitHub Issues is the sole source of truth for todos
   try {
     const { requireAuth } = await import('../github/client.js');
     const { listTodoIssues } = await import('../github/issues.js');
@@ -128,42 +126,10 @@ export async function cmdListTodos(cwd: string, area: string | undefined, raw: b
       return cmdOk({ count: items.length, todos: items, source: 'github' }, raw ? items.length.toString() : undefined);
     }
   } catch (e) {
-    debugLog('cmdListTodos-github-fallback', e);
+    debugLog('cmdListTodos-github', e);
   }
 
-  // Fallback: Read from local cache
-  const pendingDir = planningPath(cwd, 'todos', 'pending');
-  let count = 0;
-  const todos: TodoItem[] = [];
-
-  try {
-    const files = fs.readdirSync(pendingDir).filter(f => f.endsWith('.md'));
-
-    for (const file of files) {
-      try {
-        const content = fs.readFileSync(path.join(pendingDir, file), 'utf-8');
-        const fm = parseTodoFrontmatter(content);
-
-        if (area && fm.area !== area) continue;
-
-        count++;
-        todos.push({
-          file,
-          created: fm.created,
-          title: fm.title,
-          area: fm.area,
-          path: path.join('.planning', 'todos', 'pending', file),
-        });
-      } catch (e) {
-        debugLog(e);
-      }
-    }
-  } catch (e) {
-    debugLog(e);
-  }
-
-  const result = { count, todos, source: 'local_cache' };
-  return cmdOk(result, raw ? count.toString() : undefined);
+  return cmdOk({ count: 0, todos: [], source: 'unavailable' }, raw ? '0' : undefined);
 }
 
 // ─── Path verification ──────────────────────────────────────────────────────
@@ -631,46 +597,32 @@ export async function cmdProgressRender(cwd: string, format: string, raw: boolea
 
 export async function cmdTodoComplete(cwd: string, filename: string | undefined, raw: boolean): Promise<CmdResult> {
   if (!filename) {
-    return cmdErr('filename required for todo complete');
+    return cmdErr('issue number required for todo complete');
   }
 
-  const pendingDir = planningPath(cwd, 'todos', 'pending');
-  const completedDir = planningPath(cwd, 'todos', 'completed');
-  const sourcePath = path.join(pendingDir, filename);
-
-  if (!fs.existsSync(sourcePath)) {
-    return cmdErr(`Todo not found: ${filename}`);
+  const issueNumber = parseInt(filename, 10);
+  if (isNaN(issueNumber)) {
+    return cmdErr(`Invalid issue number: ${filename}`);
   }
 
-  let content = fs.readFileSync(sourcePath, 'utf-8');
   const today = todayISO();
 
-  // Extract github_issue from local cache if present
-  const issueMatch = content.match(/github_issue:\s*(\d+)/);
-  const issueNumber = issueMatch ? parseInt(issueMatch[1], 10) : undefined;
-
-  // Primary: Close GitHub Issue
-  let githubClosed = false;
-  if (issueNumber) {
-    try {
-      const { requireAuth } = await import('../github/client.js');
-      const { closeIssue } = await import('../github/issues.js');
-      requireAuth();
-      const closeResult = await closeIssue(issueNumber, `Todo completed: ${filename}`);
-      githubClosed = closeResult.ok;
-    } catch (e) {
-      debugLog('cmdTodoComplete-github', e);
+  // GitHub Issues is the sole source of truth for todos
+  try {
+    const { requireAuth } = await import('../github/client.js');
+    const { closeIssue } = await import('../github/issues.js');
+    requireAuth();
+    const closeResult = await closeIssue(issueNumber, `Todo completed on ${today}`);
+    if (!closeResult.ok) {
+      return cmdErr(`GitHub issue close failed: ${closeResult.error}`);
     }
+  } catch (e) {
+    debugLog('cmdTodoComplete-github', e);
+    return cmdErr(`GitHub auth required for todo completion: ${(e as Error).message}`);
   }
 
-  // Cache: Move local file from pending to completed
-  fs.mkdirSync(completedDir, { recursive: true });
-  content = `completed: ${today}\n` + content;
-  fs.writeFileSync(path.join(completedDir, filename), content, 'utf-8');
-  fs.unlinkSync(sourcePath);
-
   return cmdOk(
-    { completed: true, file: filename, date: today, github_closed: githubClosed, github_issue: issueNumber ?? null },
+    { completed: true, date: today, github_closed: true, github_issue: issueNumber },
     raw ? 'completed' : undefined,
   );
 }
@@ -695,25 +647,11 @@ export async function cmdScaffold(
     return cmdErr(`Phase ${phase} directory not found`);
   }
 
-  let filePath: string;
-  let content: string;
-
   switch (type) {
-    case 'context': {
-      filePath = path.join(phaseDir!, `${padded}-CONTEXT.md`);
-      content = `---\nphase: "${padded}"\nname: "${name || phaseInfo?.phase_name || 'Unnamed'}"\ncreated: ${today}\n---\n\n# Phase ${phase}: ${name || phaseInfo?.phase_name || 'Unnamed'} — Context\n\n## Decisions\n\n_Decisions will be captured during /maxsim:discuss-phase ${phase}_\n\n## Discretion Areas\n\n_Areas where the executor can use judgment_\n\n## Deferred Ideas\n\n_Ideas to consider later_\n`;
-      break;
-    }
-    case 'uat': {
-      filePath = path.join(phaseDir!, `${padded}-UAT.md`);
-      content = `---\nphase: "${padded}"\nname: "${name || phaseInfo?.phase_name || 'Unnamed'}"\ncreated: ${today}\nstatus: pending\n---\n\n# Phase ${phase}: ${name || phaseInfo?.phase_name || 'Unnamed'} — User Acceptance Testing\n\n## Test Results\n\n| # | Test | Status | Notes |\n|---|------|--------|-------|\n\n## Summary\n\n_Pending UAT_\n`;
-      break;
-    }
-    case 'verification': {
-      filePath = path.join(phaseDir!, `${padded}-VERIFICATION.md`);
-      content = `---\nphase: "${padded}"\nname: "${name || phaseInfo?.phase_name || 'Unnamed'}"\ncreated: ${today}\nstatus: pending\n---\n\n# Phase ${phase}: ${name || phaseInfo?.phase_name || 'Unnamed'} — Verification\n\n## Goal-Backward Verification\n\n**Phase Goal:** [From ROADMAP.md]\n\n## Checks\n\n| # | Requirement | Status | Evidence |\n|---|------------|--------|----------|\n\n## Result\n\n_Pending verification_\n`;
-      break;
-    }
+    case 'context':
+    case 'uat':
+    case 'verification':
+      return cmdErr(`Artifact type '${type}' is now stored as GitHub Issue comments. Use GitHub workflow commands instead.`);
     case 'phase-dir': {
       if (!phase || !name) {
         return cmdErr('phase and name required for phase-dir scaffold');
@@ -727,14 +665,6 @@ export async function cmdScaffold(
       return cmdOk({ created: true, directory: `.planning/phases/${dirName}`, path: dirPath }, raw ? dirPath : undefined);
     }
     default:
-      return cmdErr(`Unknown scaffold type: ${type}. Available: context, uat, verification, phase-dir`);
+      return cmdErr(`Unknown scaffold type: ${type}. Available: phase-dir`);
   }
-
-  if (fs.existsSync(filePath)) {
-    return cmdOk({ created: false, reason: 'already_exists', path: filePath }, raw ? 'exists' : undefined);
-  }
-
-  fs.writeFileSync(filePath, content, 'utf-8');
-  const relPath = path.relative(cwd, filePath);
-  return cmdOk({ created: true, path: relPath }, raw ? relPath : undefined);
 }

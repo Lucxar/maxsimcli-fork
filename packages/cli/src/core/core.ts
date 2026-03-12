@@ -108,9 +108,9 @@ export function roadmapPath(cwd: string): string { return planningPath(cwd, 'ROA
 export function configPath(cwd: string): string { return planningPath(cwd, 'config.json'); }
 export function phasesPath(cwd: string): string { return planningPath(cwd, 'phases'); }
 
-/** Phase-file predicates. @deprecated Use GitHub Issues for plan/summary tracking. Local fallback only. */
+/** @internal @deprecated Use GitHub Issues for plan/summary tracking. Retained for archived phase reading only. */
 export const isPlanFile = (f: string): boolean => f.endsWith('-PLAN.md') || f === 'PLAN.md';
-/** @deprecated Use GitHub Issues for plan/summary tracking. Local fallback only. */
+/** @internal @deprecated Use GitHub Issues for plan/summary tracking. Retained for archived phase reading only. */
 export const isSummaryFile = (f: string): boolean => f.endsWith('-SUMMARY.md') || f === 'SUMMARY.md';
 
 /** Strip suffix to get plan/summary ID. */
@@ -375,30 +375,20 @@ async function searchPhaseInDir(baseDir: string, relBase: string, normalized: st
     const dirMatch = match.match(/^(\d+[A-Z]?(?:\.\d+)?)-?(.*)/i);
     const phaseNumber = dirMatch ? dirMatch[1] : normalized;
     const phaseName = dirMatch && dirMatch[2] ? dirMatch[2] : null;
-    const phaseDir = path.join(baseDir, match);
-    const phaseFiles = await fsp.readdir(phaseDir);
 
-    const plans = phaseFiles.filter(isPlanFile).sort();
-    const summaries = phaseFiles.filter(isSummaryFile).sort();
-    const hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-    const hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
-    const hasVerification = phaseFiles.some(f => f.endsWith('-VERIFICATION.md') || f === 'VERIFICATION.md');
-
-    const completedPlanIds = new Set(summaries.map(summaryId));
-    const incompletePlans = plans.filter(p => !completedPlanIds.has(planId(p)));
-
+    // Directory existence confirmed. Phase artifacts are tracked in GitHub Issues.
     return {
       found: true,
       directory: path.join(relBase, match),
       phase_number: phaseNumber,
       phase_name: phaseName,
       phase_slug: phaseName ? phaseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : null,
-      plans,
-      summaries,
-      incomplete_plans: incompletePlans,
-      has_research: hasResearch,
-      has_context: hasContext,
-      has_verification: hasVerification,
+      plans: [],
+      summaries: [],
+      incomplete_plans: [],
+      has_research: false,
+      has_context: false,
+      has_verification: false,
     };
   } catch (e) {
     debugLog('search-phase-in-dir-async-failed', { dir: baseDir, phase: normalized, error: errorMsg(e) });

@@ -277,7 +277,7 @@ describe('findPhaseInternal with nonexistent directory', () => {
     const fakeCwd = path.join(os.tmpdir(), `maxsim-test-find-phase-${Date.now()}`);
     const phaseDir = path.join(fakeCwd, '.planning', 'phases', '01-Foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
-    // Create a plan file
+    // Create a plan file (local artifacts are no longer scanned — GitHub is SSOT)
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan', 'utf-8');
 
     const result = await findPhaseInternal(fakeCwd, '01');
@@ -285,7 +285,8 @@ describe('findPhaseInternal with nonexistent directory', () => {
     expect(result!.found).toBe(true);
     expect(result!.phase_number).toBe('01');
     expect(result!.phase_name).toBe('Foundation');
-    expect(result!.plans).toContain('01-01-PLAN.md');
+    // Local artifact scanning removed — plans/summaries tracked via GitHub Issues
+    expect(result!.plans).toEqual([]);
 
     fs.rmSync(fakeCwd, { recursive: true, force: true });
   });

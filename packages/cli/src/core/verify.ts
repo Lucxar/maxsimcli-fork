@@ -14,8 +14,6 @@ import {
   execGit,
   findPhaseInternal,
   getMilestoneInfo,
-  isPlanFile,
-  isSummaryFile,
   planId,
   summaryId,
   roadmapPath as roadmapPathUtil,

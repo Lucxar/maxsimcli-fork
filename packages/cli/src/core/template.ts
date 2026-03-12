@@ -4,9 +4,6 @@
  * Ported from maxsim/bin/lib/template.cjs
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-
 import {
   normalizePhaseName,
   findPhaseInternal,
@@ -39,8 +36,10 @@ export interface TemplateFillOptions {
 
 export interface TemplateFillResult {
   created: boolean;
-  path: string;
+  content: string;
   template: string;
+  phase: string;
+  plan: string;
 }
 
 // ─── Template Select ─────────────────────────────────────────────────────────
@@ -259,14 +258,8 @@ export async function cmdTemplateFill(
   }
 
   const fullContent = `---\n${reconstructFrontmatter(frontmatter)}\n---\n\n${body}\n`;
-  const outPath = path.join(cwd, phaseInfo.directory, fileName);
 
-  if (fs.existsSync(outPath)) {
-    return cmdOk({ error: 'File already exists', path: path.relative(cwd, outPath) });
-  }
-
-  fs.writeFileSync(outPath, fullContent, 'utf-8');
-  const relPath = path.relative(cwd, outPath);
-  const result: TemplateFillResult = { created: true, path: relPath, template: templateType };
-  return cmdOk(result, relPath);
+  // Return generated content — callers (workflows) post it to GitHub Issue comments
+  const result: TemplateFillResult = { created: false, content: fullContent, template: templateType, phase: padded, plan: planNum };
+  return cmdOk(result);
 }

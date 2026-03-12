@@ -242,14 +242,16 @@ describe('cmdPhaseRemove', () => {
     ).toBe(false);
   });
 
-  it('returns error CmdResult when phase has summaries and force is false', async () => {
+  it('allows remove without force when local summaries exist (GitHub is SSOT)', async () => {
+    // Local artifact scanning removed — summaries tracked via GitHub Issues.
+    // Without GitHub data, cmdPhaseRemove cannot detect executed plans locally,
+    // so it proceeds with removal even without --force.
     const cwd = makeTempDir();
     scaffoldPlanning(cwd, {
       roadmap: '### Phase 1: Foundation\n\n**Goal:** Build core\n',
       phases: { '01-Foundation': ['.gitkeep', '01-01-PLAN.md', '01-01-SUMMARY.md'] },
     });
     const result = await cmdPhaseRemove(cwd, '1', { force: false });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain('executed plan(s)');
+    expect(result.ok).toBe(true);
   });
 });
