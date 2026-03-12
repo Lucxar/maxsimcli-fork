@@ -405,11 +405,10 @@ export interface ArchiveResult {
 // ─── Commands interfaces ────────────────────────────────────────────────────
 
 export interface TodoItem {
-  file: string;
+  github_issue: number;
   created: string;
   title: string;
   area: string;
-  path: string;
 }
 
 export interface HistoryPhaseDigest {

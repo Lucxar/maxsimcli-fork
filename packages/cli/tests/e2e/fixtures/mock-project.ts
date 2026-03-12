@@ -15,8 +15,6 @@ export function createMockProject(): MockProject {
   mkdirSync(join(dir, '.planning', 'phases', '02-integration'), { recursive: true });
   mkdirSync(join(dir, '.planning', 'phases', '03-discussion'), { recursive: true });
   mkdirSync(join(dir, '.planning', 'phases', '04-research'), { recursive: true });
-  mkdirSync(join(dir, '.planning', 'todos', 'pending'), { recursive: true });
-  mkdirSync(join(dir, '.planning', 'todos', 'completed'), { recursive: true });
 
   // ROADMAP.md — 4 phases; phase 01 checked [x], others unchecked
   writeFileSync(join(dir, '.planning', 'ROADMAP.md'), [
@@ -184,19 +182,6 @@ export function createMockProject(): MockProject {
       '## Recommendation',
       '',
       'Use library X with configuration Y.',
-    ].join('\n')
-  );
-
-  // Pending todo file
-  writeFileSync(
-    join(dir, '.planning', 'todos', 'pending', 'todo-001-test-task.md'),
-    [
-      'title: Test Task',
-      '# Todo: Test Task',
-      '',
-      '**Area:** general',
-      '',
-      'Do the test task for E2E validation.',
     ].join('\n')
   );
 

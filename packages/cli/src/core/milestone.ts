@@ -239,7 +239,7 @@ None.
 
 ### Pending Todos
 
-None.
+See GitHub Issues with label 'todo' for open tasks.
 
 ### Blockers/Concerns
 

@@ -44,29 +44,6 @@ import type {
 } from './types.js';
 import { cmdOk, cmdErr } from './types.js';
 
-// ─── Todo frontmatter parsing ────────────────────────────────────────────────
-
-export interface TodoFrontmatter {
-  created: string;
-  title: string;
-  area: string;
-  completed?: string;
-}
-
-export function parseTodoFrontmatter(content: string): TodoFrontmatter {
-  const createdMatch = content.match(/^created:\s*(.+)$/m);
-  const titleMatch = content.match(/^title:\s*(.+)$/m);
-  const areaMatch = content.match(/^area:\s*(.+)$/m);
-  const completedMatch = content.match(/^completed:\s*(.+)$/m);
-
-  return {
-    created: createdMatch ? createdMatch[1].trim() : 'unknown',
-    title: titleMatch ? titleMatch[1].trim() : 'Untitled',
-    area: areaMatch ? areaMatch[1].trim() : 'general',
-    ...(completedMatch && { completed: completedMatch[1].trim() }),
-  };
-}
-
 // ─── Slug generation ────────────────────────────────────────────────────────
 
 export function cmdGenerateSlug(text: string | undefined, raw: boolean): CmdResult {
@@ -104,32 +81,32 @@ export function cmdCurrentTimestamp(format: TimestampFormat, raw: boolean): CmdR
 
 // ─── Todos ──────────────────────────────────────────────────────────────────
 
-export async function cmdListTodos(cwd: string, area: string | undefined, raw: boolean): Promise<CmdResult> {
-  // GitHub Issues is the sole source of truth for todos
+/** Shared helper: fetch open todo items from GitHub Issues. Returns empty array on auth failure. */
+export async function fetchTodoItems(area: string | undefined): Promise<TodoItem[]> {
   try {
     const { requireAuth } = await import('../github/client.js');
     const { listTodoIssues } = await import('../github/issues.js');
     requireAuth();
     const ghResult = await listTodoIssues('open');
     if (ghResult.ok) {
-      let todos = ghResult.data;
-      if (area) {
-        todos = todos.filter(t => t.area === area);
-      }
-      const items: TodoItem[] = todos.map(t => ({
-        file: `github-issue-${t.number}`,
+      const filtered = area ? ghResult.data.filter(t => t.area === area) : ghResult.data;
+      return filtered.map(t => ({
+        github_issue: t.number,
         created: t.created_at,
         title: t.title,
         area: t.area,
-        path: `GitHub Issue #${t.number}`,
       }));
-      return cmdOk({ count: items.length, todos: items, source: 'github' }, raw ? items.length.toString() : undefined);
     }
   } catch (e) {
-    debugLog('cmdListTodos-github', e);
+    debugLog('fetchTodoItems-github', e);
   }
+  return [];
+}
 
-  return cmdOk({ count: 0, todos: [], source: 'unavailable' }, raw ? '0' : undefined);
+export async function cmdListTodos(cwd: string, area: string | undefined, raw: boolean): Promise<CmdResult> {
+  const items = await fetchTodoItems(area);
+  const source = items.length > 0 ? 'github' : 'unavailable';
+  return cmdOk({ count: items.length, todos: items, source }, raw ? items.length.toString() : undefined);
 }
 
 // ─── Path verification ──────────────────────────────────────────────────────

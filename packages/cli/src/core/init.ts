@@ -33,6 +33,7 @@ import type {
   MilestoneInfo,
   AppConfig,
   CmdResult,
+  TodoItem,
   ExecutorAgentContext,
   PlannerAgentContext,
   ResearcherAgentContext,
@@ -46,6 +47,7 @@ import type {
 
 import { loadMapping } from '../github/mapping.js';
 import type { IssueMappingFile } from '../github/types.js';
+import { fetchTodoItems } from './commands.js';
 
 // ─── GitHub context helper ───────────────────────────────────────────────────
 
@@ -262,13 +264,9 @@ export interface TodosContext {
   date: string;
   timestamp: string;
   todo_count: number;
-  todos: Array<{ file: string; created: string; title: string; area: string; path: string }>;
+  todos: TodoItem[];
   area_filter: string | null;
-  pending_dir: string;
-  completed_dir: string;
   planning_exists: boolean;
-  todos_dir_exists: boolean;
-  pending_dir_exists: boolean;
 }
 
 export interface MilestoneOpContext {
@@ -687,38 +685,19 @@ export async function cmdInitPhaseOp(cwd: string, phase: string | undefined): Pr
 }
 
 export async function cmdInitTodos(cwd: string, area: string | undefined): Promise<CmdResult> {
-  const config = await loadConfig(cwd);
-  const now = new Date();
-  const pendingDir = planningPath(cwd, 'todos', 'pending');
-  let count = 0;
-  const todos: Array<{ file: string; created: string; title: string; area: string; path: string }> = [];
-  try {
-    const files = fs.readdirSync(pendingDir).filter(f => f.endsWith('.md'));
-    for (const file of files) {
-      try {
-        const content = fs.readFileSync(path.join(pendingDir, file), 'utf-8');
-        const createdMatch = content.match(/^created:\s*(.+)$/m);
-        const titleMatch = content.match(/^title:\s*(.+)$/m);
-        const areaMatch = content.match(/^area:\s*(.+)$/m);
-        const todoArea = areaMatch ? areaMatch[1].trim() : 'general';
-        if (area && todoArea !== area) continue;
-        count++;
-        todos.push({ file, created: createdMatch ? createdMatch[1].trim() : 'unknown', title: titleMatch ? titleMatch[1].trim() : 'Untitled', area: todoArea, path: path.join('.planning', 'todos', 'pending', file) });
-      } catch (e) { debugLog(e); }
-    }
-  } catch (e) { debugLog(e); }
+  const [config, todos, planning_exists] = await Promise.all([
+    loadConfig(cwd),
+    fetchTodoItems(area),
+    pathExistsInternal(planningPath(cwd)),
+  ]);
   const result: TodosContext = {
     commit_docs: config.commit_docs,
     date: todayISO(),
-    timestamp: now.toISOString(),
-    todo_count: count,
+    timestamp: new Date().toISOString(),
+    todo_count: todos.length,
     todos,
     area_filter: area ?? null,
-    pending_dir: '.planning/todos/pending',
-    completed_dir: '.planning/todos/completed',
-    planning_exists: await pathExistsInternal(planningPath(cwd)),
-    todos_dir_exists: await pathExistsInternal(planningPath(cwd, 'todos')),
-    pending_dir_exists: await pathExistsInternal(planningPath(cwd, 'todos', 'pending')),
+    planning_exists,
   };
   return cmdOk(result);
 }
