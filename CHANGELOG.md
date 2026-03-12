@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/maystudios/maxsimcli/compare/v5.0.0...v5.0.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* **install:** update Discord community link ([3c548ab](https://github.com/maystudios/maxsimcli/commit/3c548ab608223780534ac8c5b1c79ad2bf66f338))
+
 # [5.0.0](https://github.com/maystudios/maxsimcli/compare/v4.16.0...v5.0.0) (2026-03-12)
 
 
