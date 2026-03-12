@@ -226,7 +226,7 @@ export function installHookFiles(
  */
 export function configureSettingsHooks(
   targetDir: string,
-): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string; syncReminderCommand: string } {
+): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string; syncReminderCommand: string; notificationSoundCommand: string; stopSoundCommand: string } {
   const dirName = getDirName();
 
   const settingsPath = path.join(targetDir, 'settings.json');
@@ -234,6 +234,8 @@ export function configureSettingsHooks(
   const statuslineCommand = 'node ' + dirName + '/hooks/maxsim-statusline.js';
   const updateCheckCommand = 'node ' + dirName + '/hooks/maxsim-check-update.js';
   const syncReminderCommand = 'node ' + dirName + '/hooks/maxsim-sync-reminder.js';
+  const notificationSoundCommand = 'node ' + dirName + '/hooks/maxsim-notification-sound.js';
+  const stopSoundCommand = 'node ' + dirName + '/hooks/maxsim-stop-sound.js';
   interface InstallHookEntry {
     matcher?: string;
     hooks?: Array<{ type: string; command: string }>;
@@ -298,7 +300,58 @@ export function configureSettingsHooks(
     );
   }
 
-  return { settingsPath, settings, statuslineCommand, updateCheckCommand, syncReminderCommand };
+  // Configure PostToolUse hook for notification sound on AskUserQuestion
+  const hasNotificationSound = installHooks.PostToolUse.some(
+    (entry: InstallHookEntry) =>
+      entry.hooks &&
+      entry.hooks.some(
+        (h) => h.command && h.command.includes('maxsim-notification-sound'),
+      ),
+  );
+
+  if (!hasNotificationSound) {
+    installHooks.PostToolUse.push({
+      matcher: 'AskUserQuestion',
+      hooks: [
+        {
+          type: 'command',
+          command: notificationSoundCommand,
+        },
+      ],
+    });
+    console.log(
+      `  ${chalk.green('\u2713')} Configured notification sound hook`,
+    );
+  }
+
+  // Configure Stop hook for stop sound
+  if (!installHooks.Stop) {
+    installHooks.Stop = [];
+  }
+
+  const hasStopSound = installHooks.Stop.some(
+    (entry: InstallHookEntry) =>
+      entry.hooks &&
+      entry.hooks.some(
+        (h) => h.command && h.command.includes('maxsim-stop-sound'),
+      ),
+  );
+
+  if (!hasStopSound) {
+    installHooks.Stop.push({
+      hooks: [
+        {
+          type: 'command',
+          command: stopSoundCommand,
+        },
+      ],
+    });
+    console.log(
+      `  ${chalk.green('\u2713')} Configured stop sound hook`,
+    );
+  }
+
+  return { settingsPath, settings, statuslineCommand, updateCheckCommand, syncReminderCommand, notificationSoundCommand, stopSoundCommand };
 }
 
 /**

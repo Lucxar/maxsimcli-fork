@@ -11,3 +11,7 @@ export type { StatuslineInput, ProgressCache } from './maxsim-statusline';
 
 export { processSyncReminder, DEBOUNCE_CALLS } from './maxsim-sync-reminder';
 export type { SyncReminderInput, SyncReminderOutput } from './maxsim-sync-reminder';
+
+export { processNotificationSound } from './maxsim-notification-sound';
+
+export { processStopSound } from './maxsim-stop-sound';
