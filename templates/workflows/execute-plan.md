@@ -9,15 +9,7 @@ Read config.json for planning behavior settings.
 @./references/git-integration.md
 </required_reading>
 
-## MCP Server Fallback
-
-MAXSIM provides MCP tools (mcp_create_phase, mcp_list_phases, etc.) for structured operations.
-If MCP tools are available in your tool list, prefer them for phase, todo, and state operations.
-
-**If MCP tools are NOT available** (server not running, .mcp.json not configured, or non-Claude runtime):
-- Log a warning: "MCP server not available -- using Bash tools router fallback"
-- Fall back to the Bash tools router: `node .claude/maxsim/bin/maxsim-tools.cjs <command>`
-- All operations work identically via either path -- MCP is preferred but not required
+MAXSIM provides CLI commands (`github create-phase`, `github list-phases`, etc.) for structured operations.
 
 <process>
 
@@ -45,8 +37,8 @@ When the orchestrator passes `github_context` (phase_issue_number and plan_comme
 
 **External edit detection (WIRE-06):** Before beginning execution, check if the plan comment was modified since the orchestrator read it:
 
-```
-mcp_detect_external_edits(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github detect-external-edits --phase-number "$PHASE_NUMBER"
 ```
 
 If external edits detected: warn user and offer to re-read the plan before proceeding.
@@ -120,7 +112,7 @@ Pattern B only (verify-only checkpoints). Skip for A/C.
 2. Per segment:
    - Subagent route: spawn executor for assigned tasks only. Prompt: task range, plan content (from GitHub comment or local path), read full plan for context, execute assigned tasks, track deviations, move task sub-issues to "In Progress" when started and "Done" when completed, NO SUMMARY/commit. Track via agent protocol.
    - Main route: execute tasks using standard flow (step name="execute")
-3. After ALL segments: aggregate files/deviations/decisions → post SUMMARY as GitHub comment (mcp_post_comment with type=summary) → commit → self-check:
+3. After ALL segments: aggregate files/deviations/decisions → post SUMMARY as GitHub comment (`github post-comment` with type=summary) → commit → self-check:
    - Verify key-files.created exist on disk with `[ -f ]`
    - Check `git log --oneline --all --grep="{phase}-{plan}"` returns ≥1 commit
    - Check for `## Self-Check: PASSED` or `## Self-Check: FAILED` and append to summary comment body
@@ -188,8 +180,8 @@ Deviations are normal — handle via rules below.
    **Before starting each task (WIRE-04 board transition):**
    - Look up the task's sub-issue number from `task_mappings` in the GitHub context.
    - Move the task sub-issue to "In Progress":
-     ```
-     mcp_move_issue(issue_number: task_sub_issue_number, status: "In Progress")
+     ```bash
+     node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $TASK_SUB_ISSUE_NUMBER --status "In Progress"
      ```
 
    - `type="auto"`: if `tdd="true"` → TDD execution. Implement with deviation rules + auth gates. Verify done criteria. Commit (see task_commit). Track hash for Summary.
@@ -197,17 +189,13 @@ Deviations are normal — handle via rules below.
 
    **After each task completes successfully (WIRE-04 board transition):**
    - Post task completion details on the task sub-issue:
-     ```
-     mcp_post_completion(
-       issue_number: task_sub_issue_number,
-       commit_sha: TASK_COMMIT,
-       files_changed: [list of files modified by this task]
-     )
+     ```bash
+     node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-completion --issue-number $TASK_SUB_ISSUE_NUMBER --commit-sha "$TASK_COMMIT" --files-changed "file1.ts,file2.ts"
      ```
    - Close the task sub-issue and move to "Done":
-     ```
-     mcp_close_issue(issue_number: task_sub_issue_number)
-     mcp_move_issue(issue_number: task_sub_issue_number, status: "Done")
+     ```bash
+     node ~/.claude/maxsim/bin/maxsim-tools.cjs github close-issue $TASK_SUB_ISSUE_NUMBER
+     node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $TASK_SUB_ISSUE_NUMBER --status "Done"
      ```
 
 3. Run `<verification>` checks
@@ -362,13 +350,19 @@ Orchestrator parses → presents to user → spawns fresh continuation with your
 If verification fails: STOP. Present: "Verification failed for Task [X]: [name]. Expected: [criteria]. Actual: [result]." Options: Retry | Skip (mark incomplete) | Stop (investigate). If skipped → SUMMARY "Issues Encountered".
 
 **On review failure (WIRE-07):** If the task sub-issue was already moved to "Done", reopen and move back:
-```
-mcp_reopen_issue(issue_number: task_sub_issue_number)
-mcp_move_issue(issue_number: task_sub_issue_number, status: "In Progress")
-mcp_post_comment(
-  issue_number: task_sub_issue_number,
-  body: "## Review Failure\n\nVerification failed for this task. Moving back to In Progress.\n\n**Reason:** {failure details}\n**Action needed:** {what needs to be fixed}"
-)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github reopen-issue $TASK_SUB_ISSUE_NUMBER
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $TASK_SUB_ISSUE_NUMBER --status "In Progress"
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## Review Failure
+
+Verification failed for this task. Moving back to In Progress.
+
+**Reason:** {failure details}
+**Action needed:** {what needs to be fixed}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $TASK_SUB_ISSUE_NUMBER --body-file "$TMPFILE"
 ```
 </step>
 
@@ -394,11 +388,17 @@ fi
 If plan frontmatter contains a `user_setup` field: create `{phase}-USER-SETUP.md` using template `~/.claude/maxsim/templates/user-setup.md`. Per service: env vars table, account setup checklist, dashboard config, local dev notes, verification commands. Status "Incomplete". Set `USER_SETUP_CREATED=true`. If empty/missing: skip.
 
 Also post a reminder comment on the phase issue:
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  body: "## User Setup Required\n\nThis plan created a USER-SETUP.md with manual steps needed before proceeding.\n\n**File:** {phase}-USER-SETUP.md\n**Services:** {list of services requiring setup}"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## User Setup Required
+
+This plan created a USER-SETUP.md with manual steps needed before proceeding.
+
+**File:** {phase}-USER-SETUP.md
+**Services:** {list of services requiring setup}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE"
 ```
 </step>
 
@@ -422,12 +422,10 @@ Build summary content using the same structure as `~/.claude/maxsim/templates/su
 - Self-Check result
 
 Post to the phase issue:
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "summary",
-  body: {summary_content}
-)
+```bash
+TMPFILE=$(mktemp)
+echo "$SUMMARY_CONTENT" > "$TMPFILE"
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type summary
 ```
 
 Record the comment URL/ID as `SUMMARY_COMMENT_ID` for future reference.
@@ -597,13 +595,19 @@ Wait for user response:
 **On review failure -- reopen affected task sub-issues (WIRE-07):**
 
 If the code review identifies failures tied to specific tasks, and those task sub-issues were already closed:
-```
-mcp_reopen_issue(issue_number: task_sub_issue_number)
-mcp_move_issue(issue_number: task_sub_issue_number, status: "In Progress")
-mcp_post_comment(
-  issue_number: task_sub_issue_number,
-  body: "## Code Review Failure\n\nThis task's code review was blocked. Moving back to In Progress.\n\n**Blocking issues:**\n{list of blocker/high issues from verifier}"
-)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github reopen-issue $TASK_SUB_ISSUE_NUMBER
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $TASK_SUB_ISSUE_NUMBER --status "In Progress"
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## Code Review Failure
+
+This task's code review was blocked. Moving back to In Progress.
+
+**Blocking issues:**
+{list of blocker/high issues from verifier}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $TASK_SUB_ISSUE_NUMBER --body-file "$TMPFILE"
 ```
 
 ---
@@ -886,12 +890,10 @@ Add review cycle results to the summary content in memory (under a `## Review Cy
 ```
 
 Now post the complete summary (with review cycle included) to GitHub:
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "summary",
-  body: {complete_summary_content_including_review_cycle}
-)
+```bash
+TMPFILE=$(mktemp)
+echo "$COMPLETE_SUMMARY_CONTENT" > "$TMPFILE"
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type summary
 ```
 
 After posting, commit any review-cycle metadata:
@@ -1003,22 +1005,34 @@ If the plan includes verification criteria (from `<verification>` section of pla
 
 Build verification results content in memory with `<!-- maxsim:type=verification -->` marker.
 
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "verification",
-  body: "<!-- maxsim:type=verification -->\n## Plan {plan_number} Verification\n\n{verification_results}\n\n**Status:** {passed|failed}\n**Timestamp:** {ISO timestamp}"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+<!-- maxsim:type=verification -->
+## Plan {plan_number} Verification
+
+{verification_results}
+
+**Status:** {passed|failed}
+**Timestamp:** {ISO timestamp}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type verification
 ```
 
 If the plan includes UAT criteria (from `<uat>` section):
 
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "uat",
-  body: "<!-- maxsim:type=uat -->\n## Plan {plan_number} UAT\n\n{uat_criteria_and_results}\n\n**Status:** {pending|passed|failed}\n**Timestamp:** {ISO timestamp}"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+<!-- maxsim:type=uat -->
+## Plan {plan_number} UAT
+
+{uat_criteria_and_results}
+
+**Status:** {pending|passed|failed}
+**Timestamp:** {ISO timestamp}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type uat
 ```
 
 GitHub Issues is the source of truth -- verification and UAT results are always posted as GitHub comments.
@@ -1043,8 +1057,8 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "" --files .planning/codebase/
 If `USER_SETUP_CREATED=true`: display `⚠️ USER SETUP REQUIRED` with path + env/config tasks at TOP.
 
 Check completion by querying the phase issue's task sub-issues:
-```
-mcp_list_sub_issues(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github list-sub-issues $PHASE_ISSUE_NUMBER
 ```
 
 Count open vs closed sub-issues. Map closed count to plans complete.

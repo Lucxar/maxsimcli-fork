@@ -34,9 +34,9 @@ Parse JSON for: `executor_model`, `verifier_model`, `commit_docs`, `phase_found`
 <step name="discover_plans">
 Find incomplete plans by querying GitHub Issues (the source of truth for plans and completion status):
 
-```
-mcp_get_issue_detail(issue_number: phase_issue_number)
-mcp_list_sub_issues(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue ${phase_issue_number} --comments
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github list-sub-issues ${phase_issue_number}
 ```
 
 Parse plan comments (`<!-- maxsim:type=plan -->`) from the phase issue. A plan is complete when all its task sub-issues are closed.
@@ -347,12 +347,14 @@ After all tasks in a plan complete, build the summary content in memory and post
 - Issues encountered
 
 Post summary to GitHub:
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "summary",
-  body: {summary_content}
-)
+```bash
+# Write summary content to tmpfile
+SUMMARY_FILE=$(mktemp)
+cat > "$SUMMARY_FILE" << 'SUMMARY_EOF'
+{summary_content}
+SUMMARY_EOF
+
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number ${phase_issue_number} --body-file "$SUMMARY_FILE" --type summary
 ```
 
 Self-check:
@@ -403,8 +405,8 @@ Note: No local SUMMARY.md is committed -- summary was posted to GitHub as a comm
 After all plans in the phase are processed:
 
 Check completion by querying the phase issue's task sub-issues:
-```
-mcp_list_sub_issues(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github list-sub-issues ${phase_issue_number}
 ```
 
 Count open vs closed sub-issues to determine completion.

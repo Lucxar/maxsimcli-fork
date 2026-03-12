@@ -140,8 +140,8 @@ Also extract `phase_issue_number` passed from the orchestrator.
 ## Step 2: Check Existing Context
 
 Check if a context comment already exists on the phase GitHub Issue by calling:
-```
-mcp_get_issue_detail(issue_number={phase_issue_number})
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Look for a comment that contains `<!-- maxsim:type=context -->`.
@@ -313,12 +313,10 @@ Build the context content in memory, then post it as a comment on the phase GitH
 ```
 
 Post the comment to GitHub:
-```
-mcp_post_comment(
-  issue_number={phase_issue_number},
-  type="context",
-  content={context_content_above}
-)
+```bash
+TMPFILE=$(mktemp)
+echo "$CONTEXT_CONTENT" > "$TMPFILE"
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type context
 ```
 
 Context decisions are posted as a GitHub comment on phase issue #{phase_issue_number}. No local CONTEXT.md file is written.

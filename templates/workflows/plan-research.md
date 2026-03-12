@@ -117,12 +117,13 @@ Parse the researcher's return message:
   Extract the research findings document from the researcher's response.
 
   Post research findings to GitHub:
-  ```
-  mcp_post_comment(
-    issue_number={phase_issue_number},
-    type="research",
-    content="<!-- maxsim:type=research -->\n" + {research_findings_document}
-  )
+  ```bash
+  TMPFILE=$(mktemp)
+  cat > "$TMPFILE" << 'BODY_EOF'
+  <!-- maxsim:type=research -->
+  {research_findings_document}
+  BODY_EOF
+  node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type research
   ```
 
   Research findings are posted as a GitHub comment on phase issue #{phase_issue_number}. No local RESEARCH.md file is written.

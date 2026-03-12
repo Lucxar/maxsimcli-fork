@@ -669,8 +669,12 @@ TBD
 ```
 
 5. GitHub Issue creation (primary):
-   - Call `mcp_create_todo_issue` with title, priority, area, and description to create a tracked GitHub Issue (label: "todo")
+   - Run `github add-todo` with title, priority, area, and description to create a tracked GitHub Issue (label: "todo")
    - If GitHub is unavailable, fall back to local file only and warn user: "Todo saved locally. Run `/maxsim:init` to enable GitHub tracking."
+
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github add-todo --title "${TITLE}" --description "${DESCRIPTION}" --area "${AREA}"
+   ```
 6. Local file cache: also create the local todo file for offline access
 7. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: capture todo - ${TITLE}" --files .planning/todos/pending/${date}-${slug}.md`
 8. Confirm: "Saved: ${TITLE} (priority: ${PRIORITY}) — GitHub Issue #{number}"
@@ -684,7 +688,11 @@ Exit after confirm.
 If user references an existing todo to complete:
 
 1. Parse identifier (number from list, or title fragment)
-2. Close the corresponding GitHub Issue (primary): call `mcp_close_issue` with the todo's issue number
+2. Close the corresponding GitHub Issue (primary): run `github close-issue` with the todo's issue number
+
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github close-issue N
+   ```
 3. Move local cache file: `mv ".planning/todos/pending/[filename]" ".planning/todos/done/"`
 4. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: complete todo - ${TITLE}" --files .planning/todos/done/${filename}`
 5. Confirm: "Completed: ${TITLE} — GitHub Issue closed"

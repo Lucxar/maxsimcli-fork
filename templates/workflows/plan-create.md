@@ -28,8 +28,8 @@ CHECKER_MODEL=$(node .claude/maxsim/bin/maxsim-tools.cjs resolve-model planner -
 ## Step 3: Check Existing Plans
 
 Query the phase GitHub Issue for existing plan comments:
-```
-mcp_get_issue_detail(issue_number={phase_issue_number})
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Look for comments that contain `<!-- maxsim:type=plan -->`.
@@ -295,12 +295,13 @@ After verification passes (or is skipped), post each plan as a separate comment 
 
 For each plan in `plans_content`:
 
-```
-mcp_post_plan_comment(
-  phase_issue_number={phase_issue_number},
-  plan_number={plan_number},  // e.g. "01", "02"
-  plan_content="<!-- maxsim:type=plan -->\n" + {plan_content}
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+<!-- maxsim:type=plan -->
+{plan_content}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-plan-comment --phase-issue-number $PHASE_ISSUE_NUMBER --plan-number "{plan_number}" --plan-content-file "$TMPFILE"
 ```
 
 If posting any plan comment fails:
@@ -320,16 +321,10 @@ Parse tasks from the posted plans. For each `<task>` element in the plan XML, ex
 - `title`
 - `description` / body content
 
-Call `mcp_batch_create_tasks` with the full tasks array and the phase issue number:
+Run `github batch-create-tasks` with the full tasks array and the phase issue number:
 
-```
-mcp_batch_create_tasks(
-  phase_issue_number={phase_issue_number},
-  tasks=[
-    { id: "1.1", title: "Task title", description: "Task body" },
-    ...
-  ]
-)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github batch-create-tasks --phase-number "$PHASE_NUMBER" --parent-issue-number $PHASE_ISSUE_NUMBER --tasks-json '[{"id":"1.1","title":"Task title","description":"Task body"}, ...]'
 ```
 
 Each task becomes a GitHub sub-issue linked to the phase issue.
@@ -348,11 +343,8 @@ Task sub-issues created: {task_count} tasks linked to Issue #{phase_issue_number
 
 After all plans are posted and task sub-issues are created, move the phase issue to "In Progress" on the project board:
 
-```
-mcp_move_issue(
-  issue_number={phase_issue_number},
-  status="In Progress"
-)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $PHASE_ISSUE_NUMBER --status "In Progress"
 ```
 
 Display:
@@ -379,8 +371,8 @@ Planning complete. {plan_count} plan(s) posted to GitHub Issue #{phase_issue_num
 - Checker verification loop runs (max 3 iterations) unless --skip-verify
 - Revision loop passes in-memory plan content to planner for targeted fixes
 - Plans posted to GitHub Issue #{phase_issue_number} as comments with <!-- maxsim:type=plan --> markers
-- Task sub-issues created via mcp_batch_create_tasks linked to phase issue
-- Phase issue moved to "In Progress" via mcp_move_issue
+- Task sub-issues created via `github batch-create-tasks` linked to phase issue
+- Phase issue moved to "In Progress" via `github move-issue`
 - Failed task creation surfaced with retry option (WIRE-07)
 - Control returned to orchestrator without showing gate or next steps
 </success_criteria>

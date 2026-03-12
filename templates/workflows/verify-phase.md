@@ -47,7 +47,11 @@ grep -E "^| ${phase_number}" .planning/REQUIREMENTS.md 2>/dev/null
 
 **Get the phase issue number from GitHub (live):**
 
-Call `mcp_get_all_progress` and find the entry where `phase_number` matches. Extract `issue_number` — this is used for posting all verification results as GitHub comments.
+Run `github all-progress` and find the entry where `phase_number` matches. Extract `issue_number` — this is used for posting all verification results as GitHub comments.
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github all-progress
+```
 
 Extract **phase goal** from ROADMAP.md (the outcome to verify, not tasks) and **requirements** from REQUIREMENTS.md if it exists.
 </step>
@@ -218,40 +222,44 @@ If gaps_found:
 <step name="post_verification_to_github">
 **Post verification results as a GitHub comment (primary output — no local file written).**
 
-Build the verification content in memory using the same structured format as the verification report template. Then call `mcp_post_comment` with `type: 'verification'` on the phase issue:
+Build the verification content in memory using the same structured format as the verification report template. Then run `github post-comment` with `type: 'verification'` on the phase issue.
 
-```
-mcp_post_comment({
-  issue_number: {PHASE_ISSUE_NUMBER},
-  type: 'verification',
-  body: {
-    status: 'passed' | 'gaps_found' | 'human_needed',
-    score: '{verified}/{total}',
-    phase: '{phase_number} — {phase_name}',
-    timestamp: '{ISO timestamp}',
-    truths_checked: [
-      { truth: '...', status: 'VERIFIED | FAILED | UNCERTAIN', evidence: '...' }
-    ],
-    artifacts_verified: [
-      { path: '...', exists: true/false, substantive: true/false, wired: true/false, status: 'VERIFIED | STUB | MISSING | ORPHANED' }
-    ],
-    key_links_validated: [
-      { from: '...', to: '...', via: '...', status: 'WIRED | PARTIAL | NOT_WIRED' }
-    ],
-    antipatterns: [
-      { file: '...', line: N, pattern: '...', severity: 'Blocker | Warning | Info' }
-    ],
-    human_verification_items: [
-      { name: '...', steps: '...', expected: '...', reason: '...' }
-    ],
-    gaps: [
-      { description: '...', fix_plan: '...' }
-    ],
-    fix_plans: [
-      { name: '...', objective: '...', tasks: ['...'] }
-    ]
-  }
-})
+Write the body content to a tmpfile first, then post:
+
+```bash
+# Write body to tmpfile (JSON with status, score, phase, timestamp, truths_checked, artifacts_verified, etc.)
+BODY_FILE=$(mktemp)
+cat > "$BODY_FILE" << 'VERIFICATION_EOF'
+{
+  "status": "passed | gaps_found | human_needed",
+  "score": "{verified}/{total}",
+  "phase": "{phase_number} — {phase_name}",
+  "timestamp": "{ISO timestamp}",
+  "truths_checked": [
+    { "truth": "...", "status": "VERIFIED | FAILED | UNCERTAIN", "evidence": "..." }
+  ],
+  "artifacts_verified": [
+    { "path": "...", "exists": true, "substantive": true, "wired": true, "status": "VERIFIED | STUB | MISSING | ORPHANED" }
+  ],
+  "key_links_validated": [
+    { "from": "...", "to": "...", "via": "...", "status": "WIRED | PARTIAL | NOT_WIRED" }
+  ],
+  "antipatterns": [
+    { "file": "...", "line": 0, "pattern": "...", "severity": "Blocker | Warning | Info" }
+  ],
+  "human_verification_items": [
+    { "name": "...", "steps": "...", "expected": "...", "reason": "..." }
+  ],
+  "gaps": [
+    { "description": "...", "fix_plan": "..." }
+  ],
+  "fix_plans": [
+    { "name": "...", "objective": "...", "tasks": ["..."] }
+  ]
+}
+VERIFICATION_EOF
+
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number {PHASE_ISSUE_NUMBER} --body-file "$BODY_FILE" --type verification
 ```
 
 The comment is the canonical record of this verification run.
@@ -262,24 +270,26 @@ The comment is the canonical record of this verification run.
 
 Present the human verification items to the user and walk through each one. After the user completes UAT:
 
-Build the UAT results in memory, then post as a GitHub comment by calling `mcp_post_comment` with `type: 'uat'` on the phase issue:
+Build the UAT results in memory, then post as a GitHub comment by running `github post-comment` with `type: 'uat'` on the phase issue:
 
-```
-mcp_post_comment({
-  issue_number: {PHASE_ISSUE_NUMBER},
-  type: 'uat',
-  body: {
-    status: 'passed' | 'gaps_found',
-    phase: '{phase_number} — {phase_name}',
-    timestamp: '{ISO timestamp}',
-    items: [
-      { name: '...', result: 'pass | fail', notes: '...' }
-    ],
-    gaps: [
-      { description: '...', severity: 'Blocker | Warning' }
-    ]
-  }
-})
+```bash
+# Write UAT body to tmpfile
+UAT_FILE=$(mktemp)
+cat > "$UAT_FILE" << 'UAT_EOF'
+{
+  "status": "passed | gaps_found",
+  "phase": "{phase_number} — {phase_name}",
+  "timestamp": "{ISO timestamp}",
+  "items": [
+    { "name": "...", "result": "pass | fail", "notes": "..." }
+  ],
+  "gaps": [
+    { "description": "...", "severity": "Blocker | Warning" }
+  ]
+}
+UAT_EOF
+
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number {PHASE_ISSUE_NUMBER} --body-file "$UAT_FILE" --type uat
 ```
 
 Do NOT write a UAT.md file to `.planning/phases/`.
@@ -289,9 +299,14 @@ Do NOT write a UAT.md file to `.planning/phases/`.
 **Update GitHub board based on verification outcome.**
 
 **If verification passes AND PR is merged:**
-1. Call `mcp_move_issue` to move the phase issue to the "Done" column on the board
-2. Call `mcp_close_issue` to close the phase issue
+1. Run `github move-issue` to move the phase issue to the "Done" column on the board
+2. Run `github close-issue` to close the phase issue
 3. Report to orchestrator: phase complete, issue closed
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --project-number P --item-id ID --status "Done"
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github close-issue N
+```
 
 **If verification passes but PR not yet merged:**
 1. Keep the phase issue in "In Review" on the board
@@ -299,9 +314,13 @@ Do NOT write a UAT.md file to `.planning/phases/`.
 
 **If verification fails (gaps_found):**
 1. Check current board column for the phase issue
-2. If in "In Review": call `mcp_move_issue` to move back to "In Progress"
+2. If in "In Review": run `github move-issue` to move back to "In Progress"
 3. Post failure details as a verification comment (already done in post_verification_to_github step)
 4. Note which gaps need fixing before re-verification
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --project-number P --item-id ID --status "In Progress"
+```
 
 **If human_needed:**
 1. Keep the phase issue in its current column (do not move)
@@ -321,7 +340,7 @@ Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execu
 </process>
 
 <success_criteria>
-- [ ] Phase issue number retrieved from live GitHub via mcp_get_all_progress
+- [ ] Phase issue number retrieved from live GitHub via `github all-progress`
 - [ ] Must-haves established (from frontmatter or derived)
 - [ ] All truths verified with status and evidence
 - [ ] All artifacts checked at all three levels
@@ -331,9 +350,9 @@ Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execu
 - [ ] Human verification items identified
 - [ ] Overall status determined
 - [ ] Fix plans generated (if gaps_found)
-- [ ] Verification results posted as GitHub comment via mcp_post_comment (type: 'verification') — NO local VERIFICATION.md written
-- [ ] UAT results posted as GitHub comment via mcp_post_comment (type: 'uat') — NO local UAT.md written
-- [ ] Board transition executed: mcp_move_issue + mcp_close_issue on pass; mcp_move_issue back to In Progress on fail
+- [ ] Verification results posted as GitHub comment via `github post-comment` (type: 'verification') — NO local VERIFICATION.md written
+- [ ] UAT results posted as GitHub comment via `github post-comment` (type: 'uat') — NO local UAT.md written
+- [ ] Board transition executed: `github move-issue` + `github close-issue` on pass; `github move-issue` back to In Progress on fail
 - [ ] Results returned to orchestrator
 </success_criteria>
 </output>

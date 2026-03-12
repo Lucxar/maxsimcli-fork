@@ -108,16 +108,16 @@ Parse init context for `has_github_remote` and `gh_authenticated`:
      ```
    - Do NOT proceed with initialization.
 
-3. Both checks passed — call `mcp_github_setup` with the project name as the milestone title:
-   ```
-   mcp_github_setup({ milestone_title: "[project name]" })
+3. Both checks passed — run `github setup` with the project name as the milestone title:
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github setup --milestone-title "[project name]"
    ```
 
-4. If `mcp_github_setup` fails:
+4. If `github setup` fails:
    - STOP with the error message returned by the tool.
    - Do not fall back to local-only mode.
 
-5. Record the `project_number` and board details returned by `mcp_github_setup` for use in the Phase Issue Creation step.
+5. Record the `project_number` and board details returned by `github setup` for use in the Phase Issue Creation step.
 
 ## Step 2: Conflict Resolution
 
@@ -1174,15 +1174,12 @@ Display banner:
    - `requirements` (list of REQ-IDs mapped to this phase)
    - `success_criteria` (list of observable outcomes)
 
-2. For each phase, call `mcp_create_phase_issue`:
-   ```
-   mcp_create_phase_issue({
-     phase_number: "[phase_number]",
-     phase_name: "[phase_name]",
-     goal: "[goal]",
-     requirements: ["REQ-01", "REQ-02", ...],
-     success_criteria: ["criterion 1", "criterion 2", ...]
-   })
+2. For each phase, run `github create-phase`:
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github create-phase \
+     --phase-number "[phase_number]" \
+     --phase-name "[phase_name]" \
+     --goal "[goal]"
    ```
    The tool auto-adds each issue to the project board with "To Do" status.
 
@@ -1457,7 +1454,7 @@ Print next steps:
 - [ ] Git repo initialized (if not already)
 - [ ] GitHub remote detected (gate passed)
 - [ ] GitHub CLI authenticated (gate passed)
-- [ ] `mcp_github_setup` called successfully — project_number recorded
+- [ ] `github setup` called successfully — project_number recorded
 - [ ] Conflict detection completed (merge/overwrite/cancel dialog)
 - [ ] Codebase scan completed (4 mapper agents spawned)
 - [ ] README validated against scan findings
@@ -1469,7 +1466,7 @@ Print next steps:
 - [ ] PROJECT.md created with brownfield extra sections
 - [ ] REQUIREMENTS.md created with stage-aware format
 - [ ] ROADMAP.md created with 3-5 concrete phases (no TBD)
-- [ ] `mcp_create_phase_issue` called for every phase — all issues on board with "To Do" status
+- [ ] `github create-phase` called for every phase — all issues on board with "To Do" status
 - [ ] STATE.md created with pre-populated decisions and blockers
 - [ ] config.json created with workflow settings
 - [ ] .planning/codebase/ populated with scan documents

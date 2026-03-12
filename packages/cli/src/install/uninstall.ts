@@ -143,6 +143,42 @@ export function uninstall(isGlobal: boolean, explicitConfigDir: string | null = 
     }
   }
 
+  // 5b. Remove MAXSIM MCP entry from .mcp.json
+  const mcpJsonPath = path.join(process.cwd(), '.mcp.json');
+  if (fs.existsSync(mcpJsonPath)) {
+    try {
+      const mcpConfig = JSON.parse(fs.readFileSync(mcpJsonPath, 'utf-8'));
+      const mcpServers = mcpConfig.mcpServers as Record<string, unknown> | undefined;
+      if (mcpServers && mcpServers['maxsim']) {
+        delete mcpServers['maxsim'];
+        if (Object.keys(mcpServers).length === 0) {
+          delete mcpConfig.mcpServers;
+        }
+        if (Object.keys(mcpConfig).length === 0) {
+          fs.unlinkSync(mcpJsonPath);
+        } else {
+          fs.writeFileSync(mcpJsonPath, JSON.stringify(mcpConfig, null, 2) + '\n', 'utf-8');
+        }
+        removedCount++;
+        console.log(
+          `  ${chalk.green('\u2713')} Removed MAXSIM MCP entry from .mcp.json`,
+        );
+      }
+    } catch {
+      // .mcp.json is corrupted or unreadable — skip silently
+    }
+  }
+
+  // 5c. Remove old mcp-server.cjs binary
+  const mcpBinPath = path.join(targetDir, 'maxsim', 'bin', 'mcp-server.cjs');
+  if (fs.existsSync(mcpBinPath)) {
+    fs.unlinkSync(mcpBinPath);
+    removedCount++;
+    console.log(
+      `  ${chalk.green('\u2713')} Removed mcp-server.cjs binary`,
+    );
+  }
+
   // 6. Clean up settings.json
   const settingsPath = path.join(targetDir, 'settings.json');
   if (fs.existsSync(settingsPath)) {

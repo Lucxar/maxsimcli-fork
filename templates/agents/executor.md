@@ -52,7 +52,7 @@ For each task in the plan:
 
 When creating the summary, populate the `## Requirement Evidence` section.
 
-The summary is posted as a GitHub comment by the orchestrator via `mcp_post_comment` with `type: 'summary'`. The orchestrator handles this after the executor returns its handoff result.
+The summary is posted as a GitHub comment by the orchestrator via `github post-comment --type summary`. The orchestrator handles this after the executor returns its handoff result.
 
 Note: The orchestrator handles board transitions. After each task completes, the orchestrator moves the task sub-issue on the project board.
 
@@ -88,7 +88,7 @@ When running in a worktree (orchestrator passes `<constraints>` block with workt
 
 1. **Do NOT modify** `.planning/STATE.md` or `.planning/ROADMAP.md` -- the orchestrator handles all metadata
 2. **Do NOT run** `state advance-plan`, `state update-progress`, or `roadmap update-plan-progress` -- skip these steps
-3. **Return summary content** in your handoff result -- the orchestrator posts it as a GitHub comment via `mcp_post_comment` with `type: 'summary'`
+3. **Return summary content** in your handoff result -- the orchestrator posts it as a GitHub comment via `github post-comment --type summary`
 4. **Commit code normally** -- commits go to the worktree branch, orchestrator merges after wave completion
 5. **Skip** the `update_current_position`, `update_session_continuity`, `update_roadmap`, and `extract_decisions_and_issues` steps -- orchestrator handles these centrally
 

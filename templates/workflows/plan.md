@@ -45,9 +45,9 @@ Detect planning stage by querying the phase GitHub Issue:
 
 1. Get `phase_issue_number` from the init context parsed above.
 2. **If no `phase_issue_number` exists:** The phase has not been set up on GitHub yet.
-   - Call `mcp_create_phase_issue` to create the issue (uses roadmap data).
+   - Run `node ~/.claude/maxsim/bin/maxsim-tools.cjs github create-phase --phase-number "$PHASE_NUMBER" --phase-name "$PHASE_NAME" --goal "$GOAL" --requirements "$REQUIREMENTS" --success-criteria "$SUCCESS_CRITERIA"` to create the issue (uses roadmap data).
    - Store the returned issue number as `phase_issue_number`.
-3. Call `mcp_get_issue_detail` with `phase_issue_number` to read the phase issue body and comments.
+3. Run `node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments` to read the phase issue body and comments.
 4. Check issue comments for existing artifacts using HTML marker comments:
    - Has a comment containing `<!-- maxsim:type=context -->`? → Discussion stage complete
    - Has a comment containing `<!-- maxsim:type=research -->`? → Research stage complete
@@ -104,8 +104,8 @@ Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_
 **After discussion completes (context posted as GitHub comment):**
 
 Re-query the phase issue to verify the `type=context` comment now exists:
-```
-mcp_get_issue_detail(issue_number={phase_issue_number})
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Show gate:
@@ -139,8 +139,8 @@ Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_
 **After research completes (research posted as GitHub comment or already exists):**
 
 Re-query the phase issue to verify the `type=research` comment now exists:
-```
-mcp_get_issue_detail(issue_number={phase_issue_number})
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Show gate:
@@ -171,8 +171,8 @@ Pass context: `phase_number`, `phase_name`, `phase_dir`, `padded_phase`, `phase_
 **After planning completes (plans posted as GitHub comments and task sub-issues created):**
 
 Re-query the phase issue to verify `type=plan` comments exist:
-```
-mcp_get_issue_detail(issue_number={phase_issue_number})
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Show final gate:
@@ -200,12 +200,19 @@ At any point during the workflow, if context is getting full (conversation is lo
 
 **Checkpoint protocol:**
 1. Post a checkpoint comment to the phase's GitHub Issue:
-```
-mcp_post_comment(
-  issue_number={phase_issue_number},
-  type="checkpoint",
-  content="## MAXSIM Checkpoint\n\n**Command:** /maxsim:plan\n**Stage:** {current_stage} ({stage_num}/3)\n**Completed:**\n{list of completed stages with summaries}\n**Resume from:** {next_stage}\n**Timestamp:** {ISO timestamp}"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## MAXSIM Checkpoint
+
+**Command:** /maxsim:plan
+**Stage:** {current_stage} ({stage_num}/3)
+**Completed:**
+{list of completed stages with summaries}
+**Resume from:** {next_stage}
+**Timestamp:** {ISO timestamp}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type checkpoint
 ```
 
 2. Display checkpoint recommendation:

@@ -100,16 +100,16 @@ Parse init context for `has_github_remote` and `gh_authenticated`:
      ```
    - Do NOT proceed with project setup.
 
-3. Both checks passed — call `mcp_github_setup` with the project name as the milestone title:
-   ```
-   mcp_github_setup({ milestone_title: "[project name]" })
+3. Both checks passed — run `github setup` with the project name as the milestone title:
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github setup --milestone-title "[project name]"
    ```
 
-4. If `mcp_github_setup` fails:
+4. If `github setup` fails:
    - STOP with the error message returned by the tool.
    - Do not fall back to local-only mode.
 
-5. Record the `project_number` and board details returned by `mcp_github_setup` for use in the Phase Issue Creation step.
+5. Record the `project_number` and board details returned by `github setup` for use in the Phase Issue Creation step.
 
 ## 2. Brownfield Offer
 
@@ -1318,15 +1318,12 @@ Display banner:
    - `requirements` (list of REQ-IDs mapped to this phase)
    - `success_criteria` (list of observable outcomes)
 
-2. For each phase, call `mcp_create_phase_issue`:
-   ```
-   mcp_create_phase_issue({
-     phase_number: "[phase_number]",
-     phase_name: "[phase_name]",
-     goal: "[goal]",
-     requirements: ["REQ-01", "REQ-02", ...],
-     success_criteria: ["criterion 1", "criterion 2", ...]
-   })
+2. For each phase, run `github create-phase`:
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github create-phase \
+     --phase-number "[phase_number]" \
+     --phase-name "[phase_name]" \
+     --goal "[goal]"
    ```
    The tool auto-adds each issue to the project board with "To Do" status.
 
@@ -1487,7 +1484,7 @@ Exit skill and invoke SlashCommand("/maxsim:plan 1 --auto")
 - [ ] REQUIREMENTS.md created with REQ-IDs → **committed**
 - [ ] GitHub remote detected (gate passed)
 - [ ] GitHub CLI authenticated (gate passed)
-- [ ] `mcp_github_setup` called successfully — project_number recorded
+- [ ] `github setup` called successfully — project_number recorded
 - [ ] planner (roadmap mode) spawned with context
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
@@ -1496,7 +1493,7 @@ Exit skill and invoke SlashCommand("/maxsim:plan 1 --auto")
 - [ ] REQUIREMENTS.md traceability updated
 - [ ] CONVENTIONS.md generated with 4 must-have sections (Tech Stack, File Layout, Error Handling, Testing)
 - [ ] NO-GOS.md populated from confirmed no-gos during questioning
-- [ ] `mcp_create_phase_issue` called for every phase — all issues on board with "To Do" status
+- [ ] `github create-phase` called for every phase — all issues on board with "To Do" status
 - [ ] Agent dry-run validation passed (Quality Score >= 7)
 - [ ] User knows next step is `/maxsim:plan 1`
 

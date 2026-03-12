@@ -337,17 +337,14 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: create milestone v[X.Y]
 
 **This step is MANDATORY — GitHub Issues are the single source of truth for phase tracking.**
 
-For each phase in the roadmap, call `mcp_create_phase_issue` to create a tracking issue:
+For each phase in the roadmap, run `github create-phase` to create a tracking issue:
 
-```
-For each phase:
-  mcp_create_phase_issue({
-    phase_number: "[N]",
-    title: "[Phase Name]",
-    goal: "[Phase Goal from ROADMAP.md]",
-    requirements: ["REQ-01", "REQ-02", ...],
-    success_criteria: ["criterion 1", "criterion 2", ...]
-  })
+```bash
+# For each phase:
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github create-phase \
+  --phase-number "[N]" \
+  --phase-name "[Phase Name]" \
+  --goal "[Phase Goal from ROADMAP.md]"
 ```
 
 Track results. If any phase issue creation fails, warn and suggest manual creation.
@@ -399,7 +396,7 @@ Also: `/maxsim:plan [N]` — skip discussion, plan directly
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
 - [ ] ROADMAP.md phases continue from previous milestone
-- [ ] `mcp_create_phase_issue` called for every phase — all issues on GitHub board
+- [ ] `github create-phase` called for every phase — all issues on GitHub board
 - [ ] All commits made (if planning docs committed)
 - [ ] User knows next step: `/maxsim:plan [N]`
 

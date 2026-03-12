@@ -356,61 +356,38 @@ async function install(): Promise<InstallResult> {
     failures.push('maxsim-tools.cjs');
   }
 
-  // Install mcp-server.cjs
-  const mcpSrc = path.resolve(__dirname, 'mcp-server.cjs');
-  const mcpDest = path.join(binDir, 'mcp-server.cjs');
-  if (fs.existsSync(mcpSrc)) {
-    fs.mkdirSync(binDir, { recursive: true });
-    fs.copyFileSync(mcpSrc, mcpDest);
-    console.log(`  ${chalk.green('\u2713')} Installed mcp-server.cjs`);
-  } else {
-    console.warn(`  ${chalk.yellow('!')} mcp-server.cjs not found -- MCP server not installed`);
-  }
-
   // Install hooks (always local mode)
   installHookFiles(targetDir, failures);
 
-  // Write .mcp.json for Claude Code MCP server auto-discovery
+  // Migrate: Remove MAXSIM MCP entry from .mcp.json (no longer needed)
   const mcpJsonPath = path.join(process.cwd(), '.mcp.json');
-  let mcpConfig: Record<string, unknown> = {};
-  let skipMcpConfig = false;
-
   if (fs.existsSync(mcpJsonPath)) {
-    // Back up existing .mcp.json before modification
-    fs.copyFileSync(mcpJsonPath, mcpJsonPath + '.bak');
-
     try {
-      mcpConfig = JSON.parse(fs.readFileSync(mcpJsonPath, 'utf-8'));
+      const mcpConfig = JSON.parse(fs.readFileSync(mcpJsonPath, 'utf-8'));
+      const mcpServers = mcpConfig.mcpServers as Record<string, unknown> | undefined;
+      if (mcpServers && mcpServers['maxsim']) {
+        delete mcpServers['maxsim'];
+        if (Object.keys(mcpServers).length === 0) {
+          delete mcpConfig.mcpServers;
+        }
+        if (Object.keys(mcpConfig).length === 0) {
+          fs.unlinkSync(mcpJsonPath);
+          console.log(`  ${chalk.green('\u2713')} Removed .mcp.json (no remaining MCP servers)`);
+        } else {
+          fs.writeFileSync(mcpJsonPath, JSON.stringify(mcpConfig, null, 2) + '\n', 'utf-8');
+          console.log(`  ${chalk.green('\u2713')} Removed MAXSIM MCP entry from .mcp.json`);
+        }
+      }
     } catch {
-      // Corrupted .mcp.json -- warn user
-      console.warn(`  ${chalk.yellow('!')} .mcp.json is corrupted (invalid JSON). Backup saved to .mcp.json.bak`);
-      let startFresh = true;
-      try {
-        startFresh = await confirm({
-          message: '.mcp.json is corrupted. Start with a fresh config? (No = abort MCP setup)',
-          default: true,
-        });
-      } catch {
-        // Non-interactive -- default to starting fresh
-      }
-      if (!startFresh) {
-        console.log(`  ${chalk.yellow('!')} Skipping .mcp.json configuration`);
-        skipMcpConfig = true;
-      }
+      // .mcp.json is corrupted or unreadable — skip cleanup silently
     }
   }
 
-  if (!skipMcpConfig) {
-    const mcpServers = (mcpConfig.mcpServers as Record<string, unknown>) ?? {};
-    mcpServers['maxsim'] = {
-      command: 'node',
-      args: ['.claude/maxsim/bin/mcp-server.cjs'],
-      env: {},
-    };
-    mcpConfig.mcpServers = mcpServers;
-
-    fs.writeFileSync(mcpJsonPath, JSON.stringify(mcpConfig, null, 2) + '\n', 'utf-8');
-    console.log(`  ${chalk.green('\u2713')} Configured .mcp.json for MCP server auto-discovery`);
+  // Clean up old mcp-server.cjs if it exists from a previous install
+  const oldMcpBin = path.join(binDir, 'mcp-server.cjs');
+  if (fs.existsSync(oldMcpBin)) {
+    fs.unlinkSync(oldMcpBin);
+    console.log(`  ${chalk.green('\u2713')} Removed legacy mcp-server.cjs`);
   }
 
   if (failures.length > 0) {

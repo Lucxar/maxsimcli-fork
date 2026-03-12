@@ -6,9 +6,37 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { spawn } from 'node:child_process';
-
 import type { TimestampFormat, CmdResult } from './core/index.js';
+
+import {
+  cmdGitHubSetup,
+  cmdGitHubCreatePhase,
+  cmdGitHubCreateTask,
+  cmdGitHubBatchCreateTasks,
+  cmdGitHubPostPlanComment,
+  cmdGitHubPostComment,
+  cmdGitHubPostCompletion,
+  cmdGitHubGetIssue,
+  cmdGitHubListSubIssues,
+  cmdGitHubCloseIssue,
+  cmdGitHubReopenIssue,
+  cmdGitHubBounceIssue,
+  cmdGitHubMoveIssue,
+  cmdGitHubDetectExternalEdits,
+  cmdGitHubQueryBoard,
+  cmdGitHubAddToBoard,
+  cmdGitHubSearchIssues,
+  cmdGitHubSyncCheck,
+  cmdGitHubPhaseProgress,
+  cmdGitHubAllProgress,
+  cmdGitHubDetectInterrupted,
+  cmdGitHubAddTodo,
+  cmdGitHubCompleteTodo,
+  cmdGitHubListTodos,
+  cmdGitHubStatus,
+  cmdGitHubSync,
+  cmdGitHubOverview,
+} from './github/commands.js';
 
 import {
   output,
@@ -389,6 +417,202 @@ const handleInit: Handler = async (args, cwd, raw) => {
   error(`Unknown init workflow: ${workflow}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, init-existing, progress, executor, planner, researcher, verifier, debugger, check-drift, realign`);
 };
 
+const handleGitHub: Handler = async (args, cwd, raw) => {
+  const sub = args[1];
+
+  /**
+   * Read content from --flag or --flag-file variant.
+   * If --flag-file is provided, read file contents. Otherwise use --flag value.
+   */
+  const getFlagOrFile = (flagName: string): string | null => {
+    const direct = getFlag(args, `--${flagName}`);
+    if (direct !== null) return direct;
+    const filePath = getFlag(args, `--${flagName}-file`);
+    if (filePath) {
+      return fs.readFileSync(filePath, 'utf-8');
+    }
+    return null;
+  };
+
+  const handlers: Record<string, () => CmdResult | Promise<CmdResult>> = {
+    'setup': () => cmdGitHubSetup(cwd, getFlag(args, '--milestone-title')),
+    'create-phase': () => {
+      const f = getFlags(args, 'phase-number', 'phase-name', 'goal', 'requirements', 'success-criteria');
+      return cmdGitHubCreatePhase(cwd,
+        f['phase-number'] ?? '',
+        f['phase-name'] ?? '',
+        f.goal ?? '',
+        f.requirements ? f.requirements.split(',') : [],
+        f['success-criteria'] ? f['success-criteria'].split(',') : [],
+      );
+    },
+    'create-task': () => {
+      const f = getFlags(args, 'phase-number', 'task-id', 'title', 'parent-issue-number');
+      const body = getFlagOrFile('body') ?? '';
+      return cmdGitHubCreateTask(cwd,
+        f['phase-number'] ?? '',
+        f['task-id'] ?? '',
+        f.title ?? '',
+        body,
+        parseInt(f['parent-issue-number'] ?? '0', 10),
+      );
+    },
+    'batch-create-tasks': () => {
+      const f = getFlags(args, 'phase-number', 'parent-issue-number', 'tasks');
+      const tasksFile = getFlag(args, '--tasks-file');
+      let tasksJson: Array<{ task_id: string; title: string; body: string }>;
+      if (tasksFile) {
+        tasksJson = JSON.parse(fs.readFileSync(tasksFile, 'utf-8'));
+      } else {
+        tasksJson = JSON.parse(f.tasks ?? '[]');
+      }
+      return cmdGitHubBatchCreateTasks(cwd,
+        f['phase-number'] ?? '',
+        parseInt(f['parent-issue-number'] ?? '0', 10),
+        tasksJson,
+      );
+    },
+    'post-plan-comment': () => {
+      const f = getFlags(args, 'phase-issue-number', 'plan-number');
+      const planContent = getFlagOrFile('plan-content') ?? '';
+      return cmdGitHubPostPlanComment(
+        parseInt(f['phase-issue-number'] ?? '0', 10),
+        f['plan-number'] ?? '',
+        planContent,
+      );
+    },
+    'post-comment': () => {
+      const f = getFlags(args, 'issue-number', 'type');
+      const body = getFlagOrFile('body') ?? '';
+      return cmdGitHubPostComment(
+        parseInt(f['issue-number'] ?? '0', 10),
+        body,
+        f.type,
+      );
+    },
+    'post-completion': () => {
+      const f = getFlags(args, 'issue-number', 'commit-sha', 'files-changed');
+      const files = f['files-changed'] ? f['files-changed'].split(',') : [];
+      return cmdGitHubPostCompletion(
+        parseInt(f['issue-number'] ?? '0', 10),
+        f['commit-sha'] ?? '',
+        files,
+      );
+    },
+    'get-issue': () => {
+      const f = getFlags(args, 'issue-number');
+      return cmdGitHubGetIssue(
+        parseInt(f['issue-number'] ?? '0', 10),
+        hasFlag(args, 'include-comments'),
+      );
+    },
+    'list-sub-issues': () => {
+      const f = getFlags(args, 'phase-issue-number');
+      return cmdGitHubListSubIssues(
+        parseInt(f['phase-issue-number'] ?? '0', 10),
+      );
+    },
+    'close-issue': () => {
+      const f = getFlags(args, 'issue-number', 'reason', 'state-reason');
+      return cmdGitHubCloseIssue(
+        parseInt(f['issue-number'] ?? '0', 10),
+        f.reason,
+        f['state-reason'],
+      );
+    },
+    'reopen-issue': () => {
+      const f = getFlags(args, 'issue-number');
+      return cmdGitHubReopenIssue(
+        parseInt(f['issue-number'] ?? '0', 10),
+      );
+    },
+    'bounce-issue': () => {
+      const f = getFlags(args, 'issue-number');
+      const reason = getFlagOrFile('reason') ?? '';
+      return cmdGitHubBounceIssue(cwd,
+        parseInt(f['issue-number'] ?? '0', 10),
+        reason,
+      );
+    },
+    'move-issue': () => {
+      const f = getFlags(args, 'project-number', 'item-id', 'status');
+      return cmdGitHubMoveIssue(
+        parseInt(f['project-number'] ?? '0', 10),
+        f['item-id'] ?? '',
+        f.status ?? '',
+      );
+    },
+    'detect-external-edits': () => {
+      const f = getFlags(args, 'phase-number');
+      return cmdGitHubDetectExternalEdits(cwd, f['phase-number'] ?? '');
+    },
+    'query-board': () => {
+      const f = getFlags(args, 'project-number', 'status', 'phase');
+      return cmdGitHubQueryBoard(
+        parseInt(f['project-number'] ?? '0', 10),
+        f.status,
+        f.phase,
+      );
+    },
+    'add-to-board': () => {
+      const f = getFlags(args, 'project-number', 'issue-number');
+      return cmdGitHubAddToBoard(
+        parseInt(f['project-number'] ?? '0', 10),
+        parseInt(f['issue-number'] ?? '0', 10),
+      );
+    },
+    'search-issues': () => {
+      const f = getFlags(args, 'labels', 'state', 'query');
+      return cmdGitHubSearchIssues(
+        f.labels ? f.labels.split(',') : null,
+        f.state,
+        f.query,
+      );
+    },
+    'sync-check': () => cmdGitHubSyncCheck(cwd),
+    'phase-progress': () => {
+      const f = getFlags(args, 'phase-issue-number');
+      return cmdGitHubPhaseProgress(
+        parseInt(f['phase-issue-number'] ?? '0', 10),
+      );
+    },
+    'all-progress': () => cmdGitHubAllProgress(),
+    'detect-interrupted': () => {
+      const f = getFlags(args, 'phase-issue-number');
+      return cmdGitHubDetectInterrupted(
+        parseInt(f['phase-issue-number'] ?? '0', 10),
+      );
+    },
+    'add-todo': () => {
+      const f = getFlags(args, 'title', 'description', 'area', 'phase');
+      return cmdGitHubAddTodo(cwd,
+        f.title ?? '',
+        f.description,
+        f.area,
+        f.phase,
+      );
+    },
+    'complete-todo': () => {
+      const f = getFlags(args, 'todo-id', 'github-issue-number');
+      return cmdGitHubCompleteTodo(cwd,
+        f['todo-id'] ?? '',
+        f['github-issue-number'] ? parseInt(f['github-issue-number'], 10) : null,
+      );
+    },
+    'list-todos': () => {
+      const f = getFlags(args, 'area', 'status');
+      return cmdGitHubListTodos(cwd, f.area, f.status);
+    },
+    'status': () => cmdGitHubStatus(cwd),
+    'sync': () => cmdGitHubSync(cwd),
+    'overview': () => cmdGitHubOverview(cwd),
+  };
+
+  const handler = sub ? handlers[sub] : undefined;
+  if (handler) return handleResult(await handler(), raw);
+  error(`Unknown github subcommand: ${sub ?? '(none)'}\nAvailable: ${Object.keys(handlers).join(', ')}`);
+};
+
 // ─── Command registry ────────────────────────────────────────────────────────
 
 const COMMANDS: Record<string, Handler> = {
@@ -443,6 +667,7 @@ const COMMANDS: Record<string, Handler> = {
     handleResult(await cmdScaffold(cwd, args[1], { phase: f.phase, name: f.name ? args.slice(args.indexOf('--name') + 1).join(' ') : null }, raw), raw);
   },
   'init': handleInit,
+  'github': handleGitHub,
   'detect-stale-context': async (_args, cwd, raw) => handleResult(await cmdDetectStaleContext(cwd), raw),
   'get-archived-phase': async (args, cwd, raw) => handleResult(await cmdGetArchivedPhase(cwd, args[1]), raw),
   'phase-plan-index': async (args, cwd, raw) => handleResult(await cmdPhasePlanIndex(cwd, args[1]), raw),
@@ -467,11 +692,6 @@ const COMMANDS: Record<string, Handler> = {
   'skill-list': async (_args, cwd, raw) => handleResult(await cmdSkillList(cwd), raw),
   'skill-install': (args, cwd, raw) => handleResult(cmdSkillInstall(cwd, args[1]), raw),
   'skill-update': (args, cwd, raw) => handleResult(cmdSkillUpdate(cwd, args[1]), raw),
-  'start-server': async () => {
-    const serverPath = path.join(__dirname, 'mcp-server.cjs');
-    const child = spawn(process.execPath, [serverPath], { stdio: 'inherit' });
-    child.on('exit', (code) => process.exit(code ?? 0));
-  },
 };
 
 // ─── Main ────────────────────────────────────────────────────────────────────

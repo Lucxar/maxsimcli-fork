@@ -15,7 +15,7 @@ export const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'pac
 export const templatesRoot = path.resolve(__dirname, 'assets', 'templates');
 
 // Built-in skill names shipped with MAXSIM — used for cleanup during install/uninstall
-export const builtInSkills = ['tdd', 'systematic-debugging', 'verification-before-completion', 'maxsim-simplify', 'code-review', 'memory-management', 'using-maxsim', 'brainstorming', 'roadmap-writing', 'sdd', 'maxsim-batch', 'agent-system-map', 'commit-conventions', 'evidence-collection', 'github-artifact-protocol', 'handoff-contract', 'input-validation', 'research-methodology', 'tool-priority-guide', 'verification-gates'] as const;
+export const builtInSkills = ['tdd', 'systematic-debugging', 'verification-before-completion', 'maxsim-simplify', 'code-review', 'memory-management', 'using-maxsim', 'brainstorming', 'roadmap-writing', 'sdd', 'maxsim-batch', 'agent-system-map', 'commit-conventions', 'evidence-collection', 'github-artifact-protocol', 'github-tools-guide', 'handoff-contract', 'input-validation', 'research-methodology', 'tool-priority-guide', 'verification-gates'] as const;
 
 /**
  * Get the global config directory for Claude Code.

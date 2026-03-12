@@ -54,10 +54,13 @@ This minimizes orchestrator context usage.
 <step name="live_github_phase_overview">
 **Get live phase status from GitHub (primary source — always-live, no cached state):**
 
-Call `mcp_get_all_progress` to get progress for all phases. This returns live data from GitHub Issues:
-- `phase_number`, `title`, `issue_number`
-- `total_tasks`, `completed_tasks`, `remaining_tasks`
-- `status` (the GitHub board column: To Do / In Progress / In Review / Done)
+Run `github all-progress` to get progress for all phases. This returns live data from GitHub Issues:
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github all-progress
+```
+
+Returns: `phase_number`, `title`, `issue_number`, `total_tasks`, `completed_tasks`, `remaining_tasks`, `status` (the GitHub board column: To Do / In Progress / In Review / Done)
 
 Display as formatted table:
 
@@ -72,7 +75,11 @@ Display as formatted table:
 
 **Also get board column view:**
 
-Call `mcp_query_board` with the project number (from init context / config). Group items by status column (To Do, In Progress, In Review, Done). Display column counts and issue details:
+Run `github query-board` with the project number (from init context / config). Group items by status column (To Do, In Progress, In Review, Done). Display column counts and issue details:
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github query-board --project-number PROJECT_NUMBER
+```
 
 ```
 ## Board Status (Live)
@@ -94,13 +101,22 @@ Call `mcp_query_board` with the project number (from init context / config). Gro
 **Per-phase detail (when user requests or for current phase):**
 
 For the current active phase (or any phase requested by user):
-- Call `mcp_get_phase_progress` with the phase issue number to get task-level progress
-- Call `mcp_list_sub_issues` to get individual task status with sub-issue details
+- Run `github phase-progress` with the phase issue number to get task-level progress
+- Run `github list-sub-issues` to get individual task status with sub-issue details
 - Display task breakdown with status indicators (✓ done / ⏳ in progress / ○ to do)
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github phase-progress --phase-issue-number N
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github list-sub-issues N
+```
 
 **Detect external edits:**
 
-After reading phase data from GitHub, call `mcp_detect_external_edits` for each phase with the stored `body_hash`. Warn in the Issues Detected section if modifications were detected outside the normal workflow.
+After reading phase data from GitHub, run `github detect-external-edits` for each phase with the stored `body_hash`. Warn in the Issues Detected section if modifications were detected outside the normal workflow.
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github detect-external-edits --phase-number "XX"
+```
 </step>
 
 <step name="position">
@@ -108,8 +124,13 @@ After reading phase data from GitHub, call `mcp_detect_external_edits` for each 
 
 - Use `current_phase` and `next_phase` from `$ROADMAP` (local) cross-referenced with GitHub board status
 - Note `paused_at` if work was paused (from `$STATE`)
-- Count pending todos: use `mcp_list_todos` for live todo count
-- Check for interrupted phases via `mcp_detect_interrupted`
+- Count pending todos: run `github list-todos` for live todo count
+- Check for interrupted phases via `github detect-interrupted`
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github list-todos --status pending
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github detect-interrupted --phase-issue-number N
+```
 </step>
 
 <step name="report">
@@ -129,10 +150,10 @@ Present (GitHub Issues is the primary progress source; local ROADMAP is cross-va
 **Profile:** [quality/balanced/budget]
 
 ## GitHub Issues Progress (Live)
-[formatted table from mcp_get_all_progress — see live_github_phase_overview step]
+[formatted table from github all-progress — see live_github_phase_overview step]
 
 ## Board Status (Live)
-[column view from mcp_query_board — see live_github_phase_overview step]
+[column view from github query-board — see live_github_phase_overview step]
 
 ## Current Position
 Phase [N] of [total]: [phase-name]
@@ -174,14 +195,18 @@ When displaying the performance metrics table from STATE.md (the `## Performance
 
 **Step 1: Get live phase state from GitHub**
 
-Call `mcp_get_all_progress` (already fetched above). Identify:
+Use `github all-progress` output (already fetched above). Identify:
 - Phases with status "In Progress" that have remaining tasks
 - Phases with status "To Do" (not yet started)
 - Phases with status "Done"
 
 **Step 1.5: Check for interrupted or external edit issues**
 
-Call `mcp_detect_interrupted` to check for any phases that were interrupted mid-execution. If any are found, note them — they take priority over new work.
+Run `github detect-interrupted` to check for any phases that were interrupted mid-execution. If any are found, note them — they take priority over new work.
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github detect-interrupted --phase-issue-number N
+```
 
 **Step 2: Route based on live GitHub status**
 
@@ -196,7 +221,7 @@ Call `mcp_detect_interrupted` to check for any phases that were interrupted mid-
 
 **Route A: Phase in progress or interrupted — continue execution**
 
-Identify the in-progress or interrupted phase (from `mcp_get_all_progress` or `mcp_detect_interrupted`).
+Identify the in-progress or interrupted phase (from `github all-progress` or `github detect-interrupted`).
 
 ```
 ---
@@ -335,7 +360,7 @@ Ready to plan the next milestone.
 - Blockers present → highlight before offering to continue
 - External edits detected → surface in Issues Detected section before routing
 - Discrepancy between local ROADMAP and GitHub board → surface in Issues Detected (GitHub is authoritative)
-- GitHub not available (mcp calls fail) → show error: "GitHub integration required for progress tracking. Run `/maxsim:init` to configure GitHub." Do NOT fall back to local file scanning.
+- GitHub not available (CLI calls fail) → show error: "GitHub integration required for progress tracking. Run `/maxsim:init` to configure GitHub." Do NOT fall back to local file scanning.
   </step>
 
 </process>
@@ -343,10 +368,10 @@ Ready to plan the next milestone.
 <success_criteria>
 
 - [ ] Rich context provided (decisions, blockers, issues)
-- [ ] GitHub Issues progress shown as primary source (always-live reads via mcp_get_all_progress)
-- [ ] Board column view shown via mcp_query_board
-- [ ] Per-phase task detail available via mcp_get_phase_progress and mcp_list_sub_issues
-- [ ] External edit detection via mcp_detect_external_edits
+- [ ] GitHub Issues progress shown as primary source (always-live reads via `github all-progress`)
+- [ ] Board column view shown via `github query-board`
+- [ ] Per-phase task detail available via `github phase-progress` and `github list-sub-issues`
+- [ ] External edit detection via `github detect-external-edits`
 - [ ] Cross-reference local ROADMAP.md for phase ordering (GitHub is authoritative for status)
 - [ ] Phase gaps and discrepancies detected and surfaced in Issues Detected section
 - [ ] Current position clear with visual progress

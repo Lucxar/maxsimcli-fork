@@ -11,13 +11,13 @@ All MAXSIM artifacts are stored as GitHub Issue comments with type metadata:
 
 | Artifact | Comment Type | Tool | Format |
 |----------|-------------|------|--------|
-| Context decisions | `context` | `mcp_post_comment` | `<!-- maxsim:type=context -->` header |
-| Research findings | `research` | `mcp_post_comment` | `<!-- maxsim:type=research -->` header |
-| Plan content | (plan header) | `mcp_post_plan_comment` | `<!-- maxsim:type=plan -->` header |
-| Summary | `summary` | `mcp_post_comment` | `<!-- maxsim:type=summary -->` header |
-| Verification | `verification` | `mcp_post_comment` | `<!-- maxsim:type=verification -->` header |
-| UAT | `uat` | `mcp_post_comment` | `<!-- maxsim:type=uat -->` header |
-| Completion | (structured) | `mcp_post_completion` | Commit SHA + files |
+| Context decisions | `context` | `github post-comment --type context` | `<!-- maxsim:type=context -->` header |
+| Research findings | `research` | `github post-comment --type research` | `<!-- maxsim:type=research -->` header |
+| Plan content | (plan header) | `github post-plan-comment` | `<!-- maxsim:type=plan -->` header |
+| Summary | `summary` | `github post-comment --type summary` | `<!-- maxsim:type=summary -->` header |
+| Verification | `verification` | `github post-comment --type verification` | `<!-- maxsim:type=verification -->` header |
+| UAT | `uat` | `github post-comment --type uat` | `<!-- maxsim:type=uat -->` header |
+| Completion | (structured) | `github post-completion` | Commit SHA + files |
 
 ### Issue Lifecycle State Machine
 
@@ -37,7 +37,7 @@ Done --> In Progress (review failed, reopened)
 ### Write Order (WIRE-01)
 
 1. Build content in memory
-2. POST to GitHub via MCP tool
+2. POST to GitHub via CLI command
 3. If successful, operation succeeds
 4. If failed, operation aborts entirely -- no partial state
 

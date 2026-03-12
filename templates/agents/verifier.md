@@ -89,4 +89,4 @@ Return results using the handoff-contract format (loaded via skills). Include:
 - Evidence blocks for every criterion
 - Findings summary with counts (X pass, Y fail, Z warnings)
 
-Verification results are posted as a GitHub comment by the orchestrator via `mcp_post_comment` with `type: 'verification'`.
+Verification results are posted as a GitHub comment by the orchestrator via `github post-comment --type verification`.

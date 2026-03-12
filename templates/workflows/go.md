@@ -42,12 +42,13 @@ Read local files for project context:
 
 **3. Live GitHub state (primary source — always-live, no cached state):**
 
-Call `mcp_get_all_progress` to get current state of all phases from GitHub. Returns:
-- `phase_number`, `title`, `issue_number`
-- `total_tasks`, `completed_tasks`, `remaining_tasks`
-- `status` (GitHub board column: To Do / In Progress / In Review / Done)
+Run `github status` to get current state of all phases and detect interrupted work in one call:
 
-Call `mcp_detect_interrupted` to check for any phases that were interrupted mid-execution (e.g., agent was stopped while a task was marked in-flight).
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github status
+```
+
+Returns: `phase_number`, `title`, `issue_number`, `total_tasks`, `completed_tasks`, `remaining_tasks`, `status` (GitHub board column: To Do / In Progress / In Review / Done), and any interrupted phase detection.
 
 **4. Git context:**
 ```bash
@@ -108,7 +109,11 @@ Resolve this before continuing. Options:
 Block until user responds.
 
 **3. Failed verification on GitHub**
-Check if any phase issue has a verification comment with FAIL status (from live GitHub data via `mcp_get_all_progress` — look for phases stuck in "In Review" with a known failure, or check recent comments via `mcp_get_issue_detail` for the current phase issue):
+Check if any phase issue has a verification comment with FAIL status (from live GitHub data via `github all-progress` — look for phases stuck in "In Review" with a known failure, or check recent comments via `github get-issue` for the current phase issue):
+
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue N --comments
+```
 ```
 ## Problem Detected
 
@@ -135,7 +140,7 @@ Block until user responds.
 
 Apply rules in strict precedence order. The FIRST matching rule determines the action.
 
-Use live GitHub data from `mcp_get_all_progress` and `mcp_detect_interrupted` (gathered in Phase 1) as the primary source of truth for phase state. Use local ROADMAP.md for phase ordering only.
+Use live GitHub data from `github status` (gathered in Phase 1) as the primary source of truth for phase state. Use local ROADMAP.md for phase ordering only.
 
 ```
 Rule 1: No .planning/ directory?
@@ -146,17 +151,17 @@ Rule 2: Has blockers in STATE.md? (not cleared in problem detection)
   -> Action: Surface blocker, suggest resolution
   -> Reasoning: "BLOCKED: {blocker text}"
 
-Rule 3: Interrupted phase detected (from mcp_detect_interrupted)?
+Rule 3: Interrupted phase detected (from `github status`)?
   -> Action: /maxsim:execute {N}
   -> Reasoning: "Phase {N} ({name}) was interrupted. Resuming execution."
 
 Rule 4: Phase "In Progress" on GitHub board with incomplete tasks?
-  -> Check: mcp_get_all_progress returns a phase with status="In Progress" and remaining_tasks > 0
+  -> Check: `github status` returns a phase with status="In Progress" and remaining_tasks > 0
   -> Action: /maxsim:execute {N}
   -> Reasoning: "Phase {N} ({name}) has {remaining} tasks remaining. Ready to continue."
 
 Rule 5: Phase "To Do" on GitHub board (not yet started)?
-  -> Check: mcp_get_all_progress returns the next unstarted phase (status="To Do")
+  -> Check: `github status` returns the next unstarted phase (status="To Do")
   -> Action: /maxsim:plan {N}
   -> Reasoning: "Phase {N} ({name}) needs planning."
 
@@ -165,12 +170,12 @@ Rule 5: Phase "To Do" on GitHub board (not yet started)?
   -> If no: "Starting from discussion stage."
 
 Rule 6: Current phase "In Review" on GitHub board?
-  -> Check: mcp_get_all_progress returns a phase with status="In Review"
+  -> Check: `github status` returns a phase with status="In Review"
   -> Action: /maxsim:execute {N}
   -> Reasoning: "Phase {N} ({name}) is awaiting verification."
 
 Rule 7: All phases "Done" on GitHub board?
-  -> Check: mcp_get_all_progress — all phases have status="Done"
+  -> Check: `github status` — all phases have status="Done"
   -> Action: /maxsim:progress
   -> Reasoning: "All phases complete. Milestone ready for review."
 
@@ -193,7 +198,7 @@ Once a rule matches, display detection reasoning FIRST, then act immediately.
 **Project:** {project name from PROJECT.md, or "New project"}
 **Milestone:** {milestone from ROADMAP.md, or "Not started"}
 **Current phase:** {phase N - name, or "None"} (GitHub Issue #{issue_number})
-**GitHub Status:** {board column from live mcp_get_all_progress data}
+**GitHub Status:** {board column from live `github status` data}
 **Tasks:** {completed}/{total} complete
 
 **Action:** Running /maxsim:{command} {args}...
@@ -207,7 +212,7 @@ Then immediately dispatch the command using the SlashCommand tool. The user can 
 <step name="interactive_menu">
 **Phase 5: Interactive Menu (Rule 8 — no obvious action)**
 
-When no clear action is detected, show a contextual menu. The menu items are NOT static — filter based on what makes sense for the current project state (use live GitHub data from mcp_get_all_progress).
+When no clear action is detected, show a contextual menu. The menu items are NOT static — filter based on what makes sense for the current project state (use live GitHub data from `github status`).
 
 ```
 ## Project Status
@@ -233,7 +238,7 @@ Or describe what you'd like to do:
 - If no phases exist on board: show `/maxsim:plan` prominently
 - Always include `/maxsim:quick` as it is always relevant
 - Always include an open-ended fallback ("Or describe what you'd like to do")
-- If GitHub not available (mcp calls fail): show error: "GitHub integration required. Run `/maxsim:init` to configure GitHub." Do NOT fall back to local file scanning.
+- If GitHub not available (CLI calls fail): show error: "GitHub integration required. Run `/maxsim:init` to configure GitHub." Do NOT fall back to local file scanning.
 
 Wait for user selection, then dispatch the chosen command.
 </step>
@@ -247,7 +252,7 @@ Wait for user selection, then dispatch the chosen command.
 - No arguments accepted — this is pure auto-detection
 - No mention of old commands (plan, execute-phase, etc.)
 - Keep initial feedback fast — show "Analyzing..." before heavy operations
-- Primary source for phase state: live GitHub (mcp_get_all_progress, mcp_detect_interrupted)
+- Primary source for phase state: live GitHub (`github status`)
 - Local reads: STATE.md for blockers/decisions, ROADMAP.md for phase ordering only
 - If context gathering fails (tools not available, etc.), fall back to the interactive menu
 </constraints>

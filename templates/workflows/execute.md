@@ -41,8 +41,8 @@ Exit workflow.
 
 When GitHub integration is active (phase_issue_number is set), check for plan comments on the phase issue before reporting no plans:
 
-```
-mcp_get_issue_detail(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Parse the response to find comments with `<!-- maxsim:type=plan -->` markers or `## Plan NN` headings. If no plan comments are found:
@@ -61,8 +61,8 @@ Exit workflow.
 When GitHub integration is active (`phase_issue_number` is set):
 
 1. Fetch the phase issue and its comments:
-   ```
-   mcp_get_issue_detail(issue_number: phase_issue_number)
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
    ```
 
 2. Parse issue comments to identify plan comments. A plan comment is one that contains either:
@@ -75,8 +75,8 @@ When GitHub integration is active (`phase_issue_number` is set):
    - Store plan content in memory as `PLAN_COMMENTS[]`
 
 4. Check completion status for each plan by calling:
-   ```
-   mcp_list_sub_issues(issue_number: phase_issue_number)
+   ```bash
+   node ~/.claude/maxsim/bin/maxsim-tools.cjs github list-sub-issues $PHASE_ISSUE_NUMBER
    ```
    A plan is considered complete when ALL of its task sub-issues are closed (state: closed).
    Additionally, check for `<!-- maxsim:type=summary -->` comments on the phase issue as a secondary completion signal.
@@ -99,8 +99,8 @@ Exit workflow.
 
 If phase_issue_number is set, optionally detect whether the phase issue was externally modified since last read:
 
-```
-mcp_detect_external_edits(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github detect-external-edits --phase-number "$PHASE_NUMBER"
 ```
 
 If external edits are detected: warn the user before proceeding.
@@ -148,7 +148,7 @@ Display:
 Wait for user choice via natural conversation.
 
 - **View results:** Fetch and display summary comments (`<!-- maxsim:type=summary -->`) from the phase issue, then re-show options.
-- **Re-execute:** Reopen task sub-issues via `mcp_reopen_issue` for each task sub-issue, restart from Execute Plans (step 4).
+- **Re-execute:** Reopen task sub-issues via `github reopen-issue` for each task sub-issue, restart from Execute Plans (step 4).
 - **View verification:** Fetch and display the verification comment (`<!-- maxsim:type=verification -->`) from the phase issue, then re-show options.
 - **Done:** Exit workflow.
 
@@ -235,7 +235,7 @@ Execute each wave in sequence. Within a wave: parallel if `parallelization` is t
        <success_criteria>
        - [ ] All tasks executed
        - [ ] Each task committed individually
-       - [ ] Summary posted as GitHub comment (mcp_post_comment with type=summary) on phase issue
+       - [ ] Summary posted as GitHub comment (`github post-comment` with type=summary) on phase issue
        - [ ] Task sub-issues moved: In Progress when started, Done when completed
        - [ ] STATE.md updated with position and decisions
        - [ ] ROADMAP.md updated with plan progress
@@ -290,8 +290,8 @@ Proceeding to verification...
 ```
 
 **Move phase issue to "In Review" on GitHub (WIRE-08):**
-```
-mcp_move_issue(issue_number: phase_issue_number, status: "In Review")
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $PHASE_ISSUE_NUMBER --status "In Review"
 ```
 This signals all tasks are complete and the phase is awaiting verification. The phase moves to "Done" only after verification passes.
 
@@ -318,7 +318,7 @@ Phase goal: {goal from ROADMAP.md}
 Phase requirement IDs: {phase_req_ids}
 Check must_haves against actual codebase.
 Cross-reference requirement IDs from plan frontmatter against REQUIREMENTS.md.
-Post verification results as a GitHub comment (mcp_post_comment with type=verification) on the phase issue.
+Post verification results as a GitHub comment (`github post-comment` with type=verification) on the phase issue.
 Also write VERIFICATION.md to the phase directory for local reference.",
   subagent_type="verifier",
   model="{verifier_model}"
@@ -329,8 +329,8 @@ Also write VERIFICATION.md to the phase directory for local reference.",
 
 Read verification status from the verification comment on the phase issue:
 
-```
-mcp_get_issue_detail(issue_number: phase_issue_number)
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github get-issue $PHASE_ISSUE_NUMBER --comments
 ```
 
 Look for the `<!-- maxsim:type=verification -->` comment and parse the `status:` field from its body.
@@ -347,17 +347,23 @@ Phase {phase_number} complete!
 ```
 
 Move phase issue to "Done" status:
-```
-mcp_move_issue(issue_number: phase_issue_number, status: "Done")
+```bash
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github move-issue --issue-number $PHASE_ISSUE_NUMBER --status "Done"
 ```
 
 Post phase completion comment:
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "phase-complete",
-  body: "## Phase {phase_number} Complete\n\nAll plans executed and verified.\n\n**Plans:** {completed}/{total}\n**Waves:** {wave_count}\n**Verification:** Passed"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## Phase {phase_number} Complete
+
+All plans executed and verified.
+
+**Plans:** {completed}/{total}
+**Waves:** {wave_count}
+**Verification:** Passed
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type phase-complete
 ```
 
 Mark phase complete:
@@ -372,12 +378,14 @@ node .claude/maxsim/bin/maxsim-tools.cjs commit "docs(phase-{X}): complete phase
 
 **If `gaps_found`:** Post a gaps comment on the phase issue, then proceed to Retry Loop (step 6).
 
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "verification-gaps",
-  body: "## Verification Gaps Found\n\n{gap summaries from verification result}"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## Verification Gaps Found
+
+{gap summaries from verification result}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type verification-gaps
 ```
 
 **If `human_needed`:** Present items for human testing, get approval or feedback. If approved, treat as passed. If issues reported, proceed to Retry Loop.
@@ -431,7 +439,7 @@ Task(
 <downstream_consumer>
 Output consumed by /maxsim:execute.
 Plans must be executable prompts.
-Post gap-closure plans as comments on phase issue #{phase_issue_number} using mcp_post_comment with type=plan.
+Post gap-closure plans as comments on phase issue #{phase_issue_number} using `github post-comment` with type=plan.
 </downstream_consumer>
 ",
   subagent_type="planner",
@@ -456,12 +464,19 @@ At any point during the workflow, if context is getting full (conversation is lo
 
 **Checkpoint protocol:**
 1. Post a checkpoint comment to the phase's GitHub Issue (if issue tracking is active):
-```
-mcp_post_comment(
-  issue_number: phase_issue_number,
-  type: "checkpoint",
-  body: "## MAXSIM Checkpoint\n\n**Command:** /maxsim:execute\n**Stage:** {current_stage}\n**Plans completed:** {completed_count}/{total_count}\n**Verification attempts:** {attempt_count}/3\n**Resume from:** {next_action}\n**Timestamp:** {ISO timestamp}"
-)
+```bash
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << 'BODY_EOF'
+## MAXSIM Checkpoint
+
+**Command:** /maxsim:execute
+**Stage:** {current_stage}
+**Plans completed:** {completed_count}/{total_count}
+**Verification attempts:** {attempt_count}/3
+**Resume from:** {next_action}
+**Timestamp:** {ISO timestamp}
+BODY_EOF
+node ~/.claude/maxsim/bin/maxsim-tools.cjs github post-comment --issue-number $PHASE_ISSUE_NUMBER --body-file "$TMPFILE" --type checkpoint
 ```
 
 2. Display checkpoint recommendation:
