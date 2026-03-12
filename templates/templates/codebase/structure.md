@@ -216,7 +216,7 @@ maxsim/
 
 **New Workflow:**
 - Implementation: `maxsim/workflows/{name}.md`
-- Usage: Reference from command with `@./workflows/{name}.md`
+- Usage: Reference from command with `@~/.claude/maxsim/workflows/{name}.md`
 
 **New Reference Document:**
 - Implementation: `maxsim/references/{name}.md`

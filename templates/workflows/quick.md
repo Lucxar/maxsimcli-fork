@@ -588,10 +588,9 @@ Ready for next task: /maxsim:quick
 
 ```bash
 INIT=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs init todos)
-mkdir -p .planning/todos/pending .planning/todos/done
 ```
 
-Extract from init JSON: `todo_count`, `todos`, `pending_dir`, `date`, `timestamp`, `github_ready`.
+Extract from init JSON: `todo_count`, `todos`, `date`, `timestamp`, `github_ready`.
 
 ---
 
@@ -646,38 +645,14 @@ If user provided a description:
 
 1. Parse priority from description (look for HIGH/MEDIUM/LOW keywords, default MEDIUM)
 2. Infer area from file paths mentioned or conversation context (default "general")
-3. Generate slug: `slug=$(node ~/.claude/maxsim/bin/maxsim-tools.cjs generate-slug "$TITLE" --raw)`
-4. Create todo file at `.planning/todos/pending/${date}-${slug}.md`:
-
-```markdown
----
-created: [timestamp]
-title: [title]
-area: [area]
-priority: [HIGH/MEDIUM/LOW]
-mode: quick
-files: []
----
-
-## Problem
-
-[description - enough context for future Claude to understand]
-
-## Solution
-
-TBD
-```
-
-5. GitHub Issue creation (primary):
+3. Create GitHub Issue (primary action):
    - Run `github add-todo` with title, priority, area, and description to create a tracked GitHub Issue (label: "todo")
-   - If GitHub is unavailable, fall back to local file only and warn user: "Todo saved locally. Run `/maxsim:init` to enable GitHub tracking."
+   - If GitHub is unavailable, warn user: "GitHub unavailable. Run `/maxsim:init` to enable GitHub tracking."
 
    ```bash
    node ~/.claude/maxsim/bin/maxsim-tools.cjs github add-todo --title "${TITLE}" --description "${DESCRIPTION}" --area "${AREA}"
    ```
-6. Local file cache: also create the local todo file for offline access
-7. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: capture todo - ${TITLE}" --files .planning/todos/pending/${date}-${slug}.md`
-8. Confirm: "Saved: ${TITLE} (priority: ${PRIORITY}) — GitHub Issue #{number}"
+4. Confirm: "Saved: ${TITLE} (priority: ${PRIORITY}) — GitHub Issue #{number}"
 
 Exit after confirm.
 
@@ -688,14 +663,12 @@ Exit after confirm.
 If user references an existing todo to complete:
 
 1. Parse identifier (number from list, or title fragment)
-2. Close the corresponding GitHub Issue (primary): run `github close-issue` with the todo's issue number
+2. Close the corresponding GitHub Issue: run `github close-issue` with the todo's issue number
 
    ```bash
    node ~/.claude/maxsim/bin/maxsim-tools.cjs github close-issue N
    ```
-3. Move local cache file: `mv ".planning/todos/pending/[filename]" ".planning/todos/done/"`
-4. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: complete todo - ${TITLE}" --files .planning/todos/done/${filename}`
-5. Confirm: "Completed: ${TITLE} — GitHub Issue closed"
+3. Confirm: "Completed: ${TITLE} — GitHub Issue closed"
 
 Exit after confirm.
 
@@ -753,8 +726,7 @@ Exit after display.
 **Todo Mode:**
 - [ ] `--todo` flag or trigger words detected
 - [ ] Todo action determined (list/capture/complete/triage)
-- [ ] (capture) Todo file created with valid frontmatter
-- [ ] (capture) Best-effort GitHub Issue creation attempted
-- [ ] (complete) Todo moved from pending to done
+- [ ] (capture) GitHub Issue created with todo label
+- [ ] (complete) GitHub Issue closed
 - [ ] (triage) Prioritized view with phase context shown
 </success_criteria>

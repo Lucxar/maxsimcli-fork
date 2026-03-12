@@ -56,7 +56,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-[From .planning/todos/pending/ — ideas captured during sessions]
+[From GitHub Issues with label 'todo' — ideas captured during sessions]
 
 None yet.
 
@@ -145,9 +145,8 @@ Updated after each plan completion.
 
 **Decisions:** Reference to PROJECT.md Key Decisions table, plus recent decisions summary for quick access. Full decision log lives in PROJECT.md.
 
-**Pending Todos:** Ideas captured via /maxsim:quick --todo
+**Pending Todos:** Ideas captured via /maxsim:quick --todo (tracked as GitHub Issues)
 - Count of pending todos
-- Reference to .planning/todos/pending/
 - Brief list if few, count if many (e.g., "5 pending todos — see /maxsim:quick --todo")
 
 **Blockers/Concerns:** From "Next Phase Readiness" sections

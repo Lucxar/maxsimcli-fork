@@ -64,7 +64,7 @@ Add `--raw` to get machine-readable JSON output (no formatting).
 | Command | Description |
 |---------|-------------|
 | `github add-todo --title "T" [--description "D"] [--area A] [--phase P]` | Create todo issue |
-| `github complete-todo --todo-id "file.md" [--github-issue-number N]` | Complete todo |
+| `github complete-todo --todo-id "N" [--github-issue-number N]` | Complete todo |
 | `github list-todos [--area A] [--status pending\|completed\|all]` | List todos |
 
 ### Convenience

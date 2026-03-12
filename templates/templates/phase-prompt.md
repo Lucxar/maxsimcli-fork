@@ -38,10 +38,10 @@ Output: [What artifacts will be created]
 </objective>
 
 <execution_context>
-@./workflows/execute-plan.md
-@./templates/summary.md
+@~/.claude/maxsim/workflows/execute-plan.md
+@~/.claude/maxsim/templates/summary.md
 [If plan contains checkpoint tasks (type="checkpoint:*"), add:]
-@./references/checkpoints.md
+@~/.claude/maxsim/references/checkpoints.md
 </execution_context>
 
 <context>
@@ -76,7 +76,7 @@ Output: [What artifacts will be created]
   <done>[Acceptance criteria]</done>
 </task>
 
-<!-- For checkpoint task examples and patterns, see @./references/checkpoints.md -->
+<!-- For checkpoint task examples and patterns, see @~/.claude/maxsim/references/checkpoints.md -->
 <!-- Key rule: Claude starts dev server BEFORE human-verify checkpoints. User only visits URLs. -->
 
 <task type="checkpoint:decision" gate="blocking">
@@ -374,9 +374,9 @@ Output: Working dashboard component.
 </objective>
 
 <execution_context>
-@./workflows/execute-plan.md
-@./templates/summary.md
-@./references/checkpoints.md
+@~/.claude/maxsim/workflows/execute-plan.md
+@~/.claude/maxsim/templates/summary.md
+@~/.claude/maxsim/references/checkpoints.md
 </execution_context>
 
 <context>
