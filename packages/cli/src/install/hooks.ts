@@ -424,6 +424,6 @@ export function finishInstall(
   console.log(`
   ${chalk.green('Done!')} Launch Claude Code and run ${chalk.cyan('/maxsim:help')}.
 
-  ${chalk.cyan('Join the community:')} https://discord.gg/5JJgD5svVS
+  ${chalk.cyan('Join the community:')} https://discord.gg/kNwgTu2sQW
 `);
 }
