@@ -233,7 +233,7 @@ Or describe what you'd like to do:
 - If no phases exist on board: show `/maxsim:plan` prominently
 - Always include `/maxsim:quick` as it is always relevant
 - Always include an open-ended fallback ("Or describe what you'd like to do")
-- If GitHub not available (mcp calls fail): note degraded mode, recommend resolving GitHub connectivity
+- If GitHub not available (mcp calls fail): show error: "GitHub integration required. Run `/maxsim:init` to configure GitHub." Do NOT fall back to local file scanning.
 
 Wait for user selection, then dispatch the chosen command.
 </step>

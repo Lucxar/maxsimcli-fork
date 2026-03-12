@@ -404,21 +404,24 @@ export async function cmdPhasesList(cwd: string, options: PhasesListOptions): Pr
     }
 
     if (type) {
+      // Use findPhaseInternal (GitHub-first) for plan/summary data
       const fileResults = await Promise.all(
         dirs.map(async (dir) => {
-          const dirPath = path.join(phasesDirPath, dir);
-          const dirFiles = await fsp.readdir(dirPath);
+          const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
+          const phaseNum = dm ? dm[1] : dir;
 
-          let filtered: string[];
-          if (type === 'plans') {
-            filtered = dirFiles.filter(isPlanFile);
-          } else if (type === 'summaries') {
-            filtered = dirFiles.filter(isSummaryFile);
-          } else {
-            filtered = dirFiles;
+          if (type === 'plans' || type === 'summaries') {
+            const phaseInfo = await findPhaseInternal(cwd, phaseNum);
+            if (phaseInfo) {
+              return type === 'plans' ? phaseInfo.plans.sort() : phaseInfo.summaries.sort();
+            }
+            return [];
           }
 
-          return filtered.sort();
+          // For other types, list directory contents
+          const dirPath = path.join(phasesDirPath, dir);
+          const dirFiles = await fsp.readdir(dirPath);
+          return dirFiles.sort();
         }),
       );
       const files = fileResults.flat();
@@ -536,77 +539,13 @@ export async function cmdPhasePlanIndex(cwd: string, phase: string | undefined):
 
   const normalized = normalizePhaseName(phase);
 
-  // Try GitHub first via findPhaseInternal (which tries GitHub, then local)
-  try {
-    const ghInfo = await findPhaseInternal(cwd, phase);
-    if (ghInfo && ghInfo.source === 'github') {
-      // Build a simplified index from GitHub sub-issue data
-      const plans: Array<{
-        id: string;
-        wave: number;
-        autonomous: boolean;
-        objective: string | null;
-        files_modified: string[];
-        task_count: number;
-        has_summary: boolean;
-      }> = [];
-      const waves: Record<string, string[]> = {};
-      const incomplete: string[] = [];
-
-      const completedSet = new Set(ghInfo.summaries);
-
-      for (const planName of ghInfo.plans) {
-        const hasSummary = completedSet.has(planName);
-        if (!hasSummary) {
-          incomplete.push(planName);
-        }
-
-        plans.push({
-          id: planName,
-          wave: 1,
-          autonomous: true,
-          objective: null,
-          files_modified: [],
-          task_count: 1,
-          has_summary: hasSummary,
-        });
-
-        if (!waves['1']) waves['1'] = [];
-        waves['1'].push(planName);
-      }
-
-      return cmdOk({ phase: normalized, plans, waves, incomplete, has_checkpoints: false, source: 'github' });
-    }
-  } catch (e) {
-    debugLog('phase-plan-index-github-failed', e);
-  }
-
-  // Fallback: local filesystem scanning
-  const phasesDirPath = phasesPath(cwd);
-
-  let phaseDir: string | null = null;
-  try {
-    const dirs = await listSubDirs(phasesDirPath, true);
-    const match = dirs.find(d => d.startsWith(normalized));
-    if (match) {
-      phaseDir = path.join(phasesDirPath, match);
-    }
-  } catch (e) {
-    debugLog('phase-plan-index-failed', e);
-  }
-
-  if (!phaseDir) {
+  // Use findPhaseInternal (GitHub-first, local archive fallback)
+  const ghInfo = await findPhaseInternal(cwd, phase);
+  if (!ghInfo) {
     return cmdOk({ phase: normalized, error: 'Phase not found', plans: [], waves: {}, incomplete: [], has_checkpoints: false });
   }
 
-  const phaseFiles = await fsp.readdir(phaseDir);
-  const planFiles = phaseFiles.filter(isPlanFile).sort();
-  const summaryFiles = phaseFiles.filter(isSummaryFile);
-
-  const completedPlanIds = new Set(
-    summaryFiles.map(summaryId),
-  );
-
+  // Build index from phase data (GitHub sub-issues or local archive)
   const plans: Array<{
     id: string;
     wave: number;
@@ -618,63 +557,30 @@ export async function cmdPhasePlanIndex(cwd: string, phase: string | undefined):
   }> = [];
   const waves: Record<string, string[]> = {};
   const incomplete: string[] = [];
-  let hasCheckpoints = false;
 
-  // Read all plan files in parallel since each read is independent
-  const planContents = await Promise.all(
-    planFiles.map(planFile => fsp.readFile(path.join(phaseDir!, planFile), 'utf-8')),
-  );
+  const completedSet = new Set(ghInfo.summaries);
 
-  for (let i = 0; i < planFiles.length; i++) {
-    const planFile = planFiles[i];
-    const id = planId(planFile);
-    const content = planContents[i];
-    const fm = extractFrontmatter(content);
-
-    const taskMatches = content.match(/##\s*Task\s*\d+/gi) || [];
-    const taskCount = taskMatches.length;
-
-    const wave = parseInt(fm.wave as string, 10) || 1;
-
-    let autonomous = true;
-    if (fm.autonomous !== undefined) {
-      autonomous = fm.autonomous === 'true' || fm.autonomous === true;
-    }
-
-    if (!autonomous) {
-      hasCheckpoints = true;
-    }
-
-    let filesModified: string[] = [];
-    if (fm['files-modified']) {
-      filesModified = Array.isArray(fm['files-modified']) ? fm['files-modified'] as string[] : [fm['files-modified'] as string];
-    }
-
-    const hasSummary = completedPlanIds.has(id);
+  for (const planName of ghInfo.plans) {
+    const hasSummary = completedSet.has(planName);
     if (!hasSummary) {
-      incomplete.push(id);
+      incomplete.push(planName);
     }
 
-    const plan = {
-      id,
-      wave,
-      autonomous,
-      objective: (fm.objective as string) || null,
-      files_modified: filesModified,
-      task_count: taskCount,
+    plans.push({
+      id: planName,
+      wave: 1,
+      autonomous: true,
+      objective: null,
+      files_modified: [],
+      task_count: 1,
       has_summary: hasSummary,
-    };
+    });
 
-    plans.push(plan);
-
-    const waveKey = String(wave);
-    if (!waves[waveKey]) {
-      waves[waveKey] = [];
-    }
-    waves[waveKey].push(id);
+    if (!waves['1']) waves['1'] = [];
+    waves['1'].push(planName);
   }
 
-  return cmdOk({ phase: normalized, plans, waves, incomplete, has_checkpoints: hasCheckpoints });
+  return cmdOk({ phase: normalized, plans, waves, incomplete, has_checkpoints: false, source: ghInfo.source ?? 'local' });
 }
 
 // ─── Phase add ──────────────────────────────────────────────────────────────
@@ -744,11 +650,11 @@ export async function cmdPhaseRemove(
   }
 
   if (targetDir && !force) {
-    const targetPath = path.join(phasesDirPath, targetDir);
-    const files = await fsp.readdir(targetPath);
-    const summaries = files.filter(isSummaryFile);
-    if (summaries.length > 0) {
-      return cmdErr(`Phase ${targetPhase} has ${summaries.length} executed plan(s). Use --force to remove anyway.`);
+    // Check via findPhaseInternal (GitHub-first) for executed plans
+    const phaseInfo = await findPhaseInternal(cwd, targetPhase);
+    const summaryCount = phaseInfo?.summaries?.length ?? 0;
+    if (summaryCount > 0) {
+      return cmdErr(`Phase ${targetPhase} has ${summaryCount} executed plan(s). Use --force to remove anyway.`);
     }
   }
 

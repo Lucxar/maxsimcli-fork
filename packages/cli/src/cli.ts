@@ -411,7 +411,7 @@ const COMMANDS: Record<string, Handler> = {
   'verify': handleVerify,
   'generate-slug': (args, _cwd, raw) => handleResult(cmdGenerateSlug(args[1], raw), raw),
   'current-timestamp': (args, _cwd, raw) => handleResult(cmdCurrentTimestamp((args[1] || 'full') as TimestampFormat, raw), raw),
-  'list-todos': (args, cwd, raw) => handleResult(cmdListTodos(cwd, args[1], raw), raw),
+  'list-todos': async (args, cwd, raw) => handleResult(await cmdListTodos(cwd, args[1], raw), raw),
   'verify-path-exists': (args, cwd, raw) => handleResult(cmdVerifyPathExists(cwd, args[1], raw), raw),
   'config-ensure-section': (_args, cwd, raw) => handleResult(cmdConfigEnsureSection(cwd, raw), raw),
   'config-set': (args, cwd, raw) => handleResult(cmdConfigSet(cwd, args[1], args[2], raw), raw),
@@ -434,8 +434,8 @@ const COMMANDS: Record<string, Handler> = {
   },
   'validate-plan-independence': (args, _cwd, raw) => handleResult(cmdValidatePlanIndependence(args[1]), raw),
   'progress': async (args, cwd, raw) => handleResult(await cmdProgressRender(cwd, args[1] || 'json', raw), raw),
-  'todo': (args, cwd, raw) => {
-    if (args[1] === 'complete') handleResult(cmdTodoComplete(cwd, args[2], raw), raw);
+  'todo': async (args, cwd, raw) => {
+    if (args[1] === 'complete') handleResult(await cmdTodoComplete(cwd, args[2], raw), raw);
     else error('Unknown todo subcommand. Available: complete');
   },
   'scaffold': async (args, cwd, raw) => {

@@ -106,9 +106,33 @@ export function cmdCurrentTimestamp(format: TimestampFormat, raw: boolean): CmdR
 
 // ─── Todos ──────────────────────────────────────────────────────────────────
 
-export function cmdListTodos(cwd: string, area: string | undefined, raw: boolean): CmdResult {
-  const pendingDir = planningPath(cwd, 'todos', 'pending');
+export async function cmdListTodos(cwd: string, area: string | undefined, raw: boolean): Promise<CmdResult> {
+  // Primary: Query GitHub Issues with 'todo' label
+  try {
+    const { requireAuth } = await import('../github/client.js');
+    const { listTodoIssues } = await import('../github/issues.js');
+    requireAuth();
+    const ghResult = await listTodoIssues('open');
+    if (ghResult.ok) {
+      let todos = ghResult.data;
+      if (area) {
+        todos = todos.filter(t => t.area === area);
+      }
+      const items: TodoItem[] = todos.map(t => ({
+        file: `github-issue-${t.number}`,
+        created: t.created_at,
+        title: t.title,
+        area: t.area,
+        path: `GitHub Issue #${t.number}`,
+      }));
+      return cmdOk({ count: items.length, todos: items, source: 'github' }, raw ? items.length.toString() : undefined);
+    }
+  } catch (e) {
+    debugLog('cmdListTodos-github-fallback', e);
+  }
 
+  // Fallback: Read from local cache
+  const pendingDir = planningPath(cwd, 'todos', 'pending');
   let count = 0;
   const todos: TodoItem[] = [];
 
@@ -120,7 +144,6 @@ export function cmdListTodos(cwd: string, area: string | undefined, raw: boolean
         const content = fs.readFileSync(path.join(pendingDir, file), 'utf-8');
         const fm = parseTodoFrontmatter(content);
 
-        // Apply area filter if specified
         if (area && fm.area !== area) continue;
 
         count++;
@@ -132,16 +155,14 @@ export function cmdListTodos(cwd: string, area: string | undefined, raw: boolean
           path: path.join('.planning', 'todos', 'pending', file),
         });
       } catch (e) {
-        /* optional op, ignore */
         debugLog(e);
       }
     }
   } catch (e) {
-    /* optional op, ignore */
     debugLog(e);
   }
 
-  const result = { count, todos };
+  const result = { count, todos, source: 'local_cache' };
   return cmdOk(result, raw ? count.toString() : undefined);
 }
 
@@ -538,43 +559,8 @@ export async function cmdProgressRender(cwd: string, format: string, raw: boolea
     debugLog('progress-render-github-fallback', e);
   }
 
-  // Fallback: local filesystem scanning
-  if (!usedGitHub) {
-    try {
-      const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
-      const dirs = entries
-        .filter(e => e.isDirectory())
-        .map(e => e.name)
-        .sort((a, b) => {
-          const aNum = parseFloat(a.match(/^(\d+(?:\.\d+)?)/)?.[1] || '0');
-          const bNum = parseFloat(b.match(/^(\d+(?:\.\d+)?)/)?.[1] || '0');
-          return aNum - bNum;
-        });
-
-      for (const dir of dirs) {
-        const dm = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
-        const phaseNum = dm ? dm[1] : dir;
-        const phaseName = dm && dm[2] ? dm[2].replace(/-/g, ' ') : '';
-        const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
-        const planCount = phaseFiles.filter(f => isPlanFile(f)).length;
-        const summaryCount = phaseFiles.filter(f => isSummaryFile(f)).length;
-
-        totalPlans += planCount;
-        totalSummaries += summaryCount;
-
-        let status: string;
-        if (planCount === 0) status = 'Pending';
-        else if (summaryCount >= planCount) status = 'Complete';
-        else if (summaryCount > 0) status = 'In Progress';
-        else status = 'Planned';
-
-        phases.push({ number: phaseNum, name: phaseName, plans: planCount, summaries: summaryCount, status });
-      }
-    } catch (e) {
-      /* optional op, ignore */
-      debugLog(e);
-    }
-  }
+  // GitHub is the single source of truth for progress data.
+  // If GitHub data is unavailable, phases array remains empty.
 
   const percent = totalPlans > 0 ? Math.min(100, Math.round((totalSummaries / totalPlans) * 100)) : 0;
 
@@ -643,7 +629,7 @@ export async function cmdProgressRender(cwd: string, format: string, raw: boolea
 
 // ─── Todo complete ──────────────────────────────────────────────────────────
 
-export function cmdTodoComplete(cwd: string, filename: string | undefined, raw: boolean): CmdResult {
+export async function cmdTodoComplete(cwd: string, filename: string | undefined, raw: boolean): Promise<CmdResult> {
   if (!filename) {
     return cmdErr('filename required for todo complete');
   }
@@ -656,18 +642,37 @@ export function cmdTodoComplete(cwd: string, filename: string | undefined, raw: 
     return cmdErr(`Todo not found: ${filename}`);
   }
 
-  // Ensure completed directory exists
-  fs.mkdirSync(completedDir, { recursive: true });
-
-  // Read, add completion timestamp, move
   let content = fs.readFileSync(sourcePath, 'utf-8');
   const today = todayISO();
-  content = `completed: ${today}\n` + content;
 
+  // Extract github_issue from local cache if present
+  const issueMatch = content.match(/github_issue:\s*(\d+)/);
+  const issueNumber = issueMatch ? parseInt(issueMatch[1], 10) : undefined;
+
+  // Primary: Close GitHub Issue
+  let githubClosed = false;
+  if (issueNumber) {
+    try {
+      const { requireAuth } = await import('../github/client.js');
+      const { closeIssue } = await import('../github/issues.js');
+      requireAuth();
+      const closeResult = await closeIssue(issueNumber, `Todo completed: ${filename}`);
+      githubClosed = closeResult.ok;
+    } catch (e) {
+      debugLog('cmdTodoComplete-github', e);
+    }
+  }
+
+  // Cache: Move local file from pending to completed
+  fs.mkdirSync(completedDir, { recursive: true });
+  content = `completed: ${today}\n` + content;
   fs.writeFileSync(path.join(completedDir, filename), content, 'utf-8');
   fs.unlinkSync(sourcePath);
 
-  return cmdOk({ completed: true, file: filename, date: today }, raw ? 'completed' : undefined);
+  return cmdOk(
+    { completed: true, file: filename, date: today, github_closed: githubClosed, github_issue: issueNumber ?? null },
+    raw ? 'completed' : undefined,
+  );
 }
 
 // ─── Scaffold ───────────────────────────────────────────────────────────────

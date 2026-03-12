@@ -5,13 +5,13 @@ Before executing any step in this workflow, verify:
 </sanity_check>
 
 <purpose>
-Execute small, ad-hoc tasks with MAXSIM guarantees (atomic commits, STATE.md tracking). Also supports "save for later" todo capture -- managing ideas as local todos with best-effort GitHub Issue creation.
+Execute small, ad-hoc tasks with MAXSIM guarantees (atomic commits, STATE.md tracking). Also supports "save for later" todo capture via GitHub Issues.
 
-Quick mode spawns planner (quick mode) + executor(s), tracks tasks in `.planning/quick/`, and updates STATE.md's "Quick Tasks Completed" table.
+Quick mode spawns planner (quick mode) + executor(s), tracks tasks as GitHub Issues (label: "quick"), and updates STATE.md's "Quick Tasks Completed" table.
 
 With `--full` flag: enables plan-checking (max 2 iterations) and post-execution verification for quality guarantees without full milestone ceremony.
 
-With `--todo` flag (or trigger words): enters Todo Mode for listing, capturing, completing, and triaging todos.
+With `--todo` flag (or trigger words): enters Todo Mode for listing, capturing, completing, and triaging todos via GitHub Issues.
 </purpose>
 
 <required_reading>
@@ -668,11 +668,12 @@ files: []
 TBD
 ```
 
-5. Best-effort GitHub Issue creation:
-   - Always attempt: `node ~/.claude/maxsim/bin/maxsim-tools.cjs todos add "$TITLE" "$PRIORITY" 2>/dev/null || true`
-   - If `github_ready` is true in init context: also call `mcp_create_todo_issue` with title, priority, area, and description to create a tracked GitHub Issue linked to the todo file
-6. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: capture todo - ${TITLE}" --files .planning/todos/pending/${date}-${slug}.md`
-7. Confirm: "Saved: ${TITLE} (priority: ${PRIORITY})"
+5. GitHub Issue creation (primary):
+   - Call `mcp_create_todo_issue` with title, priority, area, and description to create a tracked GitHub Issue (label: "todo")
+   - If GitHub is unavailable, fall back to local file only and warn user: "Todo saved locally. Run `/maxsim:init` to enable GitHub tracking."
+6. Local file cache: also create the local todo file for offline access
+7. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: capture todo - ${TITLE}" --files .planning/todos/pending/${date}-${slug}.md`
+8. Confirm: "Saved: ${TITLE} (priority: ${PRIORITY}) — GitHub Issue #{number}"
 
 Exit after confirm.
 
@@ -683,11 +684,10 @@ Exit after confirm.
 If user references an existing todo to complete:
 
 1. Parse identifier (number from list, or title fragment)
-2. Find matching todo in `.planning/todos/pending/`
-3. Move to done: `mv ".planning/todos/pending/[filename]" ".planning/todos/done/"`
-4. Best-effort: close corresponding GitHub Issue
-5. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: complete todo - ${TITLE}" --files .planning/todos/done/${filename}`
-6. Confirm: "Completed: ${TITLE}"
+2. Close the corresponding GitHub Issue (primary): call `mcp_close_issue` with the todo's issue number
+3. Move local cache file: `mv ".planning/todos/pending/[filename]" ".planning/todos/done/"`
+4. Commit: `node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "docs: complete todo - ${TITLE}" --files .planning/todos/done/${filename}`
+5. Confirm: "Completed: ${TITLE} — GitHub Issue closed"
 
 Exit after confirm.
 

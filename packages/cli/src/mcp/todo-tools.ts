@@ -1,14 +1,8 @@
 /**
  * Todo CRUD MCP Tools -- Todo operations exposed as MCP tools
  *
- * Manages local todo files in .planning/todos/. In the new architecture,
- * todos will eventually migrate to GitHub Issues with the 'task' label.
- * For now, todos remain as local .planning/ files with best-effort GitHub
- * integration (issue creation + board tracking when auth is available).
- *
- * TODO: Migrate todo storage from .planning/todos/ to GitHub Issues in a
- * future iteration. Todos would become GitHub Issues with the 'task' label,
- * removing the need for local file management.
+ * GitHub Issues with the 'todo' label are the single source of truth.
+ * Local .planning/todos/ files serve as a cache for offline access.
  *
  * CRITICAL: Never import output() or error() from core -- they call process.exit().
  * CRITICAL: Never write to stdout -- it is reserved for MCP JSON-RPC protocol.
@@ -21,11 +15,10 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { generateSlugInternal, todayISO, planningPath } from '../core/core.js';
-import { parseTodoFrontmatter } from '../core/commands.js';
 
 import { requireAuth } from '../github/client.js';
 import { AuthError } from '../github/types.js';
-import { closeIssue } from '../github/issues.js';
+import { createTodoIssue, listTodoIssues, closeIssue } from '../github/issues.js';
 
 import { detectProjectRoot, mcpSuccess, mcpError } from './utils.js';
 
@@ -37,7 +30,7 @@ export function registerTodoTools(server: McpServer): void {
 
   server.tool(
     'mcp_add_todo',
-    'Create a new todo item in .planning/todos/pending/ with frontmatter metadata.',
+    'Create a new todo as a GitHub Issue (primary) with local file cache.',
     {
       title: z.string().describe('Title of the todo item'),
       description: z.string().optional().describe('Optional description body'),
@@ -51,18 +44,43 @@ export function registerTodoTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
-        const pendingDir = planningPath(cwd, 'todos', 'pending');
-        fs.mkdirSync(pendingDir, { recursive: true });
-
         const today = todayISO();
         const slug = generateSlugInternal(title) || 'untitled';
         const timestamp = Date.now();
         const filename = `${timestamp}-${slug}.md`;
-        const filePath = path.join(pendingDir, filename);
 
-        const content = `---\ncreated: ${today}\ntitle: ${title}\narea: ${area || 'general'}\nphase: ${phase || 'unassigned'}\n---\n${description || ''}\n`;
+        // Primary: Create GitHub Issue with 'todo' label
+        let githubIssueNumber: number | undefined;
+        let githubError: string | undefined;
 
-        fs.writeFileSync(filePath, content, 'utf-8');
+        try {
+          requireAuth();
+          const ghResult = await createTodoIssue(title, description, area, phase);
+          if (ghResult.ok) {
+            githubIssueNumber = ghResult.data.number;
+          } else {
+            githubError = `GitHub issue creation failed: ${ghResult.error}`;
+          }
+        } catch (e) {
+          if (e instanceof AuthError) {
+            githubError = `GitHub auth not available: ${e.message}`;
+          } else {
+            githubError = `GitHub operation failed: ${(e as Error).message}`;
+          }
+        }
+
+        if (!githubIssueNumber && !githubError) {
+          githubError = 'GitHub issue creation returned no issue number';
+        }
+
+        // Cache: Write local file
+        const pendingDir = planningPath(cwd, 'todos', 'pending');
+        fs.mkdirSync(pendingDir, { recursive: true });
+
+        const issueRef = githubIssueNumber ? `\ngithub_issue: ${githubIssueNumber}` : '';
+        const content = `---\ncreated: ${today}\ntitle: ${title}\narea: ${area || 'general'}\nphase: ${phase || 'unassigned'}${issueRef}\n---\n${description || ''}\n`;
+
+        fs.writeFileSync(path.join(pendingDir, filename), content, 'utf-8');
 
         return mcpSuccess(
           {
@@ -70,8 +88,12 @@ export function registerTodoTools(server: McpServer): void {
             path: `.planning/todos/pending/${filename}`,
             title,
             area: area || 'general',
+            github_issue: githubIssueNumber ?? null,
+            ...(githubError ? { github_error: githubError } : {}),
           },
-          `Todo created: ${title}`,
+          githubIssueNumber
+            ? `Todo created: ${title} (GitHub Issue #${githubIssueNumber})`
+            : `Todo created: ${title} (local only — ${githubError})`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');
@@ -83,10 +105,10 @@ export function registerTodoTools(server: McpServer): void {
 
   server.tool(
     'mcp_complete_todo',
-    'Mark a pending todo as completed by moving it from pending/ to completed/ with a completion timestamp.',
+    'Mark a todo as completed. Closes the GitHub Issue (primary) and moves local cache file.',
     {
       todo_id: z.string().describe('Filename of the todo (e.g., 1234567890-my-task.md)'),
-      github_issue_number: z.number().optional().describe('Optional GitHub issue number to close'),
+      github_issue_number: z.number().optional().describe('GitHub issue number to close (reads from local cache if omitted)'),
     },
     async ({ todo_id, github_issue_number }) => {
       try {
@@ -103,23 +125,26 @@ export function registerTodoTools(server: McpServer): void {
           return mcpError(`Todo not found in pending: ${todo_id}`, 'Todo not found');
         }
 
-        fs.mkdirSync(completedDir, { recursive: true });
-
+        // Read local file to extract github_issue if not provided
         let content = fs.readFileSync(sourcePath, 'utf-8');
         const today = todayISO();
-        content = `completed: ${today}\n` + content;
 
-        fs.writeFileSync(path.join(completedDir, todo_id), content, 'utf-8');
-        fs.unlinkSync(sourcePath);
+        let issueNumber = github_issue_number;
+        if (!issueNumber) {
+          const issueMatch = content.match(/github_issue:\s*(\d+)/);
+          if (issueMatch) {
+            issueNumber = parseInt(issueMatch[1], 10);
+          }
+        }
 
-        // GitHub integration: close issue if number provided
+        // Primary: Close GitHub Issue
         let githubClosed = false;
         let githubWarning: string | undefined;
 
-        if (github_issue_number) {
+        if (issueNumber) {
           try {
             requireAuth();
-            const closeResult = await closeIssue(github_issue_number, `Todo completed: ${todo_id}`);
+            const closeResult = await closeIssue(issueNumber, `Todo completed: ${todo_id}`);
             githubClosed = closeResult.ok;
             if (!closeResult.ok) {
               githubWarning = `GitHub issue close failed: ${closeResult.error}`;
@@ -133,15 +158,22 @@ export function registerTodoTools(server: McpServer): void {
           }
         }
 
+        // Cache: Move local file from pending to completed
+        fs.mkdirSync(completedDir, { recursive: true });
+        content = `completed: ${today}\n` + content;
+        fs.writeFileSync(path.join(completedDir, todo_id), content, 'utf-8');
+        fs.unlinkSync(sourcePath);
+
         return mcpSuccess(
           {
             completed: true,
             file: todo_id,
             date: today,
             github_closed: githubClosed,
+            github_issue: issueNumber ?? null,
             ...(githubWarning ? { github_warning: githubWarning } : {}),
           },
-          `Todo completed: ${todo_id}${githubClosed ? ' (GitHub issue closed)' : ''}`,
+          `Todo completed: ${todo_id}${githubClosed ? ` (GitHub Issue #${issueNumber} closed)` : ''}`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');
@@ -153,7 +185,7 @@ export function registerTodoTools(server: McpServer): void {
 
   server.tool(
     'mcp_list_todos',
-    'List todo items, optionally filtered by area and status (pending, completed, or all).',
+    'List todo items from GitHub Issues (primary). Falls back to local cache if GitHub unavailable.',
     {
       area: z.string().optional().describe('Filter by area/category'),
       status: z
@@ -169,6 +201,42 @@ export function registerTodoTools(server: McpServer): void {
           return mcpError('No .planning/ directory found', 'Project not detected');
         }
 
+        // Primary: Query GitHub Issues with 'todo' label
+        try {
+          requireAuth();
+          const ghState = status === 'pending' ? 'open'
+            : status === 'completed' ? 'closed'
+            : 'all';
+          const ghResult = await listTodoIssues(ghState);
+
+          if (ghResult.ok) {
+            let todos = ghResult.data;
+
+            // Apply area filter
+            if (area) {
+              todos = todos.filter(t => t.area === area);
+            }
+
+            return mcpSuccess(
+              {
+                count: todos.length,
+                source: 'github',
+                todos: todos.map(t => ({
+                  github_issue: t.number,
+                  title: t.title,
+                  area: t.area,
+                  status: t.state === 'open' ? 'pending' : 'completed',
+                  created: t.created_at,
+                })),
+              },
+              `${todos.length} todos found (from GitHub)`,
+            );
+          }
+        } catch {
+          // GitHub unavailable — fall through to local cache
+        }
+
+        // Fallback: Read from local cache
         const todosBase = planningPath(cwd, 'todos');
         const dirs: string[] = [];
 
@@ -179,6 +247,8 @@ export function registerTodoTools(server: McpServer): void {
           dirs.push(path.join(todosBase, 'completed'));
         }
 
+        const { parseTodoFrontmatter } = await import('../core/commands.js');
+
         const todos: Array<{
           file: string;
           created: string;
@@ -186,6 +256,7 @@ export function registerTodoTools(server: McpServer): void {
           area: string;
           status: string;
           path: string;
+          github_issue?: number;
         }> = [];
 
         for (const dir of dirs) {
@@ -195,17 +266,17 @@ export function registerTodoTools(server: McpServer): void {
           try {
             files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
           } catch {
-            // Directory may not exist
             continue;
           }
 
           for (const file of files) {
             try {
-              const content = fs.readFileSync(path.join(dir, file), 'utf-8');
-              const fm = parseTodoFrontmatter(content);
+              const fileContent = fs.readFileSync(path.join(dir, file), 'utf-8');
+              const fm = parseTodoFrontmatter(fileContent);
 
               if (area && fm.area !== area) continue;
 
+              const issueMatch = fileContent.match(/github_issue:\s*(\d+)/);
               todos.push({
                 file,
                 created: fm.created,
@@ -213,6 +284,7 @@ export function registerTodoTools(server: McpServer): void {
                 area: fm.area,
                 status: dirStatus,
                 path: `.planning/todos/${dirStatus}/${file}`,
+                ...(issueMatch ? { github_issue: parseInt(issueMatch[1], 10) } : {}),
               });
             } catch {
               // Skip unreadable files
@@ -223,9 +295,10 @@ export function registerTodoTools(server: McpServer): void {
         return mcpSuccess(
           {
             count: todos.length,
+            source: 'local_cache',
             todos,
           },
-          `${todos.length} todos found`,
+          `${todos.length} todos found (from local cache — GitHub unavailable)`,
         );
       } catch (e) {
         return mcpError((e as Error).message, 'Operation failed');

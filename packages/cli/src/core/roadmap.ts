@@ -106,7 +106,7 @@ export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
       let hasContext = false;
       let hasResearch = false;
 
-      // If GitHub data is available for this phase, use it
+      // GitHub is the single source of truth for phase progress
       const ghData = ghPhaseProgress?.get(p.phaseNum);
       if (ghData) {
         planCount = ghData.total;
@@ -116,23 +116,9 @@ export async function cmdRoadmapAnalyze(cwd: string): Promise<CmdResult> {
         else if (planCount > 0) diskStatus = 'planned';
         else diskStatus = 'empty';
       } else {
-        // Fallback: scan local filesystem
-        try {
-          const dirMatch = allDirs.find(d => d.startsWith(p.normalized + '-') || d === p.normalized);
-          if (dirMatch) {
-            const phaseFiles = await fsp.readdir(path.join(phasesDir, dirMatch));
-            planCount = phaseFiles.filter(f => isPlanFile(f)).length;
-            summaryCount = phaseFiles.filter(f => isSummaryFile(f)).length;
-            hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
-            hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-            if (summaryCount >= planCount && planCount > 0) diskStatus = 'complete';
-            else if (summaryCount > 0) diskStatus = 'partial';
-            else if (planCount > 0) diskStatus = 'planned';
-            else if (hasResearch) diskStatus = 'researched';
-            else if (hasContext) diskStatus = 'discussed';
-            else diskStatus = 'empty';
-          }
-        } catch (e) { debugLog(e); }
+        // Check if phase directory exists on disk (for directory presence only)
+        const dirMatch = allDirs.find(d => d.startsWith(p.normalized + '-') || d === p.normalized);
+        if (dirMatch) diskStatus = 'empty';
       }
 
       const checkboxMatch = content.match(p.checkboxPattern);

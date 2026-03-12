@@ -17,14 +17,14 @@ Execute small, ad-hoc tasks with MAXSIM guarantees (atomic commits, STATE.md tra
 
 Quick mode is the same system with a shorter path:
 - Spawns planner (quick mode) + executor(s)
-- Quick tasks live in `.planning/quick/` separate from planned phases
+- Quick tasks are tracked via GitHub Issues (label: "quick"), separate from planned phases
 - Updates STATE.md "Quick Tasks Completed" table (NOT ROADMAP.md)
 
 **Default:** Skips research, plan-checker, verifier. Use when you know exactly what to do.
 
 **`--full` flag:** Enables plan-checking (max 2 iterations) and post-execution verification. Use when you want quality guarantees without full milestone ceremony.
 
-**`--todo` flag:** Enters todo management mode. List, capture, complete, and triage todos without executing tasks. "Save for later" creates a local todo + best-effort GitHub Issue with 'todo' label.
+**`--todo` flag:** Enters todo management mode. List, capture, complete, and triage todos without executing tasks. "Save for later" creates a GitHub Issue with 'todo' label (primary) with local file cache.
 </objective>
 
 <execution_context>

@@ -333,17 +333,10 @@ export async function cmdVerifyPhaseCompleteness(cwd: string, phase: string | nu
 
   const errors: string[] = [];
   const warnings: string[] = [];
-  const phaseDir = path.join(cwd, phaseInfo.directory);
 
-  let files: string[];
-  try {
-    files = fs.readdirSync(phaseDir);
-  } catch {
-    return cmdOk({ error: 'Cannot read phase directory' });
-  }
-
-  const plans = files.filter(f => isPlanFile(f));
-  const summaries = files.filter(f => isSummaryFile(f));
+  // Use findPhaseInternal data (GitHub-first) for plan/summary info
+  const plans = phaseInfo.plans;
+  const summaries = phaseInfo.summaries;
 
   const planIds = new Set(plans.map(p => planId(p)));
   const summaryIds = new Set(summaries.map(s => summaryId(s)));
@@ -838,52 +831,22 @@ export async function cmdValidateConsistency(cwd: string): Promise<CmdResult> {
     }
   }
 
+  // Plan/summary consistency is now tracked via GitHub Issues.
+  // Plan numbering and orphan summary checks are handled by findPhaseInternal.
   try {
     const dirs = await listSubDirs(phasesDir, true);
-
     for (const dir of dirs) {
-      const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
-      const plans = phaseFiles.filter(f => isPlanFile(f)).sort();
+      const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
+      if (!dm) continue;
+      const phaseInfo = await findPhaseInternal(cwd, dm[1]);
+      if (!phaseInfo) continue;
 
-      const planNums = plans.map(p => {
-        const pm = p.match(/-(\d{2})-PLAN\.md$/);
-        return pm ? parseInt(pm[1], 10) : null;
-      }).filter((n): n is number => n !== null);
-
-      for (let i = 1; i < planNums.length; i++) {
-        if (planNums[i] !== planNums[i - 1] + 1) {
-          warnings.push(`Gap in plan numbering in ${dir}: plan ${planNums[i - 1]} → ${planNums[i]}`);
-        }
-      }
-
-      const summaries = phaseFiles.filter(f => isSummaryFile(f));
-      const planIdsSet = new Set(plans.map(p => planId(p)));
-      const summaryIdsSet = new Set(summaries.map(s => summaryId(s)));
+      const planIdsSet = new Set(phaseInfo.plans.map(p => planId(p)));
+      const summaryIdsSet = new Set(phaseInfo.summaries.map(s => summaryId(s)));
 
       for (const sid of summaryIdsSet) {
         if (!planIdsSet.has(sid)) {
           warnings.push(`Summary ${sid}-SUMMARY.md in ${dir} has no matching PLAN.md`);
-        }
-      }
-    }
-  } catch (e) {
-    /* optional op, ignore */
-    debugLog(e);
-  }
-
-  try {
-    const dirs = await listSubDirs(phasesDir);
-
-    for (const dir of dirs) {
-      const phaseFiles = fs.readdirSync(path.join(phasesDir, dir));
-      const plans = phaseFiles.filter(f => isPlanFile(f));
-
-      for (const plan of plans) {
-        const content = fs.readFileSync(path.join(phasesDir, dir, plan), 'utf-8');
-        const fm = extractFrontmatter(content);
-
-        if (!fm.wave) {
-          warnings.push(`${dir}/${plan}: missing 'wave' in frontmatter`);
         }
       }
     }
@@ -1014,16 +977,18 @@ export async function cmdValidateHealth(cwd: string, options: HealthOptions): Pr
     debugLog(e);
   }
 
-  // Check 7: Orphaned plans
+  // Check 7: Orphaned plans (via GitHub-first findPhaseInternal)
   try {
     const orphanDirs = await listSubDirs(phasesDir);
     for (const dirName of orphanDirs) {
-      const phaseFiles = fs.readdirSync(path.join(phasesDir, dirName));
-      const plans = phaseFiles.filter(f => isPlanFile(f));
-      const summaries = phaseFiles.filter(f => isSummaryFile(f));
-      const summaryBases = new Set(summaries.map(s => summaryId(s)));
+      const dm = dirName.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
+      if (!dm) continue;
+      const phaseInfo = await findPhaseInternal(cwd, dm[1]);
+      if (!phaseInfo) continue;
 
-      for (const plan of plans) {
+      const summaryBases = new Set(phaseInfo.summaries.map(s => summaryId(s)));
+
+      for (const plan of phaseInfo.plans) {
         const planBase = planId(plan);
         if (!summaryBases.has(planBase)) {
           addIssue('info', 'I001', `${dirName}/${plan} has no SUMMARY.md`, 'May be in progress');

@@ -194,11 +194,14 @@ async function loadHistoryContext(cwd: string, currentPhase?: string): Promise<C
         if (dirPhase === currentPhase) continue;
       }
 
-      const dirPath = path.join(pd, dir);
-      const phaseFiles = fs.readdirSync(dirPath);
+      // Use findPhaseInternal (GitHub-first) for summary discovery
+      const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
+      if (!dm) continue;
+      const phaseInfo = await findPhaseInternal(cwd, dm[1]);
+      if (!phaseInfo) continue;
+
       // Only load summaries from completed phases (lightweight history)
-      const summaries = phaseFiles.filter(f => isSummaryFile(f));
-      for (const s of summaries) {
+      for (const s of phaseInfo.summaries) {
         addIfExists(files, cwd, path.join('.planning', 'phases', dir, s), 'history-summary');
       }
     }

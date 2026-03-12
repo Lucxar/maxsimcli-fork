@@ -305,25 +305,8 @@ export async function cmdStateUpdateProgress(cwd: string, raw: boolean): Promise
     }
   } catch { /* GitHub not available — fall back to local */ }
 
-  // Fallback: scan local filesystem
-  if (!usedGitHub) {
-    const phasesDir = phasesPath(cwd);
-    if (await pathExistsInternal(phasesDir)) {
-      const phaseDirs = (await fsp.readdir(phasesDir, { withFileTypes: true }))
-        .filter(e => e.isDirectory()).map(e => e.name);
-      const counts = await Promise.all(phaseDirs.map(async (dir) => {
-        const files = await fsp.readdir(path.join(phasesDir, dir));
-        return {
-          plans: files.filter(f => isPlanFile(f)).length,
-          summaries: files.filter(f => isSummaryFile(f)).length,
-        };
-      }));
-      for (const c of counts) {
-        totalPlans += c.plans;
-        totalSummaries += c.summaries;
-      }
-    }
-  }
+  // GitHub is the single source of truth for plan/summary progress.
+  // If GitHub data is unavailable, counts remain 0.
 
   const percent = totalPlans > 0 ? Math.min(100, Math.round(totalSummaries / totalPlans * 100)) : 0;
   const barWidth = 10;

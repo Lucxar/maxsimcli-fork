@@ -747,15 +747,8 @@ export async function cmdInitMilestoneOp(cwd: string): Promise<CmdResult> {
     }
   } catch { /* GitHub not available */ }
 
-  // Fall back to local filesystem scanning
-  if (!ghSourced) {
-    const phasesDir = phasesPath(cwd);
-    try {
-      const dirs = await listSubDirs(phasesDir);
-      phaseCount = dirs.length;
-      for (const dir of dirs) { try { const phaseFiles = fs.readdirSync(path.join(phasesDir, dir)); if (phaseFiles.some(f => isSummaryFile(f))) completedPhases++; } catch (e) { debugLog(e); } }
-    } catch (e) { debugLog(e); }
-  }
+  // GitHub is the single source of truth for phase progress.
+  // If GitHub data is unavailable, counts remain 0.
   const archiveDir = planningPath(cwd, 'archive');
   let archivedMilestones: string[] = [];
   try { archivedMilestones = await listSubDirs(archiveDir); } catch (e) { debugLog(e); }
@@ -875,28 +868,8 @@ export async function cmdInitProgress(cwd: string): Promise<CmdResult> {
     }
   } catch { /* GitHub not available */ }
 
-  // Fall back to local filesystem scanning
-  if (!ghSourced) {
-    const progressPhasesDir = phasesPath(cwd);
-    try {
-      const dirs = await listSubDirs(progressPhasesDir, true);
-      for (const dir of dirs) {
-        const match = dir.match(/^(\d+(?:\.\d+)?)-?(.*)/);
-        const phaseNumber = match ? match[1] : dir;
-        const phaseName = match && match[2] ? match[2] : null;
-        const phaseDirPath = path.join(progressPhasesDir, dir);
-        const phaseFiles = fs.readdirSync(phaseDirPath);
-        const plansList = phaseFiles.filter(f => isPlanFile(f));
-        const summaries = phaseFiles.filter(f => isSummaryFile(f));
-        const hasResearch = phaseFiles.some(f => f.endsWith('-RESEARCH.md') || f === 'RESEARCH.md');
-        const status = summaries.length >= plansList.length && plansList.length > 0 ? 'complete' : plansList.length > 0 ? 'in_progress' : hasResearch ? 'researched' : 'pending';
-        const phaseInfoItem: ProgressPhaseInfo = { number: phaseNumber, name: phaseName, directory: path.join('.planning', 'phases', dir), status, plan_count: plansList.length, summary_count: summaries.length, has_research: hasResearch };
-        phases.push(phaseInfoItem);
-        if (!currentPhase && (status === 'in_progress' || status === 'researched')) currentPhase = phaseInfoItem;
-        if (!nextPhase && status === 'pending') nextPhase = phaseInfoItem;
-      }
-    } catch (e) { debugLog(e); }
-  }
+  // GitHub is the single source of truth for phase progress.
+  // If GitHub data is unavailable, phases array remains empty.
   let pausedAt: string | null = null;
   try { const state = fs.readFileSync(planningPath(cwd, 'STATE.md'), 'utf-8'); const pauseMatch = state.match(/\*\*Paused At:\*\*\s*(.+)/); if (pauseMatch) pausedAt = pauseMatch[1].trim(); } catch (e) { debugLog(e); }
   const result: ProgressContext = {

@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 
-import { planningPath, roadmapPath as roadmapPathUtil, statePath as statePathUtil, phasesPath, todayISO, listSubDirs, isPlanFile, isSummaryFile, debugLog, archivePath as archivePathHelper, pathExistsInternal, safeReadFile } from './core.js';
+import { planningPath, roadmapPath as roadmapPathUtil, statePath as statePathUtil, phasesPath, todayISO, listSubDirs, isPlanFile, isSummaryFile, findPhaseInternal, debugLog, archivePath as archivePathHelper, pathExistsInternal, safeReadFile } from './core.js';
 import { extractFrontmatter } from './frontmatter.js';
 import type {
   CmdResult,
@@ -133,8 +133,8 @@ export async function cmdMilestoneComplete(
     debugLog('milestone-complete-github-fallback', e);
   }
 
-  // Local scanning: always needed for accomplishments (frontmatter extraction),
-  // and as fallback for counts if GitHub was not available
+  // Local scanning: needed for accomplishments (frontmatter extraction from local archive files).
+  // Plan/summary counts come from GitHub exclusively.
   try {
     const dirs = await listSubDirs(phasesDir, true);
 
@@ -142,16 +142,21 @@ export async function cmdMilestoneComplete(
       if (!usedGitHubCounts) {
         phaseCount++;
       }
-      const phaseFiles = await fsp.readdir(path.join(phasesDir, dir));
-      const plans = phaseFiles.filter(isPlanFile);
-      const summaries = phaseFiles.filter(isSummaryFile);
+      // Use findPhaseInternal (GitHub-first) for summary discovery
+      const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)?)/i);
+      if (!dm) continue;
+      const phaseInfo = await findPhaseInternal(cwd, dm[1]);
+      if (!phaseInfo) continue;
+
       if (!usedGitHubCounts) {
-        totalPlans += plans.length;
+        totalPlans += phaseInfo.plans.length;
       }
 
-      for (const s of summaries) {
+      for (const s of phaseInfo.summaries) {
         try {
-          const content = await fsp.readFile(path.join(phasesDir, dir, s), 'utf-8');
+          const summaryPath = path.join(phasesDir, dir, s);
+          if (!fs.existsSync(summaryPath)) continue;
+          const content = await fsp.readFile(summaryPath, 'utf-8');
           const fm = extractFrontmatter(content);
           if (fm['one-liner']) {
             accomplishments.push(String(fm['one-liner']));

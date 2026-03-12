@@ -335,7 +335,7 @@ Ready to plan the next milestone.
 - Blockers present → highlight before offering to continue
 - External edits detected → surface in Issues Detected section before routing
 - Discrepancy between local ROADMAP and GitHub board → surface in Issues Detected (GitHub is authoritative)
-- GitHub not available (mcp calls fail) → note degraded mode, recommend resolving GitHub connectivity
+- GitHub not available (mcp calls fail) → show error: "GitHub integration required for progress tracking. Run `/maxsim:init` to configure GitHub." Do NOT fall back to local file scanning.
   </step>
 
 </process>
