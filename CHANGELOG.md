@@ -1,3 +1,10 @@
+# [4.16.0](https://github.com/maystudios/maxsimcli/compare/v4.15.4...v4.16.0) (2026-03-12)
+
+
+### Features
+
+* make GitHub Issues single source of truth for task/plan tracking ([d8e7191](https://github.com/maystudios/maxsimcli/commit/d8e7191467b12b2ba6c147a65f5e6539f77470ad))
+
 ## [4.15.4](https://github.com/maystudios/maxsimcli/compare/v4.15.3...v4.15.4) (2026-03-12)
 
 
