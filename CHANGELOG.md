@@ -1,3 +1,10 @@
+## [5.0.3](https://github.com/maystudios/maxsimcli/compare/v5.0.2...v5.0.3) (2026-03-12)
+
+
+### Bug Fixes
+
+* **templates:** rewrite [@path](https://github.com/path) references to resolve correctly after install ([11aeffa](https://github.com/maystudios/maxsimcli/commit/11aeffad7b355ccbbd3c1c9cab58419113360eb3))
+
 ## [5.0.2](https://github.com/maystudios/maxsimcli/compare/v5.0.1...v5.0.2) (2026-03-12)
 
 
