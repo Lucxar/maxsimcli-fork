@@ -1,3 +1,27 @@
+# [5.0.0](https://github.com/maystudios/maxsimcli/compare/v4.16.0...v5.0.0) (2026-03-12)
+
+
+* feat!: replace MCP server with CLI github commands ([2fc6a0e](https://github.com/maystudios/maxsimcli/commit/2fc6a0eeafbd5e7f010406f8c097fa3aad654db3))
+
+
+### Bug Fixes
+
+* **e2e:** remove stale MCP server tests and update install assertions ([32f6fe1](https://github.com/maystudios/maxsimcli/commit/32f6fe1226da022aef46b831dbeec39e052401a4))
+
+
+### Features
+
+* add sound notification hooks for AskUserQuestion and Stop events ([6e96a6e](https://github.com/maystudios/maxsimcli/commit/6e96a6e7e5147eefae5a1e073927ce99ceedaf49))
+* make GitHub Issues single source of truth for task/plan tracking ([8409c10](https://github.com/maystudios/maxsimcli/commit/8409c107305ff1183f2997d92a1515979ce2dc28))
+
+
+### BREAKING CHANGES
+
+* MCP server removed. GitHub operations now use
+`node maxsim-tools.cjs github <command>` instead of MCP tools.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
 # [4.16.0](https://github.com/maystudios/maxsimcli/compare/v4.15.4...v4.16.0) (2026-03-12)
 
 
