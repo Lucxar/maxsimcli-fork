@@ -73,13 +73,14 @@ Every agent return MUST include these sections (enforced by the handoff-contract
 
 ## Model Selection
 
-Config `model_profile` (quality/balanced/budget) provides baseline model per agent type. Orchestrator can override per-spawn for complex tasks.
+Config `model_profile` (quality/balanced/budget/tokenburner) provides baseline model per agent type. Orchestrator can override per-spawn for complex tasks.
 
-| Agent | quality | balanced | budget |
-|-------|---------|----------|--------|
-| executor | opus | sonnet | sonnet |
-| planner | opus | sonnet | haiku |
-| researcher | opus | sonnet | haiku |
-| verifier | sonnet | sonnet | haiku |
+| Agent | quality | balanced | budget | tokenburner |
+|-------|---------|----------|--------|-------------|
+| executor | opus | sonnet | sonnet | opus |
+| planner | opus | opus | sonnet | opus |
+| researcher | opus | sonnet | haiku | opus |
+| verifier | sonnet | sonnet | haiku | opus |
+| debugger | sonnet | sonnet | haiku | opus |
 
 Model is set via `model: inherit` in agent frontmatter (uses session model) or explicit override in orchestrator spawn.

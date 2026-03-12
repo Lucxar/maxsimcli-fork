@@ -9,14 +9,8 @@ MAXSIM is a meta-prompting, context engineering, and spec-driven development sys
 ## Commands
 
 ```bash
-# Build all (cli + dashboard) — required before pushing
+# Build — required before pushing
 npm run build
-
-# Build CLI only
-npm run build:cli
-
-# Build dashboard only
-npm run build:dashboard
 
 # Run unit tests
 npm test
@@ -29,9 +23,6 @@ cd packages/cli && npx vitest run tests/pack.test.ts
 
 # Lint (Biome)
 npm run lint
-
-# Run dashboard dev server
-cd packages/dashboard && npm run dev
 ```
 
 Tests use Vitest. The `packages/cli` package contains all test suites.
@@ -40,12 +31,11 @@ Tests use Vitest. The `packages/cli` package contains all test suites.
 
 ### Monorepo Structure
 
-This is an **npm workspaces** monorepo with 3 packages:
+This is an **npm workspaces** monorepo with 2 packages:
 
 | Package | Role |
 |---------|------|
 | `packages/cli` | Main package, published as `maxsimcli` to npm. Contains all core logic, hooks, CLI router, and installer. |
-| `packages/dashboard` | Vite+React frontend + Express backend. Bundled into cli's `dist/assets/dashboard/` at build time. |
 | `packages/website` | Marketing website (separate, not part of npm publish). |
 
 Static assets (markdown commands, agents, workflows) live in `templates/` at the repo root.
@@ -62,7 +52,7 @@ The "runtime" for MAXSIM commands is the AI itself — commands are markdown pro
 ```
 templates/commands/maxsim/*.md  ← User-facing command specs (30+ files, user types /maxsim:*)
 templates/workflows/*.md        ← Implementation workflows (loaded via @path references)
-templates/agents/*.md           ← Specialized subagent prompts (11 agents)
+templates/agents/*.md           ← Specialized subagent prompts (4 agents)
 ```
 
 Commands load workflows which spawn agents. Agents call `cli.cjs` (the tools router) via the Bash tool.
@@ -101,8 +91,7 @@ Large outputs (>50KB) are written to a tmpfile and returned as `@file:/path` —
 
 1. **tsdown** bundles `src/install.ts` → `dist/install.cjs` and `src/cli.ts` → `dist/cli.cjs`
 2. **tsdown** also builds hooks from `src/hooks/` → `dist/assets/hooks/*.cjs`
-3. **copy-assets.cjs** copies templates, dashboard build, CHANGELOG, and README into `dist/assets/`
-4. Dashboard builds separately: Vite (client) + tsdown (server) → `dist/client/` + `dist/server.js`
+3. **copy-assets.cjs** copies templates, CHANGELOG, and README into `dist/assets/`
 
 ### Data Structure in User Projects
 
@@ -130,13 +119,9 @@ MAXSIM creates a `.planning/` directory in user projects:
 
 Phases support decimal and letter suffixes: `01`, `01A`, `01B`, `01.1`, `01.2`. Sort order: `01 < 01A < 01B < 01.1`. The `normalizePhaseName()` and `comparePhaseNum()` functions in `core.ts` handle this.
 
-### Dashboard Package
-
-`packages/dashboard` is a Vite+React frontend with an Express backend (`server.ts`). It bundles to `dist/assets/dashboard/` in the CLI package and is served by `node .claude/dashboard/server.js` after install. It uses xterm.js for terminal emulation and WebSockets for real-time updates. Dashboard resolves `@maxsim/core` via path alias to `../cli/src/core/`.
-
 ### Model Profiles
 
-Config `model_profile` maps to Claude models per agent type. Defined in `core.ts` as `MODEL_PROFILES`. Three tiers: `quality`, `balanced`, `budget`. Orchestrators use leaner models; planners/executors/debuggers use heavier models.
+Config `model_profile` maps to Claude models per agent type. Defined in `core.ts` as `MODEL_PROFILES`. Four tiers: `quality`, `balanced`, `budget`, `tokenburner`. Orchestrators use leaner models; planners/executors/debuggers use heavier models.
 
 ## Testing Patterns
 
@@ -198,4 +183,3 @@ The GitHub Actions workflow (`publish.yml`) triggers on every push to `main` and
 - **Changing model assignments:** `MODEL_PROFILES` in `packages/cli/src/core/core.ts`
 - **Changing install behavior:** `packages/cli/src/install.ts`
 - **Adding/modifying hooks:** `packages/cli/src/hooks/`
-- **Dashboard development:** `packages/dashboard/src/`

@@ -1,4 +1,6 @@
 node_modules/
+.mcp.json
+.mcp.json.bak
 .DS_Store
 TO-DOS.md
 CLAUDE.md
