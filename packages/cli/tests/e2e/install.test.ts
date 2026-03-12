@@ -61,21 +61,10 @@ describe('binary smoke test (E2E-04)', () => {
 });
 
 describe('install real-world verification (E2E-05)', () => {
-  it('installs mcp-server.cjs in bin directory', () => {
+  it('mcp-server.cjs is NOT installed (removed in favor of CLI commands)', () => {
     const installDir = inject('installDir');
     const mcpPath = join(installDir, '.claude', 'maxsim', 'bin', 'mcp-server.cjs');
-    expect(existsSync(mcpPath)).toBe(true);
-  });
-
-  it('creates .mcp.json with maxsim server config', () => {
-    const installDir = inject('installDir');
-    const mcpJsonPath = join(installDir, '.mcp.json');
-    expect(existsSync(mcpJsonPath)).toBe(true);
-
-    const mcpJson = JSON.parse(readFileSync(mcpJsonPath, 'utf-8'));
-    expect(mcpJson).toHaveProperty('mcpServers.maxsim');
-    expect(mcpJson.mcpServers.maxsim).toHaveProperty('command', 'node');
-    expect(mcpJson.mcpServers.maxsim.args).toContain('.claude/maxsim/bin/mcp-server.cjs');
+    expect(existsSync(mcpPath)).toBe(false);
   });
 
   it('installs all 11 skill directories', () => {
@@ -102,6 +91,8 @@ describe('install real-world verification (E2E-05)', () => {
     expect(hookFiles).toContain('maxsim-statusline.js');
     expect(hookFiles).toContain('maxsim-check-update.js');
     expect(hookFiles).toContain('maxsim-sync-reminder.js');
+    expect(hookFiles).toContain('maxsim-notification-sound.js');
+    expect(hookFiles).toContain('maxsim-stop-sound.js');
   });
 
   it('creates settings.json with hook configuration', () => {
