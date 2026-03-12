@@ -1,3 +1,10 @@
+## [4.15.4](https://github.com/maystudios/maxsimcli/compare/v4.15.3...v4.15.4) (2026-03-12)
+
+
+### Bug Fixes
+
+* remove stale references to dashboard, plan-phase, milestones shims and enhance statusline ([b895bf2](https://github.com/maystudios/maxsimcli/commit/b895bf22228117e93ad36cfb358777a4591109ed))
+
 ## [4.15.3](https://github.com/maystudios/maxsimcli/compare/v4.15.2...v4.15.3) (2026-03-11)
 
 
