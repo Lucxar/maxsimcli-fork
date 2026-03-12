@@ -1069,7 +1069,7 @@ export async function cmdInitDebugger(cwd: string, phase: string | undefined): P
   const phaseInfo = phase ? await findPhaseInternal(cwd, phase) : null;
   const codebaseDocs = listCodebaseDocs(cwd);
   const result: DebuggerAgentContext = {
-    debugger_model: await resolveModelInternal(cwd, 'verifier'),
+    debugger_model: await resolveModelInternal(cwd, 'debugger'),
     commit_docs: config.commit_docs,
     phase_found: !!phaseInfo,
     phase_dir: phaseInfo?.directory ?? null,

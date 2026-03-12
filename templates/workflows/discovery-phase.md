@@ -2,13 +2,12 @@
 Execute discovery at the appropriate depth level.
 Produces DISCOVERY.md (for Level 2-3) that informs PLAN.md creation.
 
-Called from plan-phase.md's mandatory_discovery step with a depth parameter.
+Called from plan-create.md's mandatory_discovery step with a depth parameter.
 
 NOTE: For comprehensive ecosystem research ("how do experts build this"), use /maxsim:plan --research instead, which produces RESEARCH.md.
 </purpose>
 
 <required_reading>
-@./references/dashboard-bridge.md
 </required_reading>
 
 <depth_levels>
@@ -20,7 +19,7 @@ NOTE: For comprehensive ecosystem research ("how do experts build this"), use /m
 | 2     | Standard     | 15-30 min | DISCOVERY.md                                 | Choosing between options, new integration |
 | 3     | Deep Dive    | 1+ hour   | Detailed DISCOVERY.md with validation gates  | Architectural decisions, novel problems   |
 
-**Depth is determined by plan-phase.md before routing here.**
+**Depth is determined by plan-create.md before routing here.**
 </depth_levels>
 
 <source_hierarchy>
@@ -38,7 +37,7 @@ See ~/.claude/maxsim/templates/discovery.md `<discovery_protocol>` for full prot
 <process>
 
 <step name="determine_depth">
-Check the depth parameter passed from plan-phase.md:
+Check the depth parameter passed from plan-create.md:
 - `depth=verify` → Level 1 (Quick Verification)
 - `depth=standard` → Level 2 (Standard Discovery)
 - `depth=deep` → Level 3 (Deep Dive)
@@ -73,7 +72,7 @@ For: Single known library, confirming syntax/version still correct.
    - API syntax unchanged
    - No breaking changes in recent versions
 
-4. **If verified:** Return to plan-phase.md with confirmation. No DISCOVERY.md needed.
+4. **If verified:** Return to plan-create.md with confirmation. No DISCOVERY.md needed.
 
 5. **If concerns found:** Escalate to Level 2.
 
@@ -118,7 +117,7 @@ For: Choosing between options, new external integration.
    - Code examples from Context7
    - Confidence level (should be MEDIUM-HIGH for Level 2)
 
-7. Return to plan-phase.md.
+7. Return to plan-create.md.
 
 **Output:** `.planning/phases/XX-name/DISCOVERY.md`
 </step>
@@ -171,7 +170,7 @@ For: Architectural decisions, novel problems, high-risk choices.
 
 7. **Confidence gate:** If overall confidence is LOW, present options before proceeding.
 
-8. Return to plan-phase.md.
+8. Return to plan-create.md.
 
 **Output:** `.planning/phases/XX-name/DISCOVERY.md` (comprehensive)
 </step>

@@ -166,7 +166,7 @@ Rule 5: Phase "To Do" on GitHub board (not yet started)?
 
 Rule 6: Current phase "In Review" on GitHub board?
   -> Check: mcp_get_all_progress returns a phase with status="In Review"
-  -> Action: /maxsim:verify {N}
+  -> Action: /maxsim:execute {N}
   -> Reasoning: "Phase {N} ({name}) is awaiting verification."
 
 Rule 7: All phases "Done" on GitHub board?
@@ -245,7 +245,7 @@ Wait for user selection, then dispatch the chosen command.
 - Always surface problems BEFORE suggesting actions
 - All problems block — no severity tiers, no "warnings"
 - No arguments accepted — this is pure auto-detection
-- No mention of old commands (plan-phase, execute-phase, etc.)
+- No mention of old commands (plan, execute-phase, etc.)
 - Keep initial feedback fast — show "Analyzing..." before heavy operations
 - Primary source for phase state: live GitHub (mcp_get_all_progress, mcp_detect_interrupted)
 - Local reads: STATE.md for blockers/decisions, ROADMAP.md for phase ordering only

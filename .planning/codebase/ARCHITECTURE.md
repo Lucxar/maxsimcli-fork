@@ -21,11 +21,11 @@
 **Location:** `templates/`
 
 **Contains:**
-- `templates/commands/maxsim/*.md` — 39 slash-command definitions (user types `/maxsim:execute-phase`, etc.)
-- `templates/workflows/*.md` — 42 workflow implementation files (detailed multi-step procedures)
-- `templates/agents/*.md` — 15 agent prompt files (specialized subagent prompts with structured sections)
+- `templates/commands/maxsim/*.md` — 9 slash-command definitions (user types `/maxsim:execute-phase`, etc.)
+- `templates/workflows/*.md` — 25 workflow implementation files (detailed multi-step procedures)
+- `templates/agents/*.md` — 4 agent prompt definitions + 1 index (AGENTS.md) (specialized subagent prompts with structured sections)
 - `templates/references/*.md` — 16 shared reference documents (conventions, patterns, profiles)
-- `templates/skills/` — 12 skill directories (behavioral rules: TDD, verification, debugging, etc.)
+- `templates/skills/` — 20 skill directories (behavioral rules: TDD, verification, debugging, etc.)
 - `templates/templates/` — Scaffold templates for planning documents
 
 **Depends on:** Layer 2 (CLI tools router) for data operations. References tools as `node ~/.claude/maxsim/bin/maxsim-tools.cjs <command>` or MCP tool calls.

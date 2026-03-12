@@ -152,12 +152,6 @@ export async function cmdMilestoneComplete(
     await fsp.writeFile(path.join(archiveDir, 'ROADMAP.md'), roadmapContent, 'utf-8');
   }
 
-  // Archive ROADMAP.md (legacy format kept for compatibility)
-  if (roadmapExists) {
-    const roadmapContent = await fsp.readFile(roadmapPath, 'utf-8');
-    await fsp.writeFile(path.join(archiveDir, `${version}-ROADMAP.md`), roadmapContent, 'utf-8');
-  }
-
   // Archive REQUIREMENTS.md
   if (await pathExistsInternal(reqPath)) {
     const reqContent = await fsp.readFile(reqPath, 'utf-8');
@@ -249,7 +243,7 @@ Last session: ${today}
     tasks: totalTasks,
     accomplishments,
     archived: {
-      roadmap: await pathExistsInternal(path.join(archiveDir, `${version}-ROADMAP.md`)),
+      roadmap: await pathExistsInternal(path.join(archiveDir, 'ROADMAP.md')),
       requirements: await pathExistsInternal(path.join(archiveDir, `${version}-REQUIREMENTS.md`)),
       audit: await pathExistsInternal(path.join(archiveDir, `${version}-MILESTONE-AUDIT.md`)),
       phases: phasesArchived,

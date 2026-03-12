@@ -148,7 +148,7 @@ maxsim/
 **commands/maxsim/**
 - Purpose: Slash command definitions for Claude Code
 - Contains: *.md files (one per command)
-- Key files: new-project.md, plan-phase.md, execute-plan.md
+- Key files: new-project.md, plan.md, execute-plan.md
 - Subdirectories: None (flat structure)
 
 **maxsim/references/**

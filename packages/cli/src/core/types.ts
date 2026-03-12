@@ -84,7 +84,8 @@ export type AgentType =
   | 'executor'
   | 'planner'
   | 'researcher'
-  | 'verifier';
+  | 'verifier'
+  | 'debugger';
 
 export type ModelProfiles = Record<AgentType, ModelProfileEntry>;
 
@@ -593,9 +594,16 @@ export interface ExecutorAgentContext {
   codebase_docs: string[];
 }
 
+// Note: some context interfaces use legacy role-named model fields that intentionally map
+// to AgentType values for model resolution. The mappings are:
+//   checker_model       → resolves via 'planner'   AgentType
+//   synthesizer_model   → resolves via 'researcher' AgentType  (defined in init.ts contexts)
+//   roadmapper_model    → resolves via 'planner'   AgentType  (defined in init.ts contexts)
+//   mapper_model        → resolves via 'researcher' AgentType  (defined in init.ts contexts)
+// These are deliberate design decisions, not omissions.
 export interface PlannerAgentContext {
   planner_model: string;
-  checker_model: string;
+  checker_model: ModelResolution;
   commit_docs: boolean;
   research_enabled: boolean;
   plan_checker_enabled: boolean;

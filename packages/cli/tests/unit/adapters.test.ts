@@ -46,7 +46,6 @@ vi.mock('node:fs', async () => {
 
 import {
   getGlobalDir,
-  getConfigDirFromHome,
   getDirName,
 } from '../../src/install/shared.js';
 
@@ -181,13 +180,6 @@ describe('getGlobalDir', () => {
     delete process.env.CLAUDE_CONFIG_DIR;
     const result = getGlobalDir();
     expect(result).toBe(path.join(os.homedir(), '.claude'));
-  });
-});
-
-describe('getConfigDirFromHome', () => {
-  it('returns the constant config dir string', () => {
-    expect(getConfigDirFromHome(true)).toBe("'.claude'");
-    expect(getConfigDirFromHome(false)).toBe("'.claude'");
   });
 });
 

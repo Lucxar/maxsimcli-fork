@@ -4,12 +4,7 @@ Interactive configuration of MAXSIM workflow agents (research, plan_checker, ver
 
 <required_reading>
 Read all files referenced by the invoking prompt's execution_context before starting.
-@./references/dashboard-bridge.md
 </required_reading>
-
-<tool_mandate>
-**Question routing:** At workflow start, probe for the dashboard (see @dashboard-bridge). If `DASHBOARD_ACTIVE = true`, route ALL `AskUserQuestion` calls through `mcp__maxsim-dashboard__ask_question` using the schema translation rules from @dashboard-bridge. If `DASHBOARD_ACTIVE = false`, use `AskUserQuestion` as normal.
-</tool_mandate>
 
 <process>
 
@@ -33,7 +28,7 @@ Parse current values (default to `true` if not present):
 - `workflow.research` — spawn researcher during /maxsim:plan
 - `workflow.plan_checker` — spawn plan checker during /maxsim:plan
 - `workflow.verifier` — spawn verifier during /maxsim:execute
-- `workflow.nyquist_validation` — validation architecture research during plan-phase
+- `workflow.nyquist_validation` — validation architecture research during planning
 - `model_profile` — which model each agent uses (default: `balanced`)
 - `git.branching_strategy` — branching approach (default: `"none"`)
 </step>
@@ -94,7 +89,7 @@ AskUserQuestion([
     header: "Nyquist",
     multiSelect: false,
     options: [
-      { label: "Yes (Recommended)", description: "Research automated test coverage during plan-phase. Adds validation requirements to plans. Blocks approval if tasks lack automated verify." },
+      { label: "Yes (Recommended)", description: "Research automated test coverage during planning. Adds validation requirements to plans. Blocks approval if tasks lack automated verify." },
       { label: "No", description: "Skip validation research. Good for rapid prototyping or no-test phases." }
     ]
   },

@@ -6,14 +6,9 @@ Output: `.planning/` directory with config.json, PROJECT.md, REQUIREMENTS.md, RO
 
 <required_reading>
 Read all files referenced by the invoking prompt's execution_context before starting.
-@./references/dashboard-bridge.md
 @./references/thinking-partner.md
 @./references/questioning.md
 </required_reading>
-
-<tool_mandate>
-**Question routing:** At workflow start, probe for the dashboard (see @dashboard-bridge). If `DASHBOARD_ACTIVE = true`, route ALL `AskUserQuestion` calls through `mcp__maxsim-dashboard__ask_question` using the schema translation rules from @dashboard-bridge. If `DASHBOARD_ACTIVE = false`, use `AskUserQuestion` as normal.
-</tool_mandate>
 
 <auto_mode>
 ## Auto Mode Detection

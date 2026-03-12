@@ -15,7 +15,6 @@ No Pass/Fail buttons. No severity questions. Just: "Here's what should happen. D
 </philosophy>
 
 <required_reading>
-@./references/dashboard-bridge.md
 </required_reading>
 
 <template>
@@ -178,20 +177,7 @@ Proceed to `present_test`.
 
 Read Current Test section from UAT file.
 
-**If `DASHBOARD_ACTIVE`** (see @dashboard-bridge): present test via MCP tool:
-```
-mcp__maxsim-dashboard__ask_question(
-  question: "**Test {number}: {name}**\n\n{expected}\n\n---\nSelect result or describe what's wrong:",
-  options: [
-    { value: "pass", label: "Pass" },
-    { value: "skip", label: "Skip" }
-  ],
-  allow_free_text: true
-)
-```
-Map response: "pass"/"skip" → handle as pass/skip. Any other text → logged as issue.
-
-**If `DASHBOARD_ACTIVE = false`**: display using checkpoint box format:
+Display using checkpoint box format:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -253,7 +239,7 @@ reported: "{verbatim user response}"
 severity: {inferred}
 ```
 
-Append to Gaps section (structured YAML for plan-phase --gaps):
+Append to Gaps section (structured YAML for plan --gaps):
 ```yaml
 - truth: "{expected behavior from test}"
   status: failed

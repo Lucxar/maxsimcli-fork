@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Claude Code Statusline - MAXSIM Edition
- * Shows: [update] model | P{N} | v{M}: {pct}% | dirname
+ * Shows: [update] model | P{N} {BoardColumn} | {milestone}: {pct}% | dirname
  */
 
 import * as fs from 'node:fs';
@@ -19,6 +19,8 @@ export interface ProgressCache {
   phase_number: string | null;
   milestone_title: string | null;
   milestone_pct: number;
+  board_column: string | null;
+  offline?: boolean;
   updated: number;
 }
 
@@ -73,18 +75,41 @@ try {
     // gh api failed for milestones, continue with defaults
   }
 
-  // Get current phase from labels on open issues
+  // Get current phase from open issues with 'phase' label, parse number from title
   let phaseNumber = null;
+  let issueNumber = null;
   try {
     const phaseRaw = execSync(
-      'gh api "repos/' + owner + '/' + repo + '/issues?state=open&labels=phase:&per_page=1&sort=created&direction=desc" --jq ".[0].labels[] | select(.name | startswith(\\"phase:\\")) | .name"',
+      'gh api "repos/' + owner + '/' + repo + '/issues?state=open&labels=phase&per_page=1&sort=updated&direction=desc" --jq ".[0] | {number: .number, title: .title}"',
       { encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
     ).trim();
-    if (phaseRaw && phaseRaw.startsWith('phase:')) {
-      phaseNumber = phaseRaw.replace('phase:', '').trim();
+    const phaseData = JSON.parse(phaseRaw || '{}');
+    const titleMatch = (phaseData.title || '').match(/^\\[Phase\\s+(\\S+)\\]/);
+    if (titleMatch) {
+      phaseNumber = titleMatch[1];
     }
+    issueNumber = phaseData.number || null;
   } catch (e) {
     // gh api failed for phase, continue with null
+  }
+
+  // Get board column via GraphQL
+  let boardColumn = null;
+  if (issueNumber) {
+    try {
+      const gqlQuery = '{ repository(owner: "' + owner + '", name: "' + repo + '") { issue(number: ' + issueNumber + ') { projectItems(first: 5, includeArchived: false) { nodes { fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }';
+      const boardRaw = execSync(
+        'gh api graphql -f query=@-',
+        { input: gqlQuery, encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
+      ).trim();
+      const boardData = JSON.parse(boardRaw);
+      const nodes = boardData?.data?.repository?.issue?.projectItems?.nodes || [];
+      if (nodes.length > 0 && nodes[0]?.fieldValueByName?.name) {
+        boardColumn = nodes[0].fieldValueByName.name;
+      }
+    } catch (e) {
+      boardColumn = null;
+    }
   }
 
   // Write cache
@@ -92,6 +117,7 @@ try {
     phase_number: phaseNumber,
     milestone_title: milestoneTitle,
     milestone_pct: milestonePct,
+    board_column: boardColumn,
     updated: Math.floor(Date.now() / 1000),
   });
 
@@ -99,7 +125,18 @@ try {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(${JSON.stringify(cacheFile)}, cacheData);
 } catch (e) {
-  // Silently degrade if gh not available
+  try {
+    const dir = ${JSON.stringify(cacheDir)};
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(${JSON.stringify(cacheFile)}, JSON.stringify({
+      phase_number: null,
+      milestone_title: null,
+      milestone_pct: 0,
+      board_column: null,
+      offline: true,
+      updated: Math.floor(Date.now() / 1000),
+    }));
+  } catch (_) {}
   process.exit(0);
 }
 `;
@@ -166,10 +203,16 @@ export function formatStatusline(data: StatuslineInput): string {
     spawnBackgroundRefresh(cacheDir, cacheFile);
   }
 
-  // Build phase segment
+  // Offline fallback
+  if (cache?.offline) {
+    return `${updateIndicator}${DIM}${model}${RESET}${SEP}${DIM}P? offline${RESET}${SEP}${DIM}${dirname}${RESET}`;
+  }
+
+  // Build phase segment: P{N} {BoardColumn}
   let phaseSegment = '';
   if (cache?.phase_number) {
-    phaseSegment = `${SEP}${DIM}P${cache.phase_number}${RESET}`;
+    const column = cache.board_column ? ` ${cache.board_column}` : '';
+    phaseSegment = `${SEP}${DIM}P${cache.phase_number}${column}${RESET}`;
   }
 
   // Build milestone segment

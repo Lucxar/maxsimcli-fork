@@ -368,7 +368,7 @@ async function install(): Promise<InstallResult> {
   }
 
   // Install hooks (always local mode)
-  installHookFiles(targetDir, false, failures);
+  installHookFiles(targetDir, failures);
 
   // Write .mcp.json for Claude Code MCP server auto-discovery
   const mcpJsonPath = path.join(process.cwd(), '.mcp.json');
@@ -430,7 +430,7 @@ async function install(): Promise<InstallResult> {
   reportLocalPatches(targetDir);
 
   // Configure statusline and hooks in settings.json (always local mode)
-  const { settingsPath, settings, statuslineCommand } = configureSettingsHooks(targetDir, false);
+  const { settingsPath, settings, statuslineCommand } = configureSettingsHooks(targetDir);
 
   return { settingsPath, settings, statuslineCommand };
 }
@@ -500,7 +500,6 @@ async function installForClaude(
     result.settings,
     result.statuslineCommand,
     shouldInstallStatusline,
-    false, // always local
   );
 }
 

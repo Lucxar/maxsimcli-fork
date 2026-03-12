@@ -106,7 +106,7 @@ Systematic debugging with persistent state across context resets.
 
 - Scientific method: gather symptoms, hypothesize, test, verify
 - Persistent debug sessions in `.planning/debug/` -- survives `/clear`
-- Spawns isolated debugger agent (fresh 200K context per investigation)
+- Spawns isolated verifier agent (fresh 200K context per investigation)
 - Run with no args to resume an active session
 
 Usage: `/maxsim:debug login form returns 500` or `/maxsim:debug` (resume)

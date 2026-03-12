@@ -24,7 +24,7 @@ node ~/.claude/maxsim/bin/maxsim-tools.cjs commit "" --files .planning/codebase/
 
 | Command | Scope | Example |
 |---------|-------|---------|
-| plan-phase | phase | `docs(phase-03): create authentication plans` |
+| plan | phase | `docs(phase-03): create authentication plans` |
 | execute-phase | phase | `docs(phase-03): complete authentication phase` |
 | new-milestone | milestone | `docs: start milestone v1.1` |
 | remove-phase | chore | `chore: remove phase 17 (dashboard)` |

@@ -36,17 +36,6 @@ export function getGlobalDir(explicitDir: string | null = null): string {
 }
 
 /**
- * Get the config directory path relative to home for hook templating.
- * Used for path.join(homeDir, '<configDir>', ...) replacement in hooks.
- *
- * @deprecated Global install is no longer supported in v5.0+.
- * TODO: Remove when hooks.ts no longer needs global/local distinction.
- */
-export function getConfigDirFromHome(_isGlobal: boolean): string {
-  return "'.claude'";
-}
-
-/**
  * Get the local directory name
  */
 export function getDirName(): string {

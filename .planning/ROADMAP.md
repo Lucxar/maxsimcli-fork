@@ -14,7 +14,7 @@
 - [x] **Phase 4: Prompt & Skill Architecture** - Skills-based progressive disclosure, custom agent definitions, hard gates, evidence verification
 - [ ] **Phase 5: Parallel Execution Model** - Worktree isolation, agent teams, two-stage review, batch execution, spec-driven methodology
 - [ ] **Phase 6: Hook System** - Statusline, GitHub sync reminder, update checker, remove context monitor
-- [ ] **Phase 7: GitHub Workflow Integration** - Wire MCP GitHub tools into init/plan/execute/progress workflows
+- [x] **Phase 7: GitHub Workflow Integration** - Wire MCP GitHub tools into init/plan/execute/progress workflows (completed 2026-03-11)
 - [ ] **Phase 8: Stale Reference Cleanup** - Remove dashboard-bridge references, update statusline GitHub source
 - [ ] **Phase 9: Spec Reconciliation** - Update REQUIREMENTS.md, ROADMAP.md, STATE.md to reflect actual completion
 - [ ] **Phase 10: Drift Detection & Realignment** - Built-in drift detection and realignment commands for end users
@@ -218,7 +218,7 @@ Unmapped: 0
 | 4. Prompt & Skill Architecture | 5/5 | Complete | 2026-03-10 |
 | 5. Parallel Execution Model | 5/5 | Complete | 2026-03-10 |
 | 6. Hook System | 2/2 | Complete | 2026-03-11 |
-| 7. GitHub Workflow Integration | 0/7 | Planned | - |
+| 7. GitHub Workflow Integration | 0/7 | Complete    | 2026-03-11 |
 | 8. Stale Reference Cleanup | 0/0 | Not Started | - |
 | 9. Spec Reconciliation | 0/0 | Not Started | - |
 | 10. Drift Detection & Realignment | 0/0 | Not Started | - |

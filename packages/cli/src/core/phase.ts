@@ -123,7 +123,7 @@ export async function phaseAddCore(cwd: string, description: string, options?: P
     await scaffoldPhaseStubs(dirPath, paddedNum, description);
   }
 
-  const phaseEntry = `\n### Phase ${newPhaseNum}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${maxPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /maxsim:plan-phase ${newPhaseNum} to break down)\n`;
+  const phaseEntry = `\n### Phase ${newPhaseNum}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${maxPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /maxsim:plan ${newPhaseNum} to break down)\n`;
 
   let updatedContent: string;
   const lastSeparator = content.lastIndexOf('\n---');
@@ -189,7 +189,7 @@ export async function phaseInsertCore(cwd: string, afterPhase: string, descripti
     await scaffoldPhaseStubs(dirPath, decimalPhase, description);
   }
 
-  const phaseEntry = `\n### Phase ${decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /maxsim:plan-phase ${decimalPhase} to break down)\n`;
+  const phaseEntry = `\n### Phase ${decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /maxsim:plan ${decimalPhase} to break down)\n`;
 
   const headerPattern = new RegExp(`(#{2,4}\\s*Phase\\s+0*${afterPhaseEscaped}:[^\\n]*\\n)`, 'i');
   const headerMatch = content.match(headerPattern);
@@ -1117,27 +1117,6 @@ export async function cmdGetArchivedPhase(cwd: string, phaseNum: string): Promis
   const archiveDir = planningPath(cwd, 'archive');
   const found = await searchArchiveLocations(archiveDir, normalized);
   if (found) return cmdOk(found);
-
-  // Search legacy .planning/milestones/
-  const milestonesDir = planningPath(cwd, 'milestones');
-  if (await pathExistsInternal(milestonesDir)) {
-    try {
-      const entries = await fsp.readdir(milestonesDir, { withFileTypes: true });
-      const phaseDirs = entries
-        .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
-        .map(e => e.name)
-        .sort()
-        .reverse();
-
-      for (const archiveName of phaseDirs) {
-        const archPath = path.join(milestonesDir, archiveName);
-        const result = await searchForPhaseInDir(archPath, normalized, archiveName);
-        if (result) return cmdOk(result);
-      }
-    } catch (e) {
-      debugLog('get-archived-phase-milestones-failed', e);
-    }
-  }
 
   return cmdErr(`Phase ${phaseNum} not found in archive`);
 }

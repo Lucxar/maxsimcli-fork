@@ -31,7 +31,6 @@ function scaffoldPlanning(
     state?: string;
     phases?: Record<string, Record<string, string>>;
     archive?: Record<string, Record<string, Record<string, string>>>;
-    milestones?: Record<string, Record<string, Record<string, string>>>;
   } = {},
 ): void {
   const planningDir = path.join(cwd, '.planning');
@@ -57,18 +56,6 @@ function scaffoldPlanning(
   if (opts.archive) {
     for (const [milestone, phases] of Object.entries(opts.archive)) {
       const msDir = path.join(planningDir, 'archive', milestone);
-      for (const [phaseName, files] of Object.entries(phases)) {
-        const phaseDir = path.join(msDir, phaseName);
-        fs.mkdirSync(phaseDir, { recursive: true });
-        for (const [fileName, content] of Object.entries(files)) {
-          fs.writeFileSync(path.join(phaseDir, fileName), content);
-        }
-      }
-    }
-  }
-  if (opts.milestones) {
-    for (const [milestoneName, phases] of Object.entries(opts.milestones)) {
-      const msDir = path.join(planningDir, 'milestones', milestoneName);
       for (const [phaseName, files] of Object.entries(phases)) {
         const phaseDir = path.join(msDir, phaseName);
         fs.mkdirSync(phaseDir, { recursive: true });
@@ -395,29 +382,6 @@ describe('cmdGetArchivedPhase', () => {
       const contents = data.contents as Record<string, string>;
       expect(contents['01-01-PLAN.md']).toBe('plan content here');
       expect(contents['01-01-SUMMARY.md']).toBe('summary content here');
-    }
-  });
-
-  it('returns archived phase content when found in legacy .planning/milestones/ path', async () => {
-    const cwd = makeTempDir();
-    scaffoldPlanning(cwd, {
-      milestones: {
-        'v4.0-phases': {
-          '03-Old-Phase': {
-            '03-01-PLAN.md': 'old plan',
-            '03-01-SUMMARY.md': 'old summary',
-          },
-        },
-      },
-    });
-
-    const result = await cmdGetArchivedPhase(cwd, '3');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      const data = result.result as Record<string, unknown>;
-      expect(data.milestone).toBe('v4.0-phases');
-      const contents = data.contents as Record<string, string>;
-      expect(contents['03-01-PLAN.md']).toBe('old plan');
     }
   });
 

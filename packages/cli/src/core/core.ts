@@ -34,6 +34,7 @@ export const MODEL_PROFILES: ModelProfiles = {
   'planner':    { quality: 'opus',   balanced: 'opus',   budget: 'sonnet', tokenburner: 'opus' },
   'researcher': { quality: 'opus',   balanced: 'sonnet', budget: 'haiku',  tokenburner: 'opus' },
   'verifier':   { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku',  tokenburner: 'opus' },
+  'debugger':   { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku',  tokenburner: 'opus' },
 };
 
 // ─── Output helpers ──────────────────────────────────────────────────────────
@@ -438,35 +439,6 @@ export async function findPhaseInternal(cwd: string, phase: string): Promise<Pha
     }
   }
 
-  // Legacy: search .planning/milestones/
-  const milestonesDir = planningPath(cwd, 'milestones');
-
-  if (!(await pathExistsInternal(milestonesDir))) return null;
-
-  try {
-    const milestoneEntries = await fsp.readdir(milestonesDir, { withFileTypes: true });
-    const archiveDirs = milestoneEntries
-      .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
-      .map(e => e.name)
-      .sort()
-      .reverse();
-
-    for (const archiveName of archiveDirs) {
-      const versionMatch = archiveName.match(/^(v[\d.]+)-phases$/);
-      if (!versionMatch) continue;
-      const version = versionMatch[1];
-      const archiveMilestonePath = path.join(milestonesDir, archiveName);
-      const relBase = path.join('.planning', 'milestones', archiveName);
-      const result = await searchPhaseInDir(archiveMilestonePath, relBase, normalized);
-      if (result) {
-        result.archived = version;
-        return result;
-      }
-    }
-  } catch (e) {
-    debugLog('find-phase-async-milestone-search-failed', e);
-  }
-
   return null;
 }
 
@@ -498,36 +470,6 @@ export async function getArchivedPhaseDirs(cwd: string): Promise<ArchivedPhaseDi
     }
   } catch (e) {
     debugLog('get-archived-phase-dirs-async-archive-failed', e);
-  }
-
-  // Legacy: .planning/milestones/
-  const milestonesDir = planningPath(cwd, 'milestones');
-  try {
-    const milestoneEntries = await fsp.readdir(milestonesDir, { withFileTypes: true });
-    const phaseDirs = milestoneEntries
-      .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
-      .map(e => e.name)
-      .sort()
-      .reverse();
-
-    for (const archiveName of phaseDirs) {
-      const versionMatch = archiveName.match(/^(v[\d.]+)-phases$/);
-      if (!versionMatch) continue;
-      const version = versionMatch[1];
-      const archiveMilestonePath = path.join(milestonesDir, archiveName);
-      const dirs = await listSubDirs(archiveMilestonePath, true);
-
-      for (const dir of dirs) {
-        results.push({
-          name: dir,
-          milestone: version,
-          basePath: path.join('.planning', 'milestones', archiveName),
-          fullPath: path.join(archiveMilestonePath, dir),
-        });
-      }
-    }
-  } catch (e) {
-    debugLog('get-archived-phase-dirs-async-failed', e);
   }
 
   return results;

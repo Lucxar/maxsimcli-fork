@@ -13,7 +13,6 @@ Follows the batch-worktree skill process: Research (decompose) -> Plan (validate
 
 <required_reading>
 Read all files referenced by the invoking prompt's execution_context before starting.
-@./references/dashboard-bridge.md
 </required_reading>
 
 <process>
@@ -225,7 +224,7 @@ For each unit (spawn all with `run_in_background: true` for parallel execution):
 
 ```
 Task(
-  subagent_type="general-purpose",
+  subagent_type="executor",
   model="{executor_model}",
   isolation="worktree",
   run_in_background=true,
@@ -299,7 +298,7 @@ For each failed unit:
 **Attempt 1 — spawn fix agent:**
 ```
 Task(
-  subagent_type="general-purpose",
+  subagent_type="executor",
   model="{executor_model}",
   isolation="worktree",
   prompt="

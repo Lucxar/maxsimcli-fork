@@ -8,7 +8,7 @@ import {
   writeSettings,
   buildHookCommand,
 } from './utils.js';
-import { getDirName, getConfigDirFromHome, verifyInstalled } from './shared.js';
+import { getDirName, verifyInstalled } from './shared.js';
 import * as path from 'node:path';
 import ora from 'ora';
 
@@ -185,7 +185,6 @@ export function cleanupOrphanedHooks(
  */
 export function installHookFiles(
   targetDir: string,
-  isGlobal: boolean,
   failures: string[],
 ): void {
   // Copy hooks from bundled assets directory
@@ -202,7 +201,7 @@ export function installHookFiles(
     const hooksDest = path.join(targetDir, 'hooks');
     fs.mkdirSync(hooksDest, { recursive: true });
     const hookEntries = fs.readdirSync(hooksSrc);
-    const configDirReplacement = getConfigDirFromHome(isGlobal);
+    const configDirReplacement = "'.claude'";
     for (const entry of hookEntries) {
       const srcFile = path.join(hooksSrc, entry);
       if (fs.statSync(srcFile).isFile() && entry.endsWith('.cjs') && !entry.includes('.d.')) {
@@ -227,21 +226,14 @@ export function installHookFiles(
  */
 export function configureSettingsHooks(
   targetDir: string,
-  isGlobal: boolean,
 ): { settingsPath: string; settings: Record<string, unknown>; statuslineCommand: string; updateCheckCommand: string; syncReminderCommand: string } {
   const dirName = getDirName();
 
   const settingsPath = path.join(targetDir, 'settings.json');
   const settings = cleanupOrphanedHooks(readSettings(settingsPath));
-  const statuslineCommand = isGlobal
-    ? buildHookCommand(targetDir, 'maxsim-statusline.js')
-    : 'node ' + dirName + '/hooks/maxsim-statusline.js';
-  const updateCheckCommand = isGlobal
-    ? buildHookCommand(targetDir, 'maxsim-check-update.js')
-    : 'node ' + dirName + '/hooks/maxsim-check-update.js';
-  const syncReminderCommand = isGlobal
-    ? buildHookCommand(targetDir, 'maxsim-sync-reminder.js')
-    : 'node ' + dirName + '/hooks/maxsim-sync-reminder.js';
+  const statuslineCommand = 'node ' + dirName + '/hooks/maxsim-statusline.js';
+  const updateCheckCommand = 'node ' + dirName + '/hooks/maxsim-check-update.js';
+  const syncReminderCommand = 'node ' + dirName + '/hooks/maxsim-sync-reminder.js';
   interface InstallHookEntry {
     matcher?: string;
     hooks?: Array<{ type: string; command: string }>;
@@ -363,7 +355,6 @@ export function finishInstall(
   settings: Record<string, unknown> | null,
   statuslineCommand: string | null,
   shouldInstallStatusline: boolean,
-  isGlobal: boolean = true,
 ): void {
   if (shouldInstallStatusline) {
     settings!.statusLine = {

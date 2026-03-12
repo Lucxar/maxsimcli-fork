@@ -6,4 +6,4 @@
 
 ---
 
-_Research will be populated by /maxsim:research-phase_
+_Research will be populated by /maxsim:plan_

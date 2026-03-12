@@ -14,8 +14,6 @@ Fresh context per task. No context bleeding between tasks. Review is mandatory, 
 
 <required_reading>
 Read STATE.md before any operation to load project context.
-
-@./references/dashboard-bridge.md
 </required_reading>
 
 <process>

@@ -7,13 +7,8 @@ Start a new milestone cycle for an existing project. Loads project context, gath
 <required_reading>
 
 Read all files referenced by the invoking prompt's execution_context before starting.
-@./references/dashboard-bridge.md
 
 </required_reading>
-
-<tool_mandate>
-**Question routing:** At workflow start, probe for the dashboard (see @dashboard-bridge). If `DASHBOARD_ACTIVE = true`, route ALL `AskUserQuestion` calls through `mcp__maxsim-dashboard__ask_question` using the schema translation rules from @dashboard-bridge. If `DASHBOARD_ACTIVE = false`, use `AskUserQuestion` as normal.
-</tool_mandate>
 
 <process>
 
@@ -22,12 +17,12 @@ Read all files referenced by the invoking prompt's execution_context before star
 - Read PROJECT.md (existing project, validated requirements, decisions)
 - Read MILESTONES.md (what shipped previously)
 - Read STATE.md (pending todos, blockers)
-- Check for MILESTONE-CONTEXT.md (from /maxsim:discuss-milestone)
+- Check for MILESTONE-CONTEXT.md (from /maxsim:plan)
 
 ## 2. Gather Milestone Goals
 
 **If MILESTONE-CONTEXT.md exists:**
-- Use features and scope from discuss-milestone
+- Use features and scope from plan
 - Present summary for confirmation
 
 **If no context file:**

@@ -11,7 +11,6 @@ You are a thinking partner, not an interviewer. The user is the visionary — yo
 </purpose>
 
 <required_reading>
-@./references/dashboard-bridge.md
 @./references/thinking-partner.md
 </required_reading>
 
@@ -27,13 +26,11 @@ Every question directed at the user MUST use a structured tool. NEVER write a qu
 - Any clarification or follow-up question
 - Existing context handling (update/view/skip)
 
-**Tool selection:** At workflow start, probe for the dashboard (see @dashboard-bridge). Then:
-- **DASHBOARD_ACTIVE = true** → use `mcp__maxsim-dashboard__ask_question` (questions appear in browser). Follow the schema translation rules from @dashboard-bridge.
-- **DASHBOARD_ACTIVE = false** → use `AskUserQuestion` (questions appear in terminal).
+**Tool selection:** Use `AskUserQuestion` (questions appear in terminal).
 
 **Why:** Plain-text questions create a worse UX — the user has to type free-form answers instead of selecting from well-designed options. Structured choices are the entire point of the discuss workflow.
 
-**The rule is simple:** If you need input from the user → use the appropriate structured tool based on dashboard availability. Zero exceptions.
+**The rule is simple:** If you need input from the user → use `AskUserQuestion`. Zero exceptions.
 </tool_mandate>
 
 <downstream_awareness>
@@ -603,19 +600,19 @@ Display banner:
  MAXSIM ► AUTO-ADVANCING TO PLAN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Context captured. Spawning plan-phase...
+Context captured. Spawning plan...
 ```
 
-Spawn plan-phase as Task with direct workflow file reference (do NOT use Skill tool — Skills don't resolve inside Task subagents):
+Spawn plan as Task with direct workflow file reference (do NOT use Skill tool — Skills don't resolve inside Task subagents):
 ```
 Task(
   prompt="
     <objective>
-    You are the plan-phase orchestrator. Create executable plans for Phase ${PHASE}: ${PHASE_NAME}, then auto-advance to execution.
+    You are the plan orchestrator. Create executable plans for Phase ${PHASE}: ${PHASE_NAME}, then auto-advance to execution.
     </objective>
 
     <execution_context>
-    @./workflows/plan-phase.md
+    @./workflows/plan.md
     @./references/ui-brand.md
     @./references/model-profile-resolution.md
     </execution_context>
@@ -626,7 +623,7 @@ Task(
     </arguments>
 
     <instructions>
-    1. Read plan-phase.md from execution_context for your complete workflow
+    1. Read plan.md from execution_context for your complete workflow
     2. Follow ALL steps: initialize, validate, load context, research, plan, verify, auto-advance
     3. When spawning agents (researcher, planner), use Task with specified subagent_type and model
     4. For step 14 (auto-advance to execute): spawn execute-phase as a Task with DIRECT file reference — tell it to read execute-phase.md. Include @file refs to execute-phase.md, checkpoints.md, tdd.md, model-profile-resolution.md. Pass --no-transition flag so execute-phase returns results instead of chaining further.
@@ -639,7 +636,7 @@ Task(
 )
 ```
 
-**Handle plan-phase return:**
+**Handle plan return:**
 - **PHASE COMPLETE** → Full chain succeeded. Display:
   ```
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

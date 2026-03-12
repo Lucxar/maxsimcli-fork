@@ -24,8 +24,6 @@ Orchestrator coordinates, not executes. Each subagent loads the full execute-pla
 
 <required_reading>
 Read STATE.md before any operation to load project context.
-
-@./references/dashboard-bridge.md
 </required_reading>
 
 <process>
@@ -51,19 +49,6 @@ REVIEW_CONFIG (from init JSON review_config — spec_review, code_review, simpli
 **If `state_exists` is false but `.planning/` exists:** Offer reconstruct or continue.
 
 When `parallelization` is false, plans within a wave execute sequentially.
-</step>
-
-<step name="probe_dashboard">
-Probe for MCP dashboard availability (see @dashboard-bridge). If `DASHBOARD_ACTIVE`, emit:
-```
-mcp__maxsim-dashboard__submit_lifecycle_event(
-  event_type: "phase-started",
-  phase_name: PHASE_NAME,
-  phase_number: PHASE_NUMBER
-)
-```
-
-**Note:** The dashboard is NOT auto-launched. Users start it explicitly via `maxsim dashboard`. This step only checks if a running dashboard is reachable via MCP.
 </step>
 
 <step name="handle_branching">
@@ -338,16 +323,7 @@ For each wave:
    - Bad: "Executing terrain generation plan"
    - Good: "Procedural terrain generator using Perlin noise — creates height maps, biome zones, and collision meshes. Required before vehicle physics can interact with ground."
 
-2. **Emit plan-started lifecycle event** (if `DASHBOARD_ACTIVE`):
-   ```
-   mcp__maxsim-dashboard__submit_lifecycle_event(
-     event_type: "plan-started",
-     phase_name: PHASE_NAME, phase_number: PHASE_NUMBER,
-     step: plan_index, total_steps: total_plans
-   )
-   ```
-
-3. **Spawn executor agents:**
+2. **Spawn executor agents:**
 
    Pass plan content from GitHub and GitHub context — executors do NOT need to read local PLAN.md files.
    This keeps orchestrator context lean (~10-15%).
@@ -421,16 +397,7 @@ For each wave:
 
    Review stages to check: `Spec:` and `Code:` lines in `## Review Cycle`. Both must be PASS or SKIPPED for the plan to be considered review-complete.
 
-   If pass — **emit plan-complete lifecycle event** (if `DASHBOARD_ACTIVE`):
-   ```
-   mcp__maxsim-dashboard__submit_lifecycle_event(
-     event_type: "plan-complete",
-     phase_name: PHASE_NAME, phase_number: PHASE_NUMBER,
-     step: plan_index, total_steps: total_plans
-   )
-   ```
-
-   Then report:
+   If pass — report:
    ```
    ---
    ## Wave {N} Complete
@@ -725,14 +692,6 @@ mcp_post_comment(
 )
 ```
 
-**Emit phase-complete lifecycle event** (if `DASHBOARD_ACTIVE`):
-```
-mcp__maxsim-dashboard__submit_lifecycle_event(
-  event_type: "phase-complete",
-  phase_name: PHASE_NAME,
-  phase_number: PHASE_NUMBER
-)
-```
 </step>
 
 <step name="offer_next">
@@ -745,8 +704,7 @@ Parse `--no-transition` flag from $ARGUMENTS.
 
 **If `--no-transition` flag present:**
 
-Execute-phase was spawned by plan-phase's auto-advance. Do NOT run transition.md.
-After verification passes and roadmap is updated, return completion status to parent:
+Execute-phase was spawned by plan's auto-advance. After verification passes and roadmap is updated, return completion status to parent:
 
 ```
 ## PHASE COMPLETE
@@ -780,13 +738,11 @@ STOP. Do not proceed to auto-advance or transition.
 ╚══════════════════════════════════════════╝
 ```
 
-Execute the transition workflow inline (do NOT use Task — orchestrator context is ~10-15%, transition needs phase completion data already in context):
-
-Read and follow `~/.claude/maxsim/workflows/transition.md`, passing through the `--auto` flag so it propagates to the next phase invocation.
+Phase advancement is complete. The user may run `/maxsim:go` or `/maxsim:execute` to continue to the next phase.
 
 **If neither `--auto` nor `AUTO_CFG` is true:**
 
-The workflow ends. The user runs `/maxsim:progress` or invokes the transition workflow manually.
+The workflow ends. The user runs `/maxsim:go` or `/maxsim:execute` to advance to the next phase.
 </step>
 
 </process>
